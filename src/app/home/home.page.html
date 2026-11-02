@@ -1,0 +1,7 @@
+<ion-content [fullscreen]="true" class="home-content">
+  <main class="home-shell" *ngIf="!loading && user">
+    <header class="home-header"><a class="home-brand" routerLink="/home"><span class="brand-mark">✳</span><span>Conecta<span>RD</span></span></a><button class="logout-button" type="button" (click)="signOut()">Cerrar sesión</button></header>
+    <section class="welcome-card"><p class="home-kicker">CONECTARD</p><h1>¡Bienvenido/a, {{ displayName }}!</h1><p>Tu cuenta ya está conectada. Desde aquí podrás empezar a participar en tu comunidad.</p><div class="next-step"><span class="step-icon">✓</span><span>Inicio de sesión completado</span></div></section>
+    <p class="home-caption">La próxima etapa será completar el perfil y crear el primer reporte comunitario.</p>
+  </main>
+</ion-content>

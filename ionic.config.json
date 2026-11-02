@@ -1,0 +1,7 @@
+{
+  "name": "comunica-rd",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

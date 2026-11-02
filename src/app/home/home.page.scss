@@ -1,0 +1,16 @@
+:host { display: block; height: 100%; }
+.home-content { --background: #f4f7f6; }
+.home-shell { max-width: 1120px; margin: 0 auto; padding: 32px 42px; color: #1b292b; }
+.home-header { display: flex; align-items: center; justify-content: space-between; }
+.home-brand { display: inline-flex; align-items: center; gap: 10px; color: #182325; text-decoration: none; font-size: 20px; font-weight: 760; }
+.home-brand > span:last-child > span { color: #009e95; }
+.brand-mark { width: 30px; height: 30px; border: 2px solid #00a99f; border-radius: 50%; display: grid; place-items: center; color: #00a99f; }
+.logout-button { border: 1px solid #d5dfdf; border-radius: 9px; background: #fff; color: #334144; padding: 11px 15px; font-size: 13px; font-weight: 650; cursor: pointer; }
+.welcome-card { max-width: 740px; margin: 130px auto 0; border: 1px solid #e3eaea; border-radius: 22px; background: #fff; padding: 50px; box-shadow: 0 22px 60px #1b333311; }
+.home-kicker { color: #009e95; font-size: 11px; font-weight: 800; letter-spacing: 1.7px; }
+.welcome-card h1 { color: #172326; font-size: clamp(30px, 5vw, 44px); letter-spacing: -1.4px; line-height: 1.08; margin: 14px 0; }
+.welcome-card > p:not(.home-kicker) { color: #718084; font-size: 16px; line-height: 1.6; max-width: 520px; }
+.next-step { display: flex; align-items: center; gap: 11px; margin-top: 28px; border-radius: 12px; background: #eefaf8; padding: 14px 16px; color: #216d67; font-weight: 650; }
+.step-icon { width: 25px; height: 25px; border-radius: 50%; display: grid; place-items: center; background: #00b2a9; color: #062a28; font-size: 14px; }
+.home-caption { text-align: center; color: #8a9699; font-size: 13px; margin-top: 24px; }
+@media (max-width: 600px) { .home-shell { padding: 22px; } .welcome-card { margin-top: 90px; padding: 28px 24px; } }
