@@ -1,0 +1,3 @@
+[auth.email.template.confirmation]
+subject = "Confirma tu correo | ConectaRD"
+content_path = "./supabase/templates/confirmation.html"

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import type { User } from '@supabase/supabase-js';
 import { AuthService } from '../auth/auth.service';
@@ -10,10 +10,11 @@ import { AuthService } from '../auth/auth.service';
   standalone: false,
 })
 export class HomePage implements OnInit {
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
   user: User | null = null;
   loading = true;
-
-  constructor(private readonly auth: AuthService, private readonly router: Router) {}
 
   async ngOnInit(): Promise<void> {
     try {

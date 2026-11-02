@@ -88,6 +88,18 @@
 .register-privacy { margin: 12px 0 0; color: #929d9f; text-align: center; font-size: 10px; line-height: 1.45; }
 .auth-form--register .switch-auth { margin-top: 13px; }
 
+.auth-feedback { width: min(100%, 430px); padding: 36px 28px; text-align: center; }
+.auth-feedback .form-kicker { margin: 20px 0 12px; }
+.auth-feedback h2 { margin: 0; color: #182326; font-size: 32px; font-weight: 750; letter-spacing: -1px; line-height: 1.15; }
+.auth-feedback .form-subtitle { margin: 12px auto 0; max-width: 390px; }
+.auth-feedback .form-subtitle strong { color: #344346; overflow-wrap: anywhere; }
+.auth-feedback .submit-button { margin-top: 26px; }
+.auth-feedback__spinner { display: inline-block; width: 50px; height: 50px; border: 4px solid #d9efed; border-top-color: #009f98; border-radius: 50%; animation: auth-spin .8s linear infinite; }
+.auth-feedback__icon { display: inline-grid; width: 58px; height: 58px; place-items: center; border-radius: 50%; background: #eaf7f6; color: #008e87; font-size: 27px; }
+.auth-feedback--success .form-kicker { margin-top: 22px; }
+
+@keyframes auth-spin { to { transform: rotate(360deg); } }
+
 @media (max-width: 1040px) {
   .auth-shell { grid-template-columns: minmax(340px, 42%) minmax(420px, 1fr); }
   .visual-panel { padding-inline: 34px; }

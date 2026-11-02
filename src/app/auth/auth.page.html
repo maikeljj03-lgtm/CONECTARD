@@ -20,111 +20,173 @@
       </a>
     </aside>
 
-    <section class="form-panel" [ngSwitch]="mode">
-      <div class="auth-form auth-form--login" *ngSwitchCase="'login'">
-        <div class="mobile-brand brand" aria-hidden="true"><span class="brand-mark"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14"/><path d="M2 16h28M16 2c-7 7-7 21 0 28m0-28c7 7 7 21 0 28"/></svg></span><span>Conecta<span class="brand-rd">RD</span></span></div>
-        <p class="form-kicker">TU COMUNIDAD TE ESPERA</p>
-        <h2>Inicia sesión</h2>
-        <p class="form-subtitle">Bienvenido de vuelta. Accede a tu cuenta.</p>
-
-        <button class="google-button" type="button" (click)="continueWithGoogle()" [disabled]="busy">
-          <span class="google-mark" aria-hidden="true">G</span><span>{{ busy ? 'Conectando con Google…' : 'Continuar con Google' }}</span>
-        </button>
-        <div class="form-divider"><span>o usa tu correo</span></div>
-
-        <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" novalidate>
-          <label class="field-label" for="login-email">Correo electrónico</label>
-          <input id="login-email" type="email" formControlName="email" autocomplete="email" placeholder="nombre@correo.com" [attr.aria-invalid]="loginForm.controls['email'].invalid && loginForm.controls['email'].touched">
-          <small class="field-error" *ngIf="loginForm.controls['email'].hasError('required') && loginForm.controls['email'].touched">Escribe tu correo electrónico.</small>
-          <small class="field-error" *ngIf="loginForm.controls['email'].hasError('email') && loginForm.controls['email'].touched">Revisa el formato del correo.</small>
-
-          <div class="field-label-row"><label class="field-label" for="login-password">Contraseña</label><a routerLink="/auth/forgot-password">¿La olvidaste?</a></div>
-          <div class="password-wrap"><input id="login-password" [type]="showPassword ? 'text' : 'password'" formControlName="password" autocomplete="current-password" placeholder="Tu contraseña"><button type="button" class="password-toggle" (click)="togglePassword()" [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">{{ showPassword ? 'Ocultar' : 'Mostrar' }}</button></div>
-          <small class="field-error" *ngIf="loginForm.controls['password'].invalid && loginForm.controls['password'].touched">Escribe tu contraseña.</small>
-
-          <div class="message message--error" role="alert" *ngIf="message">{{ message }}</div>
-          <div class="message message--success" role="status" *ngIf="notice">{{ notice }}</div>
-          <button class="submit-button" type="submit" [disabled]="busy">{{ busy ? 'Conectando…' : 'Iniciar sesión' }}</button>
-        </form>
-        <p class="switch-auth">¿No tienes cuenta? <a routerLink="/auth/register">Crear cuenta</a></p>
-        <p class="legal-copy">El acceso está sujeto a los Términos de uso y a la Política de privacidad de ConectaRD.</p>
-      </div>
-
-      <div class="auth-form auth-form--register" *ngSwitchCase="'register'">
-        <div class="mobile-brand brand" aria-hidden="true"><span class="brand-mark"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14"/><path d="M2 16h28M16 2c-7 7-7 21 0 28m0-28c7 7 7 21 0 28"/></svg></span><span>Conecta<span class="brand-rd">RD</span></span></div>
-        <p class="form-kicker">UN ESPACIO PARA HACER LA DIFERENCIA</p>
-        <h2>Únete a ConectaRD</h2>
-        <p class="form-subtitle">Crea tu cuenta y conecta con personas que están mejorando su comunidad.</p>
-        <ng-container *ngIf="registerForm.value.requestedRole === 'citizen'">
-          <button class="google-button" type="button" (click)="continueWithGoogle()" [disabled]="busy"><span class="google-mark" aria-hidden="true">G</span><span>{{ busy ? 'Conectando con Google…' : 'Crear cuenta ciudadana con Google' }}</span></button>
-          <div class="form-divider"><span>o regístrate con tu correo</span></div>
-        </ng-container>
-        <form [formGroup]="registerForm" (ngSubmit)="submitRegister()" novalidate>
-          <fieldset class="role-picker">
-            <legend>¿Cómo quieres participar?</legend>
-            <div class="role-options">
-              <label class="role-option" [class.role-option--selected]="registerForm.value.requestedRole === 'citizen'"><input type="radio" formControlName="requestedRole" value="citizen"><span class="role-icon" aria-hidden="true">◎</span><span class="role-copy"><strong>Como ciudadano/a</strong><small>Reporta situaciones y participa.</small></span><span class="role-check" aria-hidden="true">✓</span></label>
-              <label class="role-option" [class.role-option--selected]="registerForm.value.requestedRole === 'volunteer'"><input type="radio" formControlName="requestedRole" value="volunteer"><span class="role-icon" aria-hidden="true">✳</span><span class="role-copy"><strong>Como voluntario/a</strong><small>Ofrece tu tiempo y habilidades.</small></span><span class="role-check" aria-hidden="true">✓</span></label>
-              <label class="role-option" [class.role-option--selected]="registerForm.value.requestedRole === 'organization'"><input type="radio" formControlName="requestedRole" value="organization"><span class="role-icon" aria-hidden="true">⌂</span><span class="role-copy"><strong>Desde una ONG</strong><small>La cuenta requiere verificación.</small></span><span class="role-check" aria-hidden="true">✓</span></label>
-              <label class="role-option" [class.role-option--selected]="registerForm.value.requestedRole === 'institution'"><input type="radio" formControlName="requestedRole" value="institution"><span class="role-icon" aria-hidden="true">▤</span><span class="role-copy"><strong>Desde una institución</strong><small>La cuenta requiere verificación.</small></span><span class="role-check" aria-hidden="true">✓</span></label>
-            </div>
-          </fieldset>
-          <p class="role-note" *ngIf="registerForm.value.requestedRole === 'organization' || registerForm.value.requestedRole === 'institution'">La verificación se realizará después del registro. Esta selección no concede permisos institucionales.</p>
-
-          <div class="register-fields">
-            <div class="register-field register-field--wide">
-              <label class="field-label" for="register-name">Nombre completo</label>
-              <input id="register-name" type="text" formControlName="fullName" autocomplete="name" maxlength="80" placeholder="Ej. María Pérez" [attr.aria-invalid]="registerForm.controls['fullName'].invalid && registerForm.controls['fullName'].touched" aria-describedby="register-name-error">
-              <small class="field-error" id="register-name-error" *ngIf="registerForm.controls['fullName'].hasError('required') && registerForm.controls['fullName'].touched">Escribe tu nombre completo.</small>
-              <small class="field-error" *ngIf="registerForm.controls['fullName'].hasError('minlength') && registerForm.controls['fullName'].touched">El nombre debe tener al menos 2 caracteres.</small>
-            </div>
-            <div class="register-field register-field--wide">
-              <label class="field-label" for="register-email">Correo electrónico</label>
-              <input id="register-email" type="email" formControlName="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="nombre@correo.com" [attr.aria-invalid]="registerForm.controls['email'].invalid && registerForm.controls['email'].touched" aria-describedby="register-email-error">
-              <small class="field-error" id="register-email-error" *ngIf="registerForm.controls['email'].invalid && registerForm.controls['email'].touched">Escribe un correo electrónico válido.</small>
-            </div>
-            <div class="register-field">
-              <label class="field-label" for="register-password">Contraseña</label>
-              <div class="password-wrap"><input id="register-password" [type]="showPassword ? 'text' : 'password'" formControlName="password" autocomplete="new-password" minlength="8" placeholder="Mínimo 8 caracteres" [attr.aria-invalid]="registerForm.controls['password'].invalid && registerForm.controls['password'].touched"><button type="button" class="password-toggle" (click)="togglePassword()" [attr.aria-label]="showPassword ? 'Ocultar contraseñas' : 'Mostrar contraseñas'">{{ showPassword ? 'Ocultar' : 'Mostrar' }}</button></div>
-              <small class="field-hint">Usa 8 caracteres o más.</small>
-              <small class="field-error" *ngIf="registerForm.controls['password'].invalid && registerForm.controls['password'].touched">La contraseña debe tener al menos 8 caracteres.</small>
-            </div>
-            <div class="register-field">
-              <label class="field-label" for="register-confirm">Confirma la contraseña</label>
-              <input id="register-confirm" [type]="showPassword ? 'text' : 'password'" formControlName="confirmPassword" autocomplete="new-password" placeholder="Vuelve a escribirla" [attr.aria-invalid]="(registerForm.hasError('passwordMismatch') || registerForm.controls['confirmPassword'].invalid) && registerForm.controls['confirmPassword'].touched" aria-describedby="register-confirm-error">
-              <small class="field-error" id="register-confirm-error" *ngIf="registerForm.hasError('passwordMismatch') && registerForm.controls['confirmPassword'].touched">Las contraseñas no coinciden.</small>
-            </div>
+    <section class="form-panel">
+      @if (mode === 'register' && busy) {
+        <div class="auth-feedback" role="status" aria-live="polite">
+          <span class="auth-feedback__spinner" aria-hidden="true"></span>
+          <p class="form-kicker">UN MOMENTO</p>
+          <h2>Enviando la confirmación</h2>
+          <p class="form-subtitle">Cuando recibas el correo, confirma tu dirección para que se cree tu cuenta.</p>
+        </div>
+      } @else if (mode === 'register' && registrationComplete) {
+        <div class="auth-feedback auth-feedback--success" role="status" aria-live="polite">
+          <span class="auth-feedback__icon" aria-hidden="true">✉</span>
+          <p class="form-kicker">CASI LISTO</p>
+          <h2>Confirma tu correo</h2>
+          <p class="form-subtitle">Enviamos un enlace de confirmación a <strong>{{ registeredEmail }}</strong>. Estamos esperando a que confirmes tu correo; cuando lo hagas, se creará tu cuenta y podrás iniciar sesión en ConectaRD.</p>
+          <button class="submit-button" type="button" (click)="goToLogin()">Volver al inicio de sesión</button>
+        </div>
+      } @else {
+      @switch (mode) {
+        @case ('login') {
+          <div class="auth-form auth-form--login">
+            <div class="mobile-brand brand" aria-hidden="true"><span class="brand-mark"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14"/><path d="M2 16h28M16 2c-7 7-7 21 0 28m0-28c7 7 7 21 0 28"/></svg></span><span>Conecta<span class="brand-rd">RD</span></span></div>
+            <p class="form-kicker">TU COMUNIDAD TE ESPERA</p>
+            <h2>Inicia sesión</h2>
+            <p class="form-subtitle">Bienvenido de vuelta. Accede a tu cuenta.</p>
+            <button class="google-button" type="button" (click)="continueWithGoogle()" [disabled]="busy">
+                <span class="google-mark" aria-hidden="true">G</span><span>{{ busy ? 'Conectando con Google…' : 'Continuar con Google' }}</span>
+            </button>
+            <div class="form-divider"><span>o usa tu correo</span></div>
+            <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" novalidate>
+              <label class="field-label" for="login-email">Correo electrónico</label>
+              <input id="login-email" type="email" formControlName="email" autocomplete="email" placeholder="nombre@correo.com" [attr.aria-invalid]="loginForm.controls['email'].invalid && loginForm.controls['email'].touched">
+              @if (loginForm.controls['email'].hasError('required') && loginForm.controls['email'].touched) {
+                <small class="field-error">Escribe tu correo electrónico.</small>
+              }
+              @if (loginForm.controls['email'].hasError('email') && loginForm.controls['email'].touched) {
+                <small class="field-error">Revisa el formato del correo.</small>
+              }
+              <div class="field-label-row"><label class="field-label" for="login-password">Contraseña</label><a routerLink="/auth/forgot-password">¿La olvidaste?</a></div>
+              <div class="password-wrap"><input id="login-password" [type]="showPassword ? 'text' : 'password'" formControlName="password" autocomplete="current-password" placeholder="Tu contraseña"><button type="button" class="password-toggle" (click)="togglePassword()" [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">{{ showPassword ? 'Ocultar' : 'Mostrar' }}</button></div>
+              @if (loginForm.controls['password'].invalid && loginForm.controls['password'].touched) {
+                <small class="field-error">Escribe tu contraseña.</small>
+              }
+              @if (message) {
+                <div class="message message--error" role="alert">{{ message }}</div>
+              }
+              @if (notice) {
+                <div class="message message--success" role="status">{{ notice }}</div>
+              }
+              <button class="submit-button" type="submit" [disabled]="busy">{{ busy ? 'Conectando…' : 'Iniciar sesión' }}</button>
+            </form>
+            <p class="switch-auth">¿No tienes cuenta? <a routerLink="/auth/register">Crear cuenta</a></p>
+            <p class="legal-copy">El acceso está sujeto a los Términos de uso y a la Política de privacidad de ConectaRD.</p>
           </div>
-          <div class="message message--error" role="alert" *ngIf="message">{{ message }}</div><div class="message message--success" role="status" *ngIf="notice">{{ notice }}</div>
-          <button class="submit-button" type="submit" [disabled]="busy">{{ busy ? 'Creando tu cuenta…' : 'Crear cuenta gratis' }}<span aria-hidden="true">→</span></button>
-        </form>
-        <p class="register-privacy">Al crear tu cuenta, tus datos se usarán para ofrecerte los servicios de ConectaRD.</p>
-        <p class="switch-auth">¿Ya tienes cuenta? <a routerLink="/auth/login">Inicia sesión</a></p>
-      </div>
-
-      <div class="auth-form auth-form--compact" *ngSwitchCase="'forgot-password'">
-        <div class="mobile-brand brand" aria-hidden="true"><span class="brand-mark"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14"/><path d="M2 16h28M16 2c-7 7-7 21 0 28m0-28c7 7 7 21 0 28"/></svg></span><span>Conecta<span class="brand-rd">RD</span></span></div>
-        <p class="form-kicker">RECUPERAR ACCESO</p><h2>¿Olvidaste tu contraseña?</h2><p class="form-subtitle">Escribe tu correo y te enviaremos un enlace seguro para crear una nueva.</p>
-        <form [formGroup]="emailForm" (ngSubmit)="sendPasswordReset()" novalidate>
-          <label class="field-label" for="reset-email">Correo electrónico</label><input id="reset-email" type="email" formControlName="email" autocomplete="email" placeholder="nombre@correo.com">
-          <small class="field-error" *ngIf="emailForm.controls['email'].invalid && emailForm.controls['email'].touched">Escribe un correo válido.</small>
-          <div class="message message--error" role="alert" *ngIf="message">{{ message }}</div><div class="message message--success" role="status" *ngIf="notice">{{ notice }}</div>
-          <button class="submit-button" type="submit" [disabled]="busy">{{ busy ? 'Enviando…' : 'Enviar enlace de recuperación' }}</button>
-        </form><p class="switch-auth"><a routerLink="/auth/login">← Volver al inicio de sesión</a></p>
-      </div>
-
-      <div class="auth-form auth-form--compact" *ngSwitchCase="'reset-password'">
-        <div class="mobile-brand brand" aria-hidden="true"><span class="brand-mark"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14"/><path d="M2 16h28M16 2c-7 7-7 21 0 28m0-28c7 7 7 21 0 28"/></svg></span><span>Conecta<span class="brand-rd">RD</span></span></div>
-        <p class="form-kicker">ACTUALIZAR ACCESO</p><h2>Elige una nueva contraseña</h2><p class="form-subtitle">Usa al menos 8 caracteres y guárdala en un lugar seguro.</p>
-        <form [formGroup]="resetForm" (ngSubmit)="updatePassword()" novalidate>
-          <label class="field-label" for="new-password">Nueva contraseña</label><input id="new-password" [type]="showPassword ? 'text' : 'password'" formControlName="password" autocomplete="new-password" placeholder="Al menos 8 caracteres">
-          <small class="field-error" *ngIf="resetForm.controls['password'].invalid && resetForm.controls['password'].touched">Usa al menos 8 caracteres.</small>
-          <label class="field-label" for="confirm-new-password">Repite la contraseña</label><input id="confirm-new-password" [type]="showPassword ? 'text' : 'password'" formControlName="confirmPassword" autocomplete="new-password" placeholder="Repite tu contraseña">
-          <small class="field-error" *ngIf="resetForm.hasError('passwordMismatch') && resetForm.controls['confirmPassword'].touched">Las contraseñas no coinciden.</small>
-          <div class="message message--error" role="alert" *ngIf="message">{{ message }}</div><div class="message message--success" role="status" *ngIf="notice">{{ notice }}</div>
-          <button class="submit-button" type="submit" [disabled]="busy">{{ busy ? 'Guardando…' : 'Guardar nueva contraseña' }}</button>
-        </form><p class="switch-auth"><a routerLink="/auth/login">← Volver al inicio de sesión</a></p>
-      </div>
-    </section>
-  </main>
-</ion-content>
+        }
+        @case ('register') {
+          <div class="auth-form auth-form--register">
+            <div class="mobile-brand brand" aria-hidden="true"><span class="brand-mark"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14"/><path d="M2 16h28M16 2c-7 7-7 21 0 28m0-28c7 7 7 21 0 28"/></svg></span><span>Conecta<span class="brand-rd">RD</span></span></div>
+            <p class="form-kicker">UN ESPACIO PARA HACER LA DIFERENCIA</p>
+            <h2>Únete a ConectaRD</h2>
+            <p class="form-subtitle">Crea tu cuenta y conecta con personas que están mejorando su comunidad.</p>
+            @if (registerForm.value.requestedRole === 'citizen') {
+                <button class="google-button" type="button" (click)="continueWithGoogle()" [disabled]="busy"><span class="google-mark" aria-hidden="true">G</span><span>{{ busy ? 'Conectando con Google…' : 'Crear cuenta ciudadana con Google' }}</span></button>
+              <div class="form-divider"><span>o regístrate con tu correo</span></div>
+            }
+            <form [formGroup]="registerForm" (ngSubmit)="submitRegister()" novalidate>
+              <fieldset class="role-picker">
+                <legend>¿Cómo quieres participar?</legend>
+                <div class="role-options">
+                  <label class="role-option" [class.role-option--selected]="registerForm.value.requestedRole === 'citizen'"><input type="radio" formControlName="requestedRole" value="citizen"><span class="role-icon" aria-hidden="true">◎</span><span class="role-copy"><strong>Como ciudadano/a</strong><small>Reporta situaciones y participa.</small></span><span class="role-check" aria-hidden="true">✓</span></label>
+                  <label class="role-option" [class.role-option--selected]="registerForm.value.requestedRole === 'volunteer'"><input type="radio" formControlName="requestedRole" value="volunteer"><span class="role-icon" aria-hidden="true">✳</span><span class="role-copy"><strong>Como voluntario/a</strong><small>Ofrece tu tiempo y habilidades.</small></span><span class="role-check" aria-hidden="true">✓</span></label>
+                  <label class="role-option" [class.role-option--selected]="registerForm.value.requestedRole === 'organization'"><input type="radio" formControlName="requestedRole" value="organization"><span class="role-icon" aria-hidden="true">⌂</span><span class="role-copy"><strong>Desde una ONG</strong><small>La cuenta requiere verificación.</small></span><span class="role-check" aria-hidden="true">✓</span></label>
+                  <label class="role-option" [class.role-option--selected]="registerForm.value.requestedRole === 'institution'"><input type="radio" formControlName="requestedRole" value="institution"><span class="role-icon" aria-hidden="true">▤</span><span class="role-copy"><strong>Desde una institución</strong><small>La cuenta requiere verificación.</small></span><span class="role-check" aria-hidden="true">✓</span></label>
+                </div>
+              </fieldset>
+              @if (registerForm.value.requestedRole === 'volunteer') {
+                <p class="role-note">Tu solicitud de voluntariado quedará pendiente de revisión. La selección no activa permisos especiales.</p>
+              }
+              @if (registerForm.value.requestedRole === 'organization' || registerForm.value.requestedRole === 'institution') {
+                <p class="role-note">La verificación se realizará después del registro. Esta selección no concede permisos institucionales.</p>
+              }
+              <div class="register-fields">
+                <div class="register-field register-field--wide">
+                  <label class="field-label" for="register-name">Nombre completo</label>
+                  <input id="register-name" type="text" formControlName="fullName" autocomplete="name" maxlength="80" placeholder="Ej. María Pérez" [attr.aria-invalid]="registerForm.controls['fullName'].invalid && registerForm.controls['fullName'].touched" aria-describedby="register-name-error">
+                  @if (registerForm.controls['fullName'].hasError('required') && registerForm.controls['fullName'].touched) {
+                    <small class="field-error" id="register-name-error">Escribe tu nombre completo.</small>
+                  }
+                  @if (registerForm.controls['fullName'].hasError('minlength') && registerForm.controls['fullName'].touched) {
+                    <small class="field-error">El nombre debe tener al menos 2 caracteres.</small>
+                  }
+                </div>
+                <div class="register-field register-field--wide">
+                  <label class="field-label" for="register-email">Correo electrónico</label>
+                  <input id="register-email" type="email" formControlName="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="nombre@correo.com" [attr.aria-invalid]="registerForm.controls['email'].invalid && registerForm.controls['email'].touched" aria-describedby="register-email-error">
+                  @if (registerForm.controls['email'].invalid && registerForm.controls['email'].touched) {
+                    <small class="field-error" id="register-email-error">Escribe un correo electrónico válido.</small>
+                  }
+                </div>
+                <div class="register-field">
+                  <label class="field-label" for="register-password">Contraseña</label>
+                  <div class="password-wrap"><input id="register-password" [type]="showPassword ? 'text' : 'password'" formControlName="password" autocomplete="new-password" minlength="8" placeholder="Mínimo 8 caracteres" [attr.aria-invalid]="registerForm.controls['password'].invalid && registerForm.controls['password'].touched"><button type="button" class="password-toggle" (click)="togglePassword()" [attr.aria-label]="showPassword ? 'Ocultar contraseñas' : 'Mostrar contraseñas'">{{ showPassword ? 'Ocultar' : 'Mostrar' }}</button></div>
+                  <small class="field-hint">Usa 8 caracteres o más.</small>
+                  @if (registerForm.controls['password'].invalid && registerForm.controls['password'].touched) {
+                    <small class="field-error">La contraseña debe tener al menos 8 caracteres.</small>
+                  }
+                </div>
+                <div class="register-field">
+                  <label class="field-label" for="register-confirm">Confirma la contraseña</label>
+                  <input id="register-confirm" [type]="showPassword ? 'text' : 'password'" formControlName="confirmPassword" autocomplete="new-password" placeholder="Vuelve a escribirla" [attr.aria-invalid]="(registerForm.hasError('passwordMismatch') || registerForm.controls['confirmPassword'].invalid) && registerForm.controls['confirmPassword'].touched" aria-describedby="register-confirm-error">
+                  @if (registerForm.hasError('passwordMismatch') && registerForm.controls['confirmPassword'].touched) {
+                    <small class="field-error" id="register-confirm-error">Las contraseñas no coinciden.</small>
+                  }
+                </div>
+              </div>
+              @if (message) {
+                <div class="message message--error" role="alert">{{ message }}</div>
+                }@if (notice) {
+                <div class="message message--success" role="status">{{ notice }}</div>
+              }
+              <button class="submit-button" type="submit" [disabled]="busy">{{ busy ? 'Creando tu cuenta…' : 'Crear cuenta gratis' }}<span aria-hidden="true">→</span></button>
+            </form>
+            <p class="register-privacy">Al crear tu cuenta, tus datos se usarán para ofrecerte los servicios de ConectaRD.</p>
+            <p class="switch-auth">¿Ya tienes cuenta? <a routerLink="/auth/login">Inicia sesión</a></p>
+          </div>
+        }
+        @case ('forgot-password') {
+          <div class="auth-form auth-form--compact">
+            <div class="mobile-brand brand" aria-hidden="true"><span class="brand-mark"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14"/><path d="M2 16h28M16 2c-7 7-7 21 0 28m0-28c7 7 7 21 0 28"/></svg></span><span>Conecta<span class="brand-rd">RD</span></span></div>
+            <p class="form-kicker">RECUPERAR ACCESO</p><h2>¿Olvidaste tu contraseña?</h2><p class="form-subtitle">Escribe tu correo y te enviaremos un enlace seguro para crear una nueva.</p>
+            <form [formGroup]="emailForm" (ngSubmit)="sendPasswordReset()" novalidate>
+              <label class="field-label" for="reset-email">Correo electrónico</label><input id="reset-email" type="email" formControlName="email" autocomplete="email" placeholder="nombre@correo.com">
+              @if (emailForm.controls['email'].invalid && emailForm.controls['email'].touched) {
+                <small class="field-error">Escribe un correo válido.</small>
+              }
+              @if (message) {
+                <div class="message message--error" role="alert">{{ message }}</div>
+                }@if (notice) {
+                <div class="message message--success" role="status">{{ notice }}</div>
+              }
+              <button class="submit-button" type="submit" [disabled]="busy">{{ busy ? 'Enviando…' : 'Enviar enlace de recuperación' }}</button>
+              </form><p class="switch-auth"><a routerLink="/auth/login">← Volver al inicio de sesión</a></p>
+            </div>
+          }
+          @case ('reset-password') {
+            <div class="auth-form auth-form--compact">
+              <div class="mobile-brand brand" aria-hidden="true"><span class="brand-mark"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14"/><path d="M2 16h28M16 2c-7 7-7 21 0 28m0-28c7 7 7 21 0 28"/></svg></span><span>Conecta<span class="brand-rd">RD</span></span></div>
+              <p class="form-kicker">ACTUALIZAR ACCESO</p><h2>Elige una nueva contraseña</h2><p class="form-subtitle">Usa al menos 8 caracteres y guárdala en un lugar seguro.</p>
+              <form [formGroup]="resetForm" (ngSubmit)="updatePassword()" novalidate>
+                <label class="field-label" for="new-password">Nueva contraseña</label><input id="new-password" [type]="showPassword ? 'text' : 'password'" formControlName="password" autocomplete="new-password" placeholder="Al menos 8 caracteres">
+                @if (resetForm.controls['password'].invalid && resetForm.controls['password'].touched) {
+                  <small class="field-error">Usa al menos 8 caracteres.</small>
+                }
+                <label class="field-label" for="confirm-new-password">Repite la contraseña</label><input id="confirm-new-password" [type]="showPassword ? 'text' : 'password'" formControlName="confirmPassword" autocomplete="new-password" placeholder="Repite tu contraseña">
+                @if (resetForm.hasError('passwordMismatch') && resetForm.controls['confirmPassword'].touched) {
+                  <small class="field-error">Las contraseñas no coinciden.</small>
+                }
+                @if (message) {
+                  <div class="message message--error" role="alert">{{ message }}</div>
+                  }@if (notice) {
+                  <div class="message message--success" role="status">{{ notice }}</div>
+                }
+                <button class="submit-button" type="submit" [disabled]="busy">{{ busy ? 'Guardando…' : 'Guardar nueva contraseña' }}</button>
+                </form><p class="switch-auth"><a routerLink="/auth/login">← Volver al inicio de sesión</a></p>
+              </div>
+            }
+          }
+      }
+        </section>
+      </main>
+    </ion-content>

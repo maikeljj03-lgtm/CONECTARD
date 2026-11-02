@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from './auth.service';
@@ -22,6 +22,11 @@ function nonBlank(control: AbstractControl): ValidationErrors | null {
   standalone: false,
 })
 export class AuthPage implements OnInit {
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
   mode: AuthMode = 'login';
   loginForm: FormGroup;
   registerForm: FormGroup;
@@ -29,15 +34,12 @@ export class AuthPage implements OnInit {
   resetForm: FormGroup;
   busy = false;
   showPassword = false;
+  registrationComplete = false;
+  registeredEmail = '';
   message = '';
   notice = '';
 
-  constructor(
-    private readonly formBuilder: FormBuilder,
-    private readonly auth: AuthService,
-    private readonly router: Router,
-    private readonly route: ActivatedRoute,
-  ) {
+  constructor() {
     this.loginForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required]],
@@ -61,11 +63,23 @@ export class AuthPage implements OnInit {
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {
       const requestedMode = params.get('mode') as AuthMode | null;
-      this.mode = requestedMode && ['login', 'register', 'forgot-password', 'reset-password'].includes(requestedMode)
+      const nextMode = requestedMode && ['login', 'register', 'forgot-password', 'reset-password'].includes(requestedMode)
         ? requestedMode
         : 'login';
+      if (nextMode !== this.mode) this.registrationComplete = false;
+      this.mode = nextMode;
       this.message = '';
       this.notice = '';
+    });
+
+    this.route.queryParamMap.subscribe((params) => {
+      if (!params.has('code')) return;
+      this.mode = 'login';
+      this.registrationComplete = false;
+      this.notice = 'Confirmando tu correo…';
+      void this.auth.initialize()
+        .then(() => { this.notice = 'Correo confirmado. Ya puedes iniciar sesión.'; })
+        .catch((error: unknown) => { this.message = this.friendlyError(error); this.notice = ''; });
     });
   }
 
@@ -102,7 +116,8 @@ export class AuthPage implements OnInit {
       if (data.session) {
         await this.router.navigateByUrl('/home', { replaceUrl: true });
       } else {
-        this.notice = 'Te enviamos un correo para confirmar tu cuenta. Cuando la confirmes, inicia sesión para continuar.';
+        this.registeredEmail = value.email.trim().toLowerCase();
+        this.registrationComplete = true;
       }
     } catch (error) {
       this.message = this.friendlyError(error);
@@ -161,6 +176,11 @@ export class AuthPage implements OnInit {
     this.showPassword = !this.showPassword;
   }
 
+  goToLogin(): void {
+    this.registrationComplete = false;
+    void this.router.navigateByUrl('/auth/login');
+  }
+
   private startRequest(): void {
     this.busy = true;
     this.message = '';
@@ -171,6 +191,9 @@ export class AuthPage implements OnInit {
     const candidate = error as { code?: string; message?: string };
     const code = candidate?.code ?? '';
     const detail = candidate?.message ?? '';
+    if ((error as { name?: string })?.name === 'AbortError') {
+      return 'Supabase tardó demasiado en responder. Revisa tu conexión y el correo por si la cuenta alcanzó a crearse antes de volver a intentarlo.';
+    }
     if (code === 'invalid_credentials') return 'El correo o la contraseña no coinciden.';
     if (code === 'email_not_confirmed') return 'Confirma tu correo antes de iniciar sesión.';
     if (code === 'user_already_exists') return 'Ya existe una cuenta con ese correo. Intenta iniciar sesión.';

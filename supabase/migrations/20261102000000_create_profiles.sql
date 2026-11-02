@@ -49,8 +49,9 @@ begin
     requested := 'citizen';
   end if;
 
-  assigned := case when requested = 'volunteer' then 'volunteer' else 'citizen' end;
-  verification := case when requested in ('organization', 'institution') then 'pending' else 'not_required' end;
+  -- Metadata is user-controlled; requested roles never grant application roles.
+  assigned := 'citizen';
+  verification := case when requested in ('volunteer', 'organization', 'institution') then 'pending' else 'not_required' end;
 
   insert into public.profiles (id, full_name, role, requested_role, verification_status)
   values (
@@ -77,14 +78,14 @@ insert into public.profiles (id, full_name, role, requested_role, verification_s
 select
   users.id,
   coalesce(users.raw_user_meta_data ->> 'full_name', ''),
-  case when users.raw_user_meta_data ->> 'requested_role' = 'volunteer' then 'volunteer' else 'citizen' end,
+  'citizen',
   case
     when users.raw_user_meta_data ->> 'requested_role' in ('citizen', 'volunteer', 'organization', 'institution')
       then users.raw_user_meta_data ->> 'requested_role'
     else 'citizen'
   end,
   case
-    when users.raw_user_meta_data ->> 'requested_role' in ('organization', 'institution') then 'pending'
+    when users.raw_user_meta_data ->> 'requested_role' in ('volunteer', 'organization', 'institution') then 'pending'
     else 'not_required'
   end
 from auth.users as users

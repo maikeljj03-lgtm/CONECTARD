@@ -15,8 +15,31 @@ export interface SignUpProfile {
 export class AuthService {
   private clientPromise?: Promise<SupabaseClient>;
 
+  private readonly fetchWithTimeout: typeof fetch = async (input, init = {}) => {
+    const controller = new AbortController();
+    const sourceSignal = init.signal;
+    const relayAbort = () => controller.abort(sourceSignal?.reason);
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+
+    if (sourceSignal?.aborted) {
+      relayAbort();
+    } else {
+      sourceSignal?.addEventListener('abort', relayAbort, { once: true });
+    }
+
+    try {
+      return await fetch(input, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+      sourceSignal?.removeEventListener('abort', relayAbort);
+    }
+  };
+
   private getClient(): Promise<SupabaseClient> {
-    this.clientPromise ??= this.loadClient();
+    this.clientPromise ??= this.loadClient().catch((error: unknown) => {
+      this.clientPromise = undefined;
+      throw error;
+    });
     return this.clientPromise;
   }
 
@@ -32,7 +55,22 @@ export class AuthService {
       throw new Error('La configuración de Supabase está incompleta. Revisa el archivo .env.');
     }
 
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(config.supabaseUrl);
+    } catch {
+      throw new Error('La URL de Supabase no es válida. Revisa NEXT_PUBLIC_SUPABASE_URL.');
+    }
+    if (!['http:', 'https:'].includes(parsedUrl.protocol) || parsedUrl.username || parsedUrl.password) {
+      throw new Error('La URL de Supabase debe usar HTTP(S) y no incluir credenciales.');
+    }
+    if (/YOUR_PROJECT_REF|YOUR_SUPABASE_URL|example\.supabase\.co/i.test(config.supabaseUrl)
+      || /REPLACE_WITH_YOUR_KEY|YOUR_SUPABASE_KEY|PUBLISHABLE_KEY_HERE/i.test(config.supabasePublishableKey)) {
+      throw new Error('Supabase todavía tiene valores de ejemplo. Completa la URL y publishable key de tu proyecto.');
+    }
+
     return createClient(config.supabaseUrl, config.supabasePublishableKey, {
+      global: { fetch: this.fetchWithTimeout },
       auth: {
         flowType: 'pkce',
         autoRefreshToken: true,
@@ -42,9 +80,13 @@ export class AuthService {
     });
   }
 
+  async initialize(): Promise<void> {
+    await this.getClient();
+  }
+
   async signIn(email: string, password: string) {
     const client = await this.getClient();
-    return client.auth.signInWithPassword({ email, password });
+    return client.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
   }
 
   async signInWithGoogle() {
@@ -75,7 +117,7 @@ export class AuthService {
 
   async sendPasswordReset(email: string) {
     const client = await this.getClient();
-    return client.auth.resetPasswordForEmail(email, {
+    return client.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
       redirectTo: `${window.location.origin}/auth/reset-password`,
     });
   }

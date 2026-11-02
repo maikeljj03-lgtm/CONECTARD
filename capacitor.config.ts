@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'io.ionic.starter',
-  appName: 'comunica-rd',
+  appId: 'com.conectard.app',
+  appName: 'ConectaRD',
   webDir: 'www'
 };
 
