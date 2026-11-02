@@ -1,9 +1,9 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from './auth.service';
 
-type AuthMode = 'login' | 'register' | 'forgot-password' | 'reset-password';
+type AuthMode = 'login' | 'register' | 'verify-email' | 'forgot-password' | 'reset-password';
 
 function matchingPasswords(control: AbstractControl): ValidationErrors | null {
   const password = control.get('password')?.value;
@@ -21,7 +21,7 @@ function nonBlank(control: AbstractControl): ValidationErrors | null {
   styleUrls: ['./auth.page.scss'],
   standalone: false,
 })
-export class AuthPage implements OnInit {
+export class AuthPage implements OnInit, OnDestroy {
   private readonly formBuilder = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -30,14 +30,16 @@ export class AuthPage implements OnInit {
   mode: AuthMode = 'login';
   loginForm: FormGroup;
   registerForm: FormGroup;
+  otpForm: FormGroup;
   emailForm: FormGroup;
   resetForm: FormGroup;
   busy = false;
   showPassword = false;
-  registrationComplete = false;
   registeredEmail = '';
+  resendCooldownSeconds = 0;
   message = '';
   notice = '';
+  private resendCooldownTimer?: ReturnType<typeof setInterval>;
 
   constructor() {
     this.loginForm = this.formBuilder.group({
@@ -51,6 +53,10 @@ export class AuthPage implements OnInit {
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]],
     }, { validators: matchingPasswords });
+    this.otpForm = this.formBuilder.group({
+      email: ['', [Validators.required, Validators.email]],
+      token: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
+    });
     this.emailForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],
     });
@@ -63,11 +69,17 @@ export class AuthPage implements OnInit {
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {
       const requestedMode = params.get('mode') as AuthMode | null;
-      const nextMode = requestedMode && ['login', 'register', 'forgot-password', 'reset-password'].includes(requestedMode)
+      const nextMode = requestedMode && ['login', 'register', 'verify-email', 'forgot-password', 'reset-password'].includes(requestedMode)
         ? requestedMode
         : 'login';
-      if (nextMode !== this.mode) this.registrationComplete = false;
       this.mode = nextMode;
+      if (nextMode === 'verify-email') {
+        const navigationEmail = window.history.state?.['email'];
+        this.registeredEmail = typeof navigationEmail === 'string' && navigationEmail
+          ? navigationEmail
+          : this.registeredEmail;
+        if (this.registeredEmail) this.otpForm.patchValue({ email: this.registeredEmail });
+      }
       this.message = '';
       this.notice = '';
     });
@@ -75,7 +87,6 @@ export class AuthPage implements OnInit {
     this.route.queryParamMap.subscribe((params) => {
       if (!params.has('code')) return;
       this.mode = 'login';
-      this.registrationComplete = false;
       this.notice = 'Confirmando tu correo…';
       void this.auth.initialize()
         .then(() => { this.notice = 'Correo confirmado. Ya puedes iniciar sesión.'; })
@@ -117,8 +128,51 @@ export class AuthPage implements OnInit {
         await this.router.navigateByUrl('/home', { replaceUrl: true });
       } else {
         this.registeredEmail = value.email.trim().toLowerCase();
-        this.registrationComplete = true;
+        this.otpForm.patchValue({ email: this.registeredEmail, token: '' });
+        this.startResendCooldown();
+        await this.router.navigateByUrl('/auth/verify-email', {
+          state: { email: this.registeredEmail },
+        });
       }
+    } catch (error) {
+      this.message = this.friendlyError(error);
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  async verifySignupOtp(): Promise<void> {
+    if (this.otpForm.invalid) {
+      this.otpForm.markAllAsTouched();
+      return;
+    }
+    this.startRequest();
+    try {
+      const { email, token } = this.otpForm.getRawValue();
+      const { data, error } = await this.auth.verifySignupOtp(email, token);
+      if (error) throw error;
+      if (!data.session) throw new Error('Supabase verificó el código, pero no devolvió una sesión.');
+      await this.router.navigateByUrl('/home', { replaceUrl: true });
+    } catch (error) {
+      this.message = this.friendlyError(error);
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  async resendSignupOtp(): Promise<void> {
+    const emailControl = this.otpForm.controls['email'];
+    if (emailControl.invalid || this.resendCooldownSeconds > 0) {
+      emailControl.markAsTouched();
+      return;
+    }
+    this.startRequest();
+    try {
+      const { error } = await this.auth.resendSignupOtp(emailControl.value);
+      if (error) throw error;
+      this.registeredEmail = emailControl.value.trim().toLowerCase();
+      this.notice = 'Si la cuenta necesita confirmación, enviaremos un nuevo código.';
+      this.startResendCooldown();
     } catch (error) {
       this.message = this.friendlyError(error);
     } finally {
@@ -176,15 +230,26 @@ export class AuthPage implements OnInit {
     this.showPassword = !this.showPassword;
   }
 
-  goToLogin(): void {
-    this.registrationComplete = false;
-    void this.router.navigateByUrl('/auth/login');
+  ngOnDestroy(): void {
+    if (this.resendCooldownTimer) clearInterval(this.resendCooldownTimer);
   }
 
   private startRequest(): void {
     this.busy = true;
     this.message = '';
     this.notice = '';
+  }
+
+  private startResendCooldown(): void {
+    if (this.resendCooldownTimer) clearInterval(this.resendCooldownTimer);
+    this.resendCooldownSeconds = 30;
+    this.resendCooldownTimer = setInterval(() => {
+      this.resendCooldownSeconds = Math.max(0, this.resendCooldownSeconds - 1);
+      if (this.resendCooldownSeconds === 0 && this.resendCooldownTimer) {
+        clearInterval(this.resendCooldownTimer);
+        this.resendCooldownTimer = undefined;
+      }
+    }, 1000);
   }
 
   private friendlyError(error: unknown): string {
@@ -196,6 +261,12 @@ export class AuthPage implements OnInit {
     }
     if (code === 'invalid_credentials') return 'El correo o la contraseña no coinciden.';
     if (code === 'email_not_confirmed') return 'Confirma tu correo antes de iniciar sesión.';
+    if (code === 'otp_expired' || detail.toLowerCase().includes('token has expired')) return 'El código venció. Solicita uno nuevo.';
+    if (detail.toLowerCase().includes('token')) return 'El código no es válido. Revísalo e inténtalo otra vez.';
+    if (['over_email_send_rate_limit', 'email_rate_limit_exceeded'].includes(code)) return 'Supabase limitó temporalmente el envío de códigos. Espera un momento antes de solicitar otro.';
+    if (code === 'email_address_not_authorized' || detail.toLowerCase().includes('email address not authorized')) {
+      return 'El correo integrado de Supabase solo envía a direcciones autorizadas del equipo del proyecto.';
+    }
     if (code === 'user_already_exists') return 'Ya existe una cuenta con ese correo. Intenta iniciar sesión.';
     if (code === 'weak_password') return 'Usa una contraseña más segura, de al menos 8 caracteres.';
     if (code === 'provider_disabled' || detail.toLowerCase().includes('provider is not enabled')) {

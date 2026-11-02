@@ -21,20 +21,41 @@
     </aside>
 
     <section class="form-panel">
-      @if (mode === 'register' && busy) {
+      @if (mode === 'verify-email') {
+        <div class="auth-feedback auth-feedback--otp">
+          <span class="auth-feedback__icon" aria-hidden="true">✉</span>
+          <p class="form-kicker">VERIFICACIÓN SEGURA</p>
+          <h2>Confirma tu correo</h2>
+          <p class="form-subtitle">Escribe el código de 6 dígitos que enviamos a <strong>{{ otpForm.value.email || registeredEmail }}</strong>.</p>
+          <form class="auth-form auth-form--register otp-form" [formGroup]="otpForm" (ngSubmit)="verifySignupOtp()" novalidate>
+            <label class="field-label" for="signup-otp-email">Correo electrónico</label>
+            <input id="signup-otp-email" type="email" formControlName="email" autocomplete="email" autocapitalize="none" spellcheck="false" [attr.aria-invalid]="otpForm.controls['email'].invalid && otpForm.controls['email'].touched">
+            @if (otpForm.controls['email'].invalid && otpForm.controls['email'].touched) {
+              <small class="field-error">Escribe un correo válido.</small>
+            }
+            <label class="field-label" for="signup-otp-token">Código de verificación</label>
+            <input class="otp-input" id="signup-otp-token" type="text" formControlName="token" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" placeholder="• • • • • •" aria-describedby="signup-otp-hint" [attr.aria-invalid]="otpForm.controls['token'].invalid && otpForm.controls['token'].touched">
+            <small class="field-hint" id="signup-otp-hint">El código tiene 6 números.</small>
+            @if (otpForm.controls['token'].invalid && otpForm.controls['token'].touched) {
+              <small class="field-error">Escribe los 6 números del correo.</small>
+            }
+            @if (message) {
+              <div class="message message--error" role="alert">{{ message }}</div>
+            }
+            @if (notice) {
+              <div class="message message--success" role="status">{{ notice }}</div>
+            }
+            <button class="submit-button" type="submit" [disabled]="busy">{{ busy ? 'Verificando…' : 'Verificar correo' }}<span aria-hidden="true">→</span></button>
+          </form>
+          <button class="text-button" type="button" (click)="resendSignupOtp()" [disabled]="busy || resendCooldownSeconds > 0">{{ resendCooldownSeconds > 0 ? 'Reenviar código en ' + resendCooldownSeconds + ' s' : 'Reenviar código' }}</button>
+          <p class="switch-auth"><a routerLink="/auth/register">← Volver al registro</a></p>
+        </div>
+      } @else if (mode === 'register' && busy) {
         <div class="auth-feedback" role="status" aria-live="polite">
           <span class="auth-feedback__spinner" aria-hidden="true"></span>
           <p class="form-kicker">UN MOMENTO</p>
-          <h2>Enviando la confirmación</h2>
-          <p class="form-subtitle">Cuando recibas el correo, confirma tu dirección para que se cree tu cuenta.</p>
-        </div>
-      } @else if (mode === 'register' && registrationComplete) {
-        <div class="auth-feedback auth-feedback--success" role="status" aria-live="polite">
-          <span class="auth-feedback__icon" aria-hidden="true">✉</span>
-          <p class="form-kicker">CASI LISTO</p>
-          <h2>Confirma tu correo</h2>
-          <p class="form-subtitle">Enviamos un enlace de confirmación a <strong>{{ registeredEmail }}</strong>. Estamos esperando a que confirmes tu correo; cuando lo hagas, se creará tu cuenta y podrás iniciar sesión en ConectaRD.</p>
-          <button class="submit-button" type="button" (click)="goToLogin()">Volver al inicio de sesión</button>
+          <h2>Creando tu cuenta</h2>
+          <p class="form-subtitle">Estamos preparando tu acceso seguro a ConectaRD.</p>
         </div>
       } @else {
       @switch (mode) {

@@ -115,6 +115,23 @@ export class AuthService {
     });
   }
 
+  async verifySignupOtp(email: string, token: string) {
+    const client = await this.getClient();
+    return client.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: token.trim(),
+      type: 'email',
+    });
+  }
+
+  async resendSignupOtp(email: string) {
+    const client = await this.getClient();
+    return client.auth.resend({
+      type: 'signup',
+      email: email.trim().toLowerCase(),
+    });
+  }
+
   async sendPasswordReset(email: string) {
     const client = await this.getClient();
     return client.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
