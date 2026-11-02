@@ -175,7 +175,12 @@ export class AuthPage implements OnInit {
     if (code === 'email_not_confirmed') return 'Confirma tu correo antes de iniciar sesión.';
     if (code === 'user_already_exists') return 'Ya existe una cuenta con ese correo. Intenta iniciar sesión.';
     if (code === 'weak_password') return 'Usa una contraseña más segura, de al menos 8 caracteres.';
-    if (code === 'provider_disabled') return 'El acceso con Google aún no está habilitado en Supabase.';
+    if (code === 'provider_disabled' || detail.toLowerCase().includes('provider is not enabled')) {
+      return 'Google aún no está habilitado en Supabase. Activa Google en Authentication → Sign In / Providers y configura sus credenciales OAuth.';
+    }
+    if (detail.toLowerCase().includes('redirect') && detail.toLowerCase().includes('allow')) {
+      return 'Supabase rechazó la URL de retorno. Añade la dirección de esta app en Authentication → URL Configuration → Redirect URLs.';
+    }
     if (detail.toLowerCase().includes('fetch')) return 'No pudimos conectar con el servicio. Revisa tu conexión e inténtalo de nuevo.';
     return detail || 'Ocurrió un error. Inténtalo de nuevo en unos momentos.';
   }

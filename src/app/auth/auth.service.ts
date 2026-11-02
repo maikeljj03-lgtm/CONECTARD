@@ -51,7 +51,10 @@ export class AuthService {
     const client = await this.getClient();
     return client.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/home` },
+      options: {
+        redirectTo: new URL('/home', window.location.origin).toString(),
+        queryParams: { prompt: 'select_account' },
+      },
     });
   }
 

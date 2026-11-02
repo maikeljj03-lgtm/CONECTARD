@@ -28,7 +28,7 @@
         <p class="form-subtitle">Bienvenido de vuelta. Accede a tu cuenta.</p>
 
         <button class="google-button" type="button" (click)="continueWithGoogle()" [disabled]="busy">
-          <span class="google-mark">G</span><span>Continuar con Google</span>
+          <span class="google-mark" aria-hidden="true">G</span><span>{{ busy ? 'Conectando con Google…' : 'Continuar con Google' }}</span>
         </button>
         <div class="form-divider"><span>o usa tu correo</span></div>
 
@@ -56,7 +56,7 @@
         <h2>Únete a ConectaRD</h2>
         <p class="form-subtitle">Crea tu cuenta y conecta con personas que están mejorando su comunidad.</p>
         <ng-container *ngIf="registerForm.value.requestedRole === 'citizen'">
-          <button class="google-button" type="button" (click)="continueWithGoogle()" [disabled]="busy"><span class="google-mark">G</span><span>Crear cuenta ciudadana con Google</span></button>
+          <button class="google-button" type="button" (click)="continueWithGoogle()" [disabled]="busy"><span class="google-mark" aria-hidden="true">G</span><span>{{ busy ? 'Conectando con Google…' : 'Crear cuenta ciudadana con Google' }}</span></button>
           <div class="form-divider"><span>o regístrate con tu correo</span></div>
         </ng-container>
         <form [formGroup]="registerForm" (ngSubmit)="submitRegister()" novalidate>
