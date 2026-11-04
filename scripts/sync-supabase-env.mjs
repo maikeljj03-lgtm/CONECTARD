@@ -35,6 +35,10 @@ const supabasePublishableKey = (
   ?? values.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
   ?? values.SUPABASE_PUBLISHABLE_KEY
 )?.trim();
+const signupOtpEnabled = (
+  process.env.NEXT_PUBLIC_SUPABASE_SIGNUP_OTP
+  ?? values.NEXT_PUBLIC_SUPABASE_SIGNUP_OTP
+)?.trim().toLowerCase() === 'true';
 if (!supabaseUrl || !supabasePublishableKey) {
   throw new Error('Configura SUPABASE_URL y SUPABASE_PUBLISHABLE_KEY (o sus variantes NEXT_PUBLIC_) en .env o en el entorno.');
 }
@@ -55,5 +59,5 @@ if (/REPLACE_WITH_YOUR_KEY|YOUR_SUPABASE_KEY|PUBLISHABLE_KEY_HERE/i.test(supabas
   throw new Error('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY todavía contiene un marcador de ejemplo.');
 }
 
-await writeFile(outputPath, `${JSON.stringify({ supabaseUrl, supabasePublishableKey }, null, 2)}\n`, 'utf8');
+await writeFile(outputPath, `${JSON.stringify({ supabaseUrl, supabasePublishableKey, signupOtpEnabled }, null, 2)}\n`, 'utf8');
 console.log('Configuración pública de Supabase preparada para Ionic.');

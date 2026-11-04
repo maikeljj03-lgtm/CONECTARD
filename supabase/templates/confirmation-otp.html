@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
+    <title>Verifica tu correo | ConectaRD</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f2f6f5;font-family:Arial,Helvetica,sans-serif;color:#243436;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Tu código para confirmar la cuenta de ConectaRD.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f2f6f5;padding:32px 12px;">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background:#fff;border:1px solid #e1e9e7;border-radius:16px;overflow:hidden;">
+          <tr><td style="padding:26px 34px;background:#07383a;">
+            <a href="{{ .SiteURL }}" style="color:#fff;text-decoration:none;font-size:22px;font-weight:700;">Conecta<span style="color:#74e1d8;">RD</span></a>
+            <p style="margin:7px 0 0;color:#a8d9d5;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;">Conecta · Resuelve · Mejora</p>
+          </td></tr>
+          <tr><td style="padding:38px 34px 34px;">
+            <p style="margin:0 0 12px;color:#009f98;font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;">Verificación de cuenta</p>
+            <h1 style="margin:0 0 16px;color:#182326;font-size:27px;line-height:1.2;">Confirma tu correo</h1>
+            <p style="margin:0 0 22px;color:#526466;font-size:15px;line-height:1.6;">Usa este código para verificar que <strong>{{ .Email }}</strong> te pertenece:</p>
+            <div style="margin:0 0 24px;padding:18px 12px;border:1px solid #d9e9e7;border-radius:12px;background:#f4fbfa;color:#07383a;font-size:32px;font-weight:700;letter-spacing:10px;text-align:center;">{{ .Token }}</div>
+            <p style="margin:0 0 8px;color:#718082;font-size:13px;line-height:1.6;">Escríbelo en ConectaRD para confirmar tu cuenta. No compartas este código con nadie.</p>
+            <p style="margin:20px 0 0;color:#879393;font-size:12px;line-height:1.6;">Si no solicitaste esta cuenta, ignora este mensaje.</p>
+          </td></tr>
+          <tr><td style="padding:17px 34px;background:#f7f9f8;border-top:1px solid #e8eeec;">
+            <p style="margin:0;color:#879393;font-size:11px;line-height:1.6;">ConectaRD · Una comunidad. Muchas formas de ayudar.</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>

@@ -7,7 +7,12 @@ export const authGuard: CanActivateFn = async () => {
   const router = inject(Router);
 
   try {
-    return await auth.getCurrentUser() ? true : router.createUrlTree(['/auth/login']);
+    const user = await auth.getCurrentUser();
+    if (user?.email_confirmed_at) return true;
+    if (user) await auth.signOut();
+    return router.createUrlTree(['/auth/login'], {
+      queryParams: user ? { unverified: '1' } : undefined,
+    });
   } catch {
     return router.createUrlTree(['/auth/login']);
   }

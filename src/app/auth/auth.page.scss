@@ -26,10 +26,10 @@
 .form-kicker { margin: 0 0 13px; color: #009f98; font-size: 10px; }
 .auth-form h2 { margin: 0; color: #182326; font-size: 34px; font-weight: 750; letter-spacing: -1px; line-height: 1.14; }
 .form-subtitle { margin: 10px 0 25px; color: #748184; font-size: 14px; line-height: 1.55; }
-.google-button { display: flex; align-items: center; justify-content: center; gap: 11px; width: 100%; height: 48px; border: 1px solid #d9e1e2; border-radius: 9px; background: #fff; color: #253235; font-size: 13px; font-weight: 650; cursor: pointer; transition: border-color .18s, background .18s, transform .18s; }
-.google-button:hover:not(:disabled) { border-color: #aebcbe; background: #fbfdfd; transform: translateY(-1px); }
+.google-button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 44px; border: 1px solid #747775; border-radius: 4px; background: #fff; color: #1f1f1f; font-family: Arial, sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .18s, box-shadow .18s; }
+.google-button:hover:not(:disabled) { background: #f8faff; box-shadow: 0 1px 2px rgb(60 64 67 / 24%); }
 .google-button:disabled, .submit-button:disabled { cursor: wait; opacity: .65; }
-.google-mark { width: 19px; height: 19px; display: grid; place-items: center; border-radius: 50%; background: #4285f4; color: #fff; font-family: Arial, sans-serif; font-size: 12px; font-weight: 800; }
+.google-mark { display: block; width: 20px; height: 20px; flex: 0 0 20px; }
 .form-divider { display: flex; align-items: center; gap: 13px; margin: 19px 0 17px; color: #98a2a4; font-size: 11px; }
 .form-divider::before, .form-divider::after { height: 1px; flex: 1; background: #e5e9e9; content: ''; }
 .field-label, .field-label-row .field-label { display: block; margin: 16px 0 7px; color: #344346; font-size: 12px; font-weight: 680; }
@@ -50,6 +50,7 @@
 .message { margin-top: 15px; padding: 11px 13px; border-radius: 8px; font-size: 12px; line-height: 1.45; }
 .message--error { border: 1px solid #f0d2d2; background: #fff7f7; color: #963b3d; }
 .message--success { border: 1px solid #ccebe6; background: #f0fbf9; color: #276d67; }
+.message-action { display: inline-block; margin: 8px 0 0 13px; color: #007f78; font-size: 12px; font-weight: 700; text-decoration: underline; }
 .switch-auth { margin: 20px 0 0; color: #758184; text-align: center; font-size: 12px; }
 .switch-auth a { margin-left: 3px; }
 .legal-copy { max-width: 360px; margin: 29px auto 0; color: #9aa4a6; text-align: center; font-size: 10px; line-height: 1.6; }
@@ -97,11 +98,12 @@
 .auth-feedback__spinner { display: inline-block; width: 50px; height: 50px; border: 4px solid #d9efed; border-top-color: #009f98; border-radius: 50%; animation: auth-spin .8s linear infinite; }
 .auth-feedback__icon { display: inline-grid; width: 58px; height: 58px; place-items: center; border-radius: 50%; background: #eaf7f6; color: #008e87; font-size: 27px; }
 .auth-feedback--success .form-kicker { margin-top: 22px; }
-.otp-form { margin-top: 22px; text-align: left; }
-.otp-form .otp-input { height: 58px; text-align: center; font-size: 25px; font-weight: 750; letter-spacing: 10px; }
-.auth-feedback--otp .text-button { margin-top: 17px; border: 0; background: none; color: #008e87; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
-.auth-feedback--otp .text-button:disabled { color: #9aa7a8; cursor: default; }
-.auth-feedback--otp .switch-auth { margin-top: 13px; }
+.auth-feedback--confirmation .submit-button { margin-top: 24px; }
+.auth-feedback--confirmation .switch-auth { margin-top: 18px; }
+.otp-form { width: min(100%, 340px); margin: 18px auto 0; text-align: left; }
+.otp-input { width: 100%; height: 58px; padding: 0 12px; border: 1px solid #d9e1e2; border-radius: 9px; outline: none; background: #fff; color: #202d30; font: inherit; font-size: 24px; font-weight: 700; letter-spacing: 10px; text-align: center; }
+.otp-input:focus { border-color: #00a99f; box-shadow: 0 0 0 3px rgb(0 178 169 / 13%); }
+.otp-form .submit-button { margin-top: 18px; }
 
 @keyframes auth-spin { to { transform: rotate(360deg); } }
 

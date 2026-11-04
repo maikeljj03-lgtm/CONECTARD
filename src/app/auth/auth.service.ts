@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient, type User } from '@supabase/supabase
 interface SupabaseRuntimeConfig {
   supabaseUrl: string;
   supabasePublishableKey: string;
+  signupOtpEnabled?: boolean;
 }
 
 export interface SignUpProfile {
@@ -14,12 +15,15 @@ export interface SignUpProfile {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private clientPromise?: Promise<SupabaseClient>;
+  private signupOtpEnabled = false;
+  private supabaseUrl = '';
+  private supabasePublishableKey = '';
 
   private readonly fetchWithTimeout: typeof fetch = async (input, init = {}) => {
     const controller = new AbortController();
     const sourceSignal = init.signal;
     const relayAbort = () => controller.abort(sourceSignal?.reason);
-    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
     if (sourceSignal?.aborted) {
       relayAbort();
@@ -45,7 +49,7 @@ export class AuthService {
 
   private async loadClient(): Promise<SupabaseClient> {
     const configUrl = new URL('assets/supabase-config.json', document.baseURI);
-    const response = await fetch(configUrl);
+    const response = await this.fetchWithTimeout(configUrl);
     if (!response.ok) {
       throw new Error('No se pudo cargar la configuración de Supabase. Inicia la app con npm start.');
     }
@@ -69,6 +73,10 @@ export class AuthService {
       throw new Error('Supabase todavía tiene valores de ejemplo. Completa la URL y publishable key de tu proyecto.');
     }
 
+    this.signupOtpEnabled = config.signupOtpEnabled === true;
+    this.supabaseUrl = config.supabaseUrl;
+    this.supabasePublishableKey = config.supabasePublishableKey;
+
     return createClient(config.supabaseUrl, config.supabasePublishableKey, {
       global: { fetch: this.fetchWithTimeout },
       auth: {
@@ -81,7 +89,8 @@ export class AuthService {
   }
 
   async initialize(): Promise<void> {
-    await this.getClient();
+    const client = await this.getClient();
+    await client.auth.getSession();
   }
 
   async signIn(email: string, password: string) {
@@ -89,12 +98,54 @@ export class AuthService {
     return client.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
   }
 
-  async signInWithGoogle() {
+  async validatePasswordAndSendLoginOtp(email: string, password: string) {
+    const client = await this.getClient();
+    // Validate in a non-persistent client: a session is created only after OTP verification.
+    const passwordClient = createClient(this.supabaseUrl, this.supabasePublishableKey, {
+      global: { fetch: this.fetchWithTimeout },
+      auth: { autoRefreshToken: false, detectSessionInUrl: false, persistSession: false },
+    });
+    const { error: passwordError } = await passwordClient.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (passwordError) return { error: passwordError };
+    await passwordClient.auth.signOut({ scope: 'local' });
+    return client.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/auth/login`,
+      },
+    });
+  }
+
+  async resendLoginOtp(email: string) {
+    const client = await this.getClient();
+    return client.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/auth/login`,
+      },
+    });
+  }
+
+  async verifyLoginOtp(email: string, token: string) {
+    const client = await this.getClient();
+    return client.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: token.trim(),
+      type: 'email',
+    });
+  }
+
+  async signInWithGoogle(forRegistration = false) {
     const client = await this.getClient();
     return client.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: new URL('/home', window.location.origin).toString(),
+        redirectTo: new URL(forRegistration ? '/auth/login' : '/home', window.location.origin).toString(),
         queryParams: { prompt: 'select_account' },
       },
     });
@@ -115,6 +166,11 @@ export class AuthService {
     });
   }
 
+  async isSignupOtpEnabled(): Promise<boolean> {
+    await this.getClient();
+    return this.signupOtpEnabled;
+  }
+
   async verifySignupOtp(email: string, token: string) {
     const client = await this.getClient();
     return client.auth.verifyOtp({
@@ -125,6 +181,15 @@ export class AuthService {
   }
 
   async resendSignupOtp(email: string) {
+    const client = await this.getClient();
+    return client.auth.resend({
+      type: 'signup',
+      email: email.trim().toLowerCase(),
+      options: { emailRedirectTo: `${window.location.origin}/auth/login` },
+    });
+  }
+
+  async resendSignupConfirmation(email: string) {
     const client = await this.getClient();
     return client.auth.resend({
       type: 'signup',
@@ -151,8 +216,8 @@ export class AuthService {
     return data.user;
   }
 
-  async signOut() {
+  async signOut(scope: 'global' | 'local' | 'others' = 'global') {
     const client = await this.getClient();
-    return client.auth.signOut();
+    return client.auth.signOut({ scope });
   }
 }

@@ -40,9 +40,13 @@ npm.cmd run build
 ## Configurar Supabase
 
 1. En el panel del proyecto, abre **SQL Editor** y ejecuta una vez la migración [supabase/migrations/20261102000000_create_profiles.sql](supabase/migrations/20261102000000_create_profiles.sql).
-2. Para autenticación con Google, habilita el proveedor Google en **Authentication → Sign In / Providers** y configura las credenciales OAuth de Google.
-3. En **Authentication → URL Configuration**, permite `http://localhost:8100/home` como URL de retorno. Al publicar la app, añade también su URL de producción.
-4. En Google Cloud, configura como URI de retorno autorizada la URL de callback que muestra Supabase para el proveedor Google.
+2. En **Authentication → Sign In / Providers**, activa **Confirm email**. Supabase rechazará el inicio de sesión por correo y contraseña hasta confirmar la dirección.
+3. Para Google, habilita el proveedor Google en esa misma sección y configura sus credenciales OAuth.
+4. En **Authentication → URL Configuration**, permite `http://localhost:8100/auth/login` y `http://localhost:8100/home` como URL de retorno. Al publicar la app, añade las URL equivalentes de producción.
+5. En Google Cloud, configura como URI de retorno autorizada la URL de callback que muestra Supabase para el proveedor Google.
+6. Ejecuta también, si todavía no se aplicó, [supabase/migrations/20261102010000_prevent_self_assigned_roles.sql](supabase/migrations/20261102010000_prevent_self_assigned_roles.sql) para proteger los roles solicitados durante el registro.
+
+La confirmación del correo se activa en el panel de Supabase, no con SQL. El SQL de perfiles enlaza cada perfil con una cuenta de `auth.users`; no crea una forma alternativa de iniciar sesión. El correo integrado de Supabase usa el enlace predeterminado mientras el panel no permita editar la plantilla.
 
 ## Estructura principal
 

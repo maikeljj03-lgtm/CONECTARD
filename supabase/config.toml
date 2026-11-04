@@ -1,3 +1,7 @@
 [auth.email.template.confirmation]
 subject = "Confirma tu correo | ConectaRD"
 content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.magic_link]
+subject = "Tu código de acceso | ConectaRD"
+content_path = "./supabase/templates/magic-link-otp.html"

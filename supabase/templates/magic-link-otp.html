@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
+    <title>Tu código de acceso | ConectaRD</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f2f6f5;font-family:Arial,Helvetica,sans-serif;color:#243436;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Tu código para iniciar sesión en ConectaRD es {{ .Token }}.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f2f6f5;padding:32px 12px;">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:580px;background-color:#ffffff;border:1px solid #e1e9e7;border-radius:16px;overflow:hidden;">
+          <tr><td style="padding:28px 36px;background-color:#07383a;">
+            <a href="{{ .SiteURL }}" style="color:#ffffff;text-decoration:none;font-size:22px;font-weight:700;letter-spacing:-0.5px;">Conecta<span style="color:#74e1d8;">RD</span></a>
+            <p style="margin:8px 0 0;color:#a8d9d5;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Conecta · Resuelve · Mejora</p>
+          </td></tr>
+          <tr><td style="padding:38px 36px 32px;">
+            <p style="margin:0 0 12px;color:#009f98;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Inicio de sesión seguro</p>
+            <h1 style="margin:0 0 18px;color:#182326;font-size:28px;line-height:1.2;">Tu código de acceso</h1>
+            <p style="margin:0 0 22px;color:#526466;font-size:15px;line-height:1.65;">Usa este código para iniciar sesión en ConectaRD. No lo compartas con nadie.</p>
+            <div style="margin:0 0 24px;padding:18px 12px;border:1px solid #d9e8e6;border-radius:12px;background:#f5fbfa;color:#07383a;font-size:32px;font-weight:700;letter-spacing:10px;text-align:center;">{{ .Token }}</div>
+            <p style="margin:0 0 22px;color:#718082;font-size:13px;line-height:1.6;">El código vence pronto y solo se puede usar una vez. Si no intentaste iniciar sesión, ignora este correo.</p>
+          </td></tr>
+          <tr><td style="padding:18px 36px;background-color:#f7f9f8;border-top:1px solid #e8eeec;">
+            <p style="margin:0;color:#879393;font-size:11px;line-height:1.6;">ConectaRD · Una comunidad. Muchas formas de ayudar.<br>Este mensaje se envió a {{ .Email }}.</p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>
