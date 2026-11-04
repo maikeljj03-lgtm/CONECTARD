@@ -42,7 +42,7 @@ npm.cmd run build
 1. En el panel del proyecto, abre **SQL Editor** y ejecuta una vez la migración [supabase/migrations/20261102000000_create_profiles.sql](supabase/migrations/20261102000000_create_profiles.sql).
 2. En **Authentication → Sign In / Providers**, activa **Confirm email**. Supabase rechazará el inicio de sesión por correo y contraseña hasta confirmar la dirección.
 3. Para Google, habilita el proveedor Google en esa misma sección y configura sus credenciales OAuth.
-4. En **Authentication → URL Configuration**, permite `http://localhost:8100/auth/login` y `http://localhost:8100/home` como URL de retorno. Al publicar la app, añade las URL equivalentes de producción.
+4. En **Authentication → URL Configuration**, permite `http://localhost:8100/auth/login` y `http://localhost:8100/landing` como URL de retorno. Al publicar la app, añade las URL equivalentes de producción.
 5. En Google Cloud, configura como URI de retorno autorizada la URL de callback que muestra Supabase para el proveedor Google.
 6. Ejecuta también, si todavía no se aplicó, [supabase/migrations/20261102010000_prevent_self_assigned_roles.sql](supabase/migrations/20261102010000_prevent_self_assigned_roles.sql) para proteger los roles solicitados durante el registro.
 
@@ -50,8 +50,10 @@ La confirmación del correo se activa en el panel de Supabase, no con SQL. El SQ
 
 ## Estructura principal
 
-- `src/app/auth/`: inicio de sesión, registro y recuperación de contraseña.
-- `src/app/home/`: página principal después de iniciar sesión.
+- `src/app/core/`: servicios y guardas compartidos, incluida la integración de autenticación con Supabase.
+- `src/app/features/auth/pages/`: inicio de sesión, registro, verificación y recuperación de contraseña.
+- `src/app/features/landing/pages/`: página principal, mapa y secciones comunitarias.
+- `src/styles/`: estilos globales de páginas y librerías visuales.
 - `src/app/app-routing.module.ts`: rutas de la aplicación.
 - `supabase/migrations/`: esquema y políticas de seguridad de la base de datos.
 - `scripts/`: preparación de la configuración local y ejecución de Ionic.

@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from './auth.service';
+import { AuthService } from '../../../core/auth/auth.service';
 
 type AuthMode = 'login' | 'register' | 'verify-email' | 'verify-login' | 'forgot-password' | 'reset-password';
 const GOOGLE_REGISTRATION_PENDING = 'conectard.google-registration-pending';

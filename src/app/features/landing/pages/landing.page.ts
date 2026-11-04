@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import type { User } from '@supabase/supabase-js';
 import { IonContent } from '@ionic/angular';
 import * as L from 'leaflet';
-import { AuthService } from '../auth/auth.service';
+import { AuthService } from '../../../core/auth/auth.service';
 
 type ReportCategory = 'Basura' | 'Baches' | 'Iluminación' | 'Agua' | 'Áreas verdes' | 'Otros';
 type ReportFilter = 'Todas' | ReportCategory;

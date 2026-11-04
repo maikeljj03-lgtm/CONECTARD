@@ -7,8 +7,8 @@ import { IonicModule, IonicRouteStrategy } from '@ionic/angular/lazy';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { ReactiveFormsModule } from '@angular/forms';
-import { AuthPage } from './auth/auth.page';
-import { LandingPage } from './landing/landing.page';
+import { AuthPage } from './features/auth/pages/auth.page';
+import { LandingPage } from './features/landing/pages/landing.page';
 
 @NgModule({
   declarations: [AppComponent, AuthPage, LandingPage],
