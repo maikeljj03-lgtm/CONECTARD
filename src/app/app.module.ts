@@ -8,10 +8,10 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { ReactiveFormsModule } from '@angular/forms';
 import { AuthPage } from './auth/auth.page';
-import { HomePage } from './home/home.page';
+import { LandingPage } from './landing/landing.page';
 
 @NgModule({
-  declarations: [AppComponent, AuthPage, HomePage],
+  declarations: [AppComponent, AuthPage, LandingPage],
   imports: [BrowserModule, IonicModule.forRoot(), AppRoutingModule, ReactiveFormsModule],
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },

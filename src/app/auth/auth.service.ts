@@ -15,6 +15,8 @@ export interface SignUpProfile {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private clientPromise?: Promise<SupabaseClient>;
+  private currentUserCache: User | null = null;
+  private hasCurrentUserCache = false;
   private signupOtpEnabled = false;
   private supabaseUrl = '';
   private supabasePublishableKey = '';
@@ -77,7 +79,7 @@ export class AuthService {
     this.supabaseUrl = config.supabaseUrl;
     this.supabasePublishableKey = config.supabasePublishableKey;
 
-    return createClient(config.supabaseUrl, config.supabasePublishableKey, {
+    const client = createClient(config.supabaseUrl, config.supabasePublishableKey, {
       global: { fetch: this.fetchWithTimeout },
       auth: {
         flowType: 'pkce',
@@ -86,6 +88,11 @@ export class AuthService {
         persistSession: true,
       },
     });
+    client.auth.onAuthStateChange((_event, session) => {
+      this.currentUserCache = session?.user ?? null;
+      this.hasCurrentUserCache = true;
+    });
+    return client;
   }
 
   async initialize(): Promise<void> {
@@ -145,7 +152,7 @@ export class AuthService {
     return client.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: new URL(forRegistration ? '/auth/login' : '/home', window.location.origin).toString(),
+        redirectTo: new URL(forRegistration ? '/auth/login' : '/landing', window.location.origin).toString(),
         queryParams: { prompt: 'select_account' },
       },
     });
@@ -210,14 +217,34 @@ export class AuthService {
   }
 
   async getCurrentUser(): Promise<User | null> {
+    if (this.hasCurrentUserCache) return this.currentUserCache;
     const client = await this.getClient();
-    const { data, error } = await client.auth.getUser();
+    // The PKCE callback has already been validated by Supabase during
+    // initialize(). Read that persisted session instead of issuing a second
+    // network request to /auth/v1/user just to decide which screen to show.
+    const { data, error } = await client.auth.getSession();
     if (error) return null;
-    return data.user;
+    this.currentUserCache = data.session?.user ?? null;
+    this.hasCurrentUserCache = true;
+    return this.currentUserCache;
+  }
+
+  cacheAuthenticatedUser(user: User): void {
+    this.currentUserCache = user;
+    this.hasCurrentUserCache = true;
+  }
+
+  getCachedCurrentUser(): User | null {
+    return this.hasCurrentUserCache ? this.currentUserCache : null;
   }
 
   async signOut(scope: 'global' | 'local' | 'others' = 'global') {
     const client = await this.getClient();
-    return client.auth.signOut({ scope });
+    const result = await client.auth.signOut({ scope });
+    if (!result.error) {
+      this.currentUserCache = null;
+      this.hasCurrentUserCache = true;
+    }
+    return result;
   }
 }

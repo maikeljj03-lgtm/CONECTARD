@@ -110,6 +110,12 @@ export class AuthPage implements OnInit, OnDestroy {
     });
 
     this.route.queryParamMap.subscribe((params) => {
+      if (params.has('auth_callback')) {
+        this.mode = 'login';
+        this.notice = 'No se pudo completar el acceso. Inicia sesión de nuevo; si el enlace venció, solicita uno nuevo.';
+        this.refreshView();
+        return;
+      }
       if (params.has('unverified')) {
         this.mode = 'login';
         this.notice = 'Confirma el correo desde el enlace que te enviamos antes de entrar.';
@@ -124,7 +130,7 @@ export class AuthPage implements OnInit, OnDestroy {
           const pendingLoginEmail = sessionStorage.getItem(PENDING_LOGIN_EMAIL);
           if (pendingLoginEmail) {
             sessionStorage.removeItem(PENDING_LOGIN_EMAIL);
-            await this.router.navigateByUrl('/home', { replaceUrl: true });
+            await this.router.navigateByUrl('/landing', { replaceUrl: true });
             return;
           } else if (registeredWithGoogle) {
             await this.auth.signOut('local');
@@ -183,7 +189,7 @@ export class AuthPage implements OnInit, OnDestroy {
       const { error } = await this.auth.verifyLoginOtp(this.registeredEmail, token);
       if (error) throw error;
       sessionStorage.removeItem(PENDING_LOGIN_EMAIL);
-      await this.router.navigateByUrl('/home', { replaceUrl: true });
+      await this.router.navigateByUrl('/landing', { replaceUrl: true });
     } catch (error) {
       this.message = this.friendlyError(error);
     } finally {
