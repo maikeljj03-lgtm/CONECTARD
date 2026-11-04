@@ -134,10 +134,6 @@
             <p class="form-kicker">UN ESPACIO PARA HACER LA DIFERENCIA</p>
             <h2>Únete a ConectaRD</h2>
             <p class="form-subtitle">Crea tu cuenta y conecta con personas que están mejorando su comunidad.</p>
-            @if (registerForm.value.requestedRole === 'citizen') {
-                <button class="google-button" type="button" (click)="continueWithGoogle(true)" [disabled]="busy || googleBusy"><svg class="google-mark" aria-hidden="true" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.55-.2-2.27H12v4.3h6.44a5.5 5.5 0 0 1-2.39 3.61v2.78h3.87c2.26-2.08 3.57-5.15 3.57-8.42Z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.08 7.95-2.91l-3.87-2.78c-1.08.72-2.45 1.15-4.08 1.15-3.14 0-5.8-2.12-6.75-4.97H1.25v2.88A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.25 14.49a7.2 7.2 0 0 1 0-4.98V6.63h-4a12 12 0 0 0 0 10.74l4-2.88Z"/><path fill="#EA4335" d="M12 4.54c1.77 0 3.36.61 4.61 1.81l3.45-3.45A11.6 11.6 0 0 0 12 0 12 12 0 0 0 1.25 6.63l4 2.88C6.2 6.66 8.86 4.54 12 4.54Z"/></svg><span>{{ googleBusy ? 'Conectando con Google…' : 'Registrarse con Google' }}</span></button>
-              <div class="form-divider"><span>o regístrate con tu correo</span></div>
-            }
             <form [formGroup]="registerForm" (ngSubmit)="submitRegister()" novalidate>
               <fieldset class="role-picker">
                 <legend>¿Cómo quieres participar?</legend>

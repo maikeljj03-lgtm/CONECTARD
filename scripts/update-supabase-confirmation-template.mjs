@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const envPath = path.join(projectRoot, '.env');
-const templatePath = path.join(projectRoot, 'supabase', 'templates', 'confirmation.html');
 
 let envContents = '';
 try {
@@ -28,6 +27,14 @@ const supabaseUrl = (process.env.SUPABASE_URL
   ?? fileValues.SUPABASE_URL
   ?? fileValues.NEXT_PUBLIC_SUPABASE_URL)?.trim();
 const accessToken = (process.env.SUPABASE_ACCESS_TOKEN ?? fileValues.SUPABASE_ACCESS_TOKEN)?.trim();
+const signupOtpEnabled = (process.env.NEXT_PUBLIC_SUPABASE_SIGNUP_OTP
+  ?? fileValues.NEXT_PUBLIC_SUPABASE_SIGNUP_OTP)?.trim().toLowerCase() === 'true';
+const templatePath = path.join(
+  projectRoot,
+  'supabase',
+  'templates',
+  signupOtpEnabled ? 'confirmation-otp.html' : 'confirmation.html',
+);
 
 if (!supabaseUrl) throw new Error('Falta SUPABASE_URL en .env o en el entorno.');
 if (!accessToken) {
@@ -41,8 +48,9 @@ if (!projectRefMatch) {
 }
 
 const content = await readFile(templatePath, 'utf8');
-if (!content.includes('{{ .ConfirmationURL }}')) {
-  throw new Error('La plantilla debe incluir {{ .ConfirmationURL }} para que el enlace de confirmación funcione.');
+const requiredTemplateVariable = signupOtpEnabled ? '{{ .Token }}' : '{{ .ConfirmationURL }}';
+if (!content.includes(requiredTemplateVariable)) {
+  throw new Error(`La plantilla seleccionada debe incluir ${requiredTemplateVariable}.`);
 }
 
 const response = await fetch(`https://api.supabase.com/v1/projects/${projectRefMatch[1]}/config/auth`, {
@@ -68,4 +76,4 @@ if (!response.ok) {
   throw new Error(`Supabase rechazó la actualización de la plantilla (HTTP ${response.status}${errorCode ? `, ${errorCode}` : ''}). Revisa los permisos del token.`);
 }
 
-console.log('Plantilla de confirmación de ConectaRD actualizada en Supabase.');
+console.log(`Plantilla de confirmación ${signupOtpEnabled ? 'OTP' : 'por enlace'} de ConectaRD actualizada en Supabase.`);

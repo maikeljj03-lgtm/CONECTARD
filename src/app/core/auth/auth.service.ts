@@ -15,6 +15,7 @@ export interface SignUpProfile {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private clientPromise?: Promise<SupabaseClient>;
+  private passwordClient?: SupabaseClient;
   private currentUserCache: User | null = null;
   private hasCurrentUserCache = false;
   private signupOtpEnabled = false;
@@ -107,11 +108,18 @@ export class AuthService {
 
   async validatePasswordAndSendLoginOtp(email: string, password: string) {
     const client = await this.getClient();
-    // Validate in a non-persistent client: a session is created only after OTP verification.
-    const passwordClient = createClient(this.supabaseUrl, this.supabasePublishableKey, {
+    // Reuse an isolated, non-persistent client for password checks. Creating one
+    // on every login attempt causes duplicate GoTrueClient instances in the tab.
+    this.passwordClient ??= createClient(this.supabaseUrl, this.supabasePublishableKey, {
       global: { fetch: this.fetchWithTimeout },
-      auth: { autoRefreshToken: false, detectSessionInUrl: false, persistSession: false },
+      auth: {
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        persistSession: false,
+        storageKey: 'conectard-password-validation',
+      },
     });
+    const passwordClient = this.passwordClient;
     const { error: passwordError } = await passwordClient.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password,
@@ -147,12 +155,12 @@ export class AuthService {
     });
   }
 
-  async signInWithGoogle(forRegistration = false) {
+  async signInWithGoogle() {
     const client = await this.getClient();
     return client.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: new URL(forRegistration ? '/auth/login' : '/landing', window.location.origin).toString(),
+        redirectTo: new URL('/landing', window.location.origin).toString(),
         queryParams: { prompt: 'select_account' },
       },
     });

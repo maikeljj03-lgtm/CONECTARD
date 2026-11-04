@@ -4,7 +4,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 
 type AuthMode = 'login' | 'register' | 'verify-email' | 'verify-login' | 'forgot-password' | 'reset-password';
-const GOOGLE_REGISTRATION_PENDING = 'conectard.google-registration-pending';
 const PENDING_SIGNUP_EMAIL = 'conectard.pending-signup-email';
 const PENDING_LOGIN_EMAIL = 'conectard.pending-login-email';
 
@@ -85,6 +84,7 @@ export class AuthPage implements OnInit, OnDestroy {
         this.registeredEmail = typeof navigationEmail === 'string' && navigationEmail
           ? navigationEmail
           : sessionStorage.getItem(PENDING_SIGNUP_EMAIL) ?? this.registeredEmail;
+        if (this.registeredEmail) this.startResendCooldown();
         void this.auth.isSignupOtpEnabled()
           .then((enabled) => {
             this.signupOtpEnabled = enabled;
@@ -126,23 +126,16 @@ export class AuthPage implements OnInit, OnDestroy {
       this.notice = 'Confirmando tu correo…';
       void this.auth.initialize()
         .then(async () => {
-          const registeredWithGoogle = sessionStorage.getItem(GOOGLE_REGISTRATION_PENDING) === '1';
           const pendingLoginEmail = sessionStorage.getItem(PENDING_LOGIN_EMAIL);
           if (pendingLoginEmail) {
             sessionStorage.removeItem(PENDING_LOGIN_EMAIL);
             await this.router.navigateByUrl('/landing', { replaceUrl: true });
-            return;
-          } else if (registeredWithGoogle) {
-            await this.auth.signOut('local');
-            sessionStorage.removeItem(GOOGLE_REGISTRATION_PENDING);
-            this.notice = 'Tu acceso con Google está listo. Inicia sesión con Google para entrar.';
           } else {
             this.notice = 'Correo confirmado. Ya puedes iniciar sesión.';
           }
           this.refreshView();
         })
         .catch((error: unknown) => {
-          sessionStorage.removeItem(GOOGLE_REGISTRATION_PENDING);
           this.message = this.friendlyError(error);
           this.notice = '';
           this.refreshView();
@@ -166,9 +159,15 @@ export class AuthPage implements OnInit, OnDestroy {
       this.startResendCooldown();
       await this.router.navigateByUrl('/auth/verify-login', { state: { email }, replaceUrl: true });
     } catch (error) {
-      if ((error as { code?: string })?.code === 'invalid_credentials') {
-        this.loginNeedsSignup = true;
-        this.message = 'Correo o contraseña incorrectos. Si todavía no tienes cuenta, regístrate.';
+      if ((error as { code?: string })?.code === 'email_not_confirmed') {
+        try {
+          await this.resumeSignupVerification(String(this.loginForm.value.email).trim().toLowerCase());
+        } catch (resendError) {
+          this.message = this.friendlyError(resendError);
+        }
+      } else if ((error as { code?: string })?.code === 'invalid_credentials') {
+        this.loginNeedsSignup = false;
+        this.message = 'Correo o contraseña incorrectos. Si tu cuenta es de Google, usa “Continuar con Google”; si te registraste por correo, revisa la contraseña o pulsa “¿La olvidaste?”.';
       } else {
         this.message = this.friendlyError(error);
       }
@@ -220,7 +219,6 @@ export class AuthPage implements OnInit, OnDestroy {
       return;
     }
     this.startRequest();
-    sessionStorage.removeItem(GOOGLE_REGISTRATION_PENDING);
     try {
       const value = this.registerForm.value;
       const email = value.email.trim().toLowerCase();
@@ -229,6 +227,12 @@ export class AuthPage implements OnInit, OnDestroy {
         requestedRole: value.requestedRole,
       });
       if (error) throw error;
+      if (data.user?.identities?.length === 0) {
+        await this.router.navigateByUrl('/auth/login', { replaceUrl: true });
+        this.loginForm.patchValue({ email });
+        this.notice = 'Ese correo ya tiene una cuenta. Inicia sesión con el método que usaste al crearla; si fue Google, elige “Continuar con Google”.';
+        return;
+      }
       this.registeredEmail = email;
       if (data.session) {
         await this.auth.signOut('local');
@@ -303,29 +307,37 @@ export class AuthPage implements OnInit, OnDestroy {
     }
   }
 
-  async continueWithGoogle(forRegistration = false): Promise<void> {
+  private async resumeSignupVerification(email: string): Promise<void> {
+    this.registeredEmail = email;
+    this.signupOtpEnabled = await this.auth.isSignupOtpEnabled();
+    sessionStorage.setItem(PENDING_SIGNUP_EMAIL, email);
+    this.otpForm.reset({ token: '' });
+    this.startResendCooldown();
+    await this.router.navigateByUrl('/auth/verify-email', {
+      state: { email },
+      replaceUrl: true,
+    });
+    this.notice = this.signupOtpEnabled
+      ? `La cuenta existe, pero falta confirmar el correo. Usa el código que ya recibiste en ${email}. Si no lo tienes, podrás pedir otro cuando termine la espera.`
+      : `La cuenta existe, pero falta confirmar el correo. Usa el enlace que ya recibiste en ${email}. Si no lo tienes, podrás pedir otro cuando termine la espera.`;
+  }
+
+  async continueWithGoogle(): Promise<void> {
     this.googleBusy = true;
     this.message = '';
     this.notice = '';
-    if (forRegistration) {
-      sessionStorage.setItem(GOOGLE_REGISTRATION_PENDING, '1');
-    } else {
-      sessionStorage.removeItem(GOOGLE_REGISTRATION_PENDING);
-    }
     if (this.googleRequestTimer) clearTimeout(this.googleRequestTimer);
     this.googleRequestTimer = setTimeout(() => {
       if (!this.googleBusy) return;
       this.googleBusy = false;
-      sessionStorage.removeItem(GOOGLE_REGISTRATION_PENDING);
       this.message = 'Google no respondió. Revisa tu conexión e inténtalo otra vez.';
       this.googleRequestTimer = undefined;
       this.refreshView();
     }, 15_000);
     try {
-      const { error } = await this.auth.signInWithGoogle(forRegistration);
+      const { error } = await this.auth.signInWithGoogle();
       if (error) throw error;
     } catch (error) {
-      sessionStorage.removeItem(GOOGLE_REGISTRATION_PENDING);
       this.message = this.friendlyError(error);
       this.googleBusy = false;
       if (this.googleRequestTimer) clearTimeout(this.googleRequestTimer);
@@ -411,7 +423,7 @@ export class AuthPage implements OnInit, OnDestroy {
     if ((error as { name?: string })?.name === 'AbortError') {
       return 'No pudimos verificar tu cuenta. Supabase no respondió; revisa la conexión y la configuración e inténtalo otra vez.';
     }
-    if (code === 'invalid_credentials') return 'No encontramos una cuenta con esos datos. Revisa el correo y la contraseña o crea una cuenta.';
+    if (code === 'invalid_credentials') return 'Correo o contraseña incorrectos. Si te registraste con Google, pulsa “Continuar con Google”. Si acabas de registrarte por correo, confirma primero tu cuenta.';
     if (code === 'auth_timeout') return 'No pudimos verificar tu cuenta. Supabase no respondió; revisa la conexión y la configuración e inténtalo otra vez.';
     if (code === 'email_not_confirmed') return 'Confirma tu correo antes de iniciar sesión.';
     if (code === 'otp_expired' || detail.toLowerCase().includes('token has expired')) return 'El código venció. Solicita uno nuevo.';
@@ -420,7 +432,7 @@ export class AuthPage implements OnInit, OnDestroy {
     if (code === 'email_address_not_authorized' || detail.toLowerCase().includes('email address not authorized')) {
       return 'El correo integrado de Supabase solo envía a direcciones autorizadas del equipo del proyecto.';
     }
-    if (code === 'user_already_exists') return 'Ya existe una cuenta con ese correo. Intenta iniciar sesión.';
+    if (code === 'user_already_exists') return 'Ese correo ya tiene una cuenta. Inicia sesión con el método que usaste al registrarte.';
     if (code === 'weak_password') return 'Usa una contraseña más segura, de al menos 8 caracteres.';
     if (code === 'provider_disabled' || detail.toLowerCase().includes('provider is not enabled')) {
       return 'Google aún no está habilitado en Supabase. Activa Google en Authentication → Sign In / Providers y configura sus credenciales OAuth.';
