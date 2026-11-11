@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { requireTrustedDevice } from './device-verification';
 
 /** Exige una sesión con correo confirmado. Para pantallas privadas. */
 export const authGuard: CanActivateFn = async (_route, state) => {
@@ -13,6 +14,8 @@ export const authGuard: CanActivateFn = async (_route, state) => {
     await auth.initialize();
     const user = await auth.getCurrentUser();
     if (user?.email_confirmed_at) {
+      const verification = await requireTrustedDevice(auth, router, user);
+      if (verification) return verification;
       auth.cacheAuthenticatedUser(user);
       return true;
     }

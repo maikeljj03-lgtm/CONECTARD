@@ -1,0 +1,166 @@
+<ion-content class="app-content home-content">
+  <app-topbar></app-topbar>
+
+  <main class="home">
+    @if (loading) {
+      <div class="page-state"><span class="spinner"></span><p>Preparando tu comunidad…</p></div>
+    } @else {
+      <!-- ================= Portada: saludo + maqueta 3D ================= -->
+      <section class="home-hero" aria-labelledby="home-title">
+        <div class="home-hero__copy">
+          <p class="home-hero__date">{{ today | date: "EEEE d 'de' MMMM" }}</p>
+          <h1 id="home-title">{{ greeting }}, <span>{{ firstName }}.</span></h1>
+          <p class="home-hero__question">¿Qué está pasando en tu comunidad?</p>
+
+          @if (place) {
+            <a class="home-hero__place" routerLink="/perfil"><app-icon name="map-pin"></app-icon>{{ place }}</a>
+          } @else {
+            <a class="home-hero__place home-hero__place--empty" routerLink="/perfil"><app-icon name="map-pin"></app-icon>Agrega tu sector para ver lo que pasa cerca</a>
+          }
+
+          <div class="home-hero__actions">
+            <a class="btn btn--primary btn--lg" routerLink="/reportes/nuevo"><app-icon name="camera"></app-icon> Reportar un problema</a>
+            <a class="btn btn--ghost btn--lg" routerLink="/explorar"><app-icon name="map"></app-icon> Explorar el mapa</a>
+          </div>
+        </div>
+
+        <div class="home-hero__scene">
+          <app-community-scene [reports]="sceneReports" [userLocation]="location" (selectReport)="open($event)"></app-community-scene>
+          <div class="scene-legend">
+            @for (status of statusOrder; track status) {
+              <span><i [style.background]="statusColors[status]"></i>{{ statusLabels[status] }}</span>
+            }
+            <span class="scene-legend__note">Columnas más altas = más recientes · toca una para verla</span>
+          </div>
+          @if (!sceneReports.length && !error) {
+            <p class="scene-empty">Aún no hay reportes publicados. El primero puede ser el tuyo.</p>
+          }
+        </div>
+      </section>
+
+      @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+      <!-- ================= Cifras reales ================= -->
+      <section class="kpis" aria-label="Tu comunidad en cifras">
+        <article class="kpi">
+          <span class="kpi__icon"><app-icon name="file-text"></app-icon></span>
+          <strong>{{ counts?.total ?? 0 }}</strong>
+          <small>Reportes {{ scopeLabel }}</small>
+        </article>
+        <article class="kpi">
+          <span class="kpi__icon kpi__icon--sun"><app-icon name="clock"></app-icon></span>
+          <strong>{{ (counts?.en_revision ?? 0) + (counts?.en_proceso ?? 0) }}</strong>
+          <small>En revisión o en proceso</small>
+        </article>
+        <article class="kpi">
+          <span class="kpi__icon kpi__icon--teal"><app-icon name="check-circle"></app-icon></span>
+          <strong>{{ counts?.resuelto ?? 0 }}</strong>
+          <small>Resueltos · {{ resolvedRate }} % del total</small>
+        </article>
+        <article class="kpi kpi--mine">
+          <span class="kpi__icon kpi__icon--ink"><app-icon name="user"></app-icon></span>
+          <strong>{{ myReports.length }}</strong>
+          <small>Tus reportes · {{ myOpenReports }} abiertos, {{ myResolvedReports }} resueltos</small>
+        </article>
+      </section>
+
+      <div class="home-grid">
+        <!-- ================= Reportes ================= -->
+        <section class="panel" aria-labelledby="reports-title">
+          <header class="panel__head">
+            <div>
+              <h2 id="reports-title">Lo que pasa a tu alrededor</h2>
+              <p>Reportes reales de la comunidad. Toca uno para ver sus fotos y su seguimiento.</p>
+            </div>
+            <a class="panel__link" routerLink="/explorar">Ver todo <app-icon name="arrow-right"></app-icon></a>
+          </header>
+
+          <div class="segmented" role="tablist" aria-label="Ordenar reportes">
+            <button type="button" role="tab" [class.is-active]="tab === 'recientes'" [attr.aria-selected]="tab === 'recientes'" (click)="selectTab('recientes')"><app-icon name="clock"></app-icon> Recientes</button>
+            <button type="button" role="tab" [class.is-active]="tab === 'cercanos'" [attr.aria-selected]="tab === 'cercanos'" (click)="selectTab('cercanos')">
+              @if (locating) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="locate"></app-icon> } Cercanos
+            </button>
+            <button type="button" role="tab" [class.is-active]="tab === 'mios'" [attr.aria-selected]="tab === 'mios'" (click)="selectTab('mios')"><app-icon name="user"></app-icon> Míos</button>
+          </div>
+          @if (locationError) { <p class="hint">{{ locationError }}</p> }
+
+          <div class="report-list">
+            @for (report of visibleReports; track report.id; let i = $index) {
+              <app-report-card [report]="report" [coverUrl]="coverOf(report)" [distanceKm]="distanceTo(report)" (open)="open($event)" [style.--i]="i"></app-report-card>
+            } @empty {
+              <div class="empty">
+                <span class="empty__icon"><app-icon [name]="tab === 'mios' ? 'camera' : 'map-pin'"></app-icon></span>
+                @if (tab === 'mios') {
+                  <strong>Todavía no has publicado reportes</strong>
+                  <p>Cuando algo afecte a tu comunidad, repórtalo en menos de dos minutos.</p>
+                } @else {
+                  <strong>Aún no hay reportes aquí</strong>
+                  <p>Sé la primera persona en reportar lo que pasa en tu zona.</p>
+                }
+                <a class="btn btn--primary" routerLink="/reportes/nuevo"><app-icon name="plus"></app-icon> Crear reporte</a>
+              </div>
+            }
+          </div>
+        </section>
+
+        <!-- ================= Panel lateral ================= -->
+        <aside class="side">
+          @if (profileTodo.length) {
+            <article class="panel profile-card">
+              <div class="profile-card__top">
+                <span class="avatar-lg">
+                  @if (profile?.avatar_url; as avatar) { <img [src]="avatar" alt="" /> } @else { {{ initials }} }
+                </span>
+                <div>
+                  <h3>Completa tu perfil</h3>
+                  <p>Tu comunidad confía más en perfiles completos.</p>
+                </div>
+              </div>
+              <div class="progress" role="progressbar" [attr.aria-valuenow]="profileProgress" aria-valuemin="0" aria-valuemax="100"><span [style.width.%]="profileProgress"></span></div>
+              <ul class="todo">
+                @for (item of profileTodo; track item) { <li><app-icon name="plus"></app-icon>{{ item }}</li> }
+              </ul>
+              <a class="btn btn--ghost btn--block" routerLink="/perfil">Completar ahora</a>
+            </article>
+          }
+
+          <article class="panel health">
+            <h3>Cómo va tu comunidad</h3>
+            <p class="health__scope">Reportes {{ scopeLabel }}</p>
+            @if (statusShares.length) {
+              <div class="health__bar">
+                @for (share of statusShares; track share.status) {
+                  <span [style.width.%]="share.percent" [style.background]="statusColors[share.status]" [attr.title]="statusLabels[share.status] + ': ' + share.count"></span>
+                }
+              </div>
+              <ul class="health__legend">
+                @for (share of statusShares; track share.status) {
+                  <li><i [style.background]="statusColors[share.status]"></i>{{ statusLabels[share.status] }}<b>{{ share.count }}</b></li>
+                }
+              </ul>
+            } @else {
+              <p class="muted small">Aún no hay datos suficientes para mostrar el avance.</p>
+            }
+          </article>
+
+          @if (profile) {
+            <article class="panel role-card">
+              <p class="role-card__kicker">Tu rol</p>
+              <h3>{{ roleLabels[profile.role] }}</h3>
+              <ul class="perm-list">
+                @for (permission of rolePermissions.slice(0, 4); track permission) { <li><app-icon name="check"></app-icon>{{ permission }}</li> }
+              </ul>
+              @if (profile.role === 'citizen') {
+                <a class="panel__link" routerLink="/perfil">Quiero ser voluntario <app-icon name="arrow-right"></app-icon></a>
+              }
+              <a *appCan="'users.manage'" class="panel__link" routerLink="/admin">Ir a administración <app-icon name="arrow-right"></app-icon></a>
+            </article>
+          }
+        </aside>
+      </div>
+    }
+  </main>
+
+  <app-report-preview slot="fixed" [report]="selected" [distanceKm]="selected ? distanceTo(selected) : null" (closed)="selected = null" (showOnMap)="showOnMap($event)"></app-report-preview>
+  <app-bottom-nav></app-bottom-nav>
+</ion-content>

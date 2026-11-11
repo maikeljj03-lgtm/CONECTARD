@@ -1,11 +1,11 @@
 <div class="app-topbar__inner">
-  <a class="app-topbar__brand" routerLink="/landing" aria-label="ConectaRD, inicio"><app-logo [size]="30"></app-logo></a>
+  <a class="app-topbar__brand" routerLink="/inicio" aria-label="ConectaRD, mi inicio"><app-logo [size]="30"></app-logo></a>
   <nav class="app-topbar__nav" aria-label="Navegación de la cuenta">
-    <a routerLink="/reportes/nuevo" routerLinkActive="is-active"><app-icon name="camera"></app-icon><span>Nuevo reporte</span></a>
-    <a routerLink="/perfil" routerLinkActive="is-active"><app-icon name="user"></app-icon><span>Mi perfil</span></a>
-    @if (isAdmin) {
-      <a routerLink="/admin/verificaciones" routerLinkActive="is-active"><app-icon name="shield-check"></app-icon><span>Verificaciones</span></a>
-    }
+    <a routerLink="/inicio" routerLinkActive="is-active"><app-icon name="home"></app-icon><span>Inicio</span></a>
+    <a routerLink="/explorar" routerLinkActive="is-active"><app-icon name="map"></app-icon><span>Explorar</span></a>
+    <a routerLink="/reportes/nuevo" routerLinkActive="is-active"><app-icon name="camera"></app-icon><span>Reportar</span></a>
+    <a routerLink="/perfil" routerLinkActive="is-active"><app-icon name="user"></app-icon><span>Perfil</span></a>
+    <a *appCan="'users.manage'" routerLink="/admin" routerLinkActive="is-active"><app-icon name="shield-check"></app-icon><span>Admin</span></a>
   </nav>
   <button type="button" class="app-topbar__out" (click)="signOut()" aria-label="Cerrar sesión" title="Cerrar sesión"><app-icon name="log-out"></app-icon></button>
 </div>

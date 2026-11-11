@@ -40,22 +40,19 @@ npm.cmd run build
 ## Configurar Supabase
 
 1. En el panel del proyecto, abre **SQL Editor** y ejecuta una vez la migración [supabase/migrations/20261102000000_create_profiles.sql](supabase/migrations/20261102000000_create_profiles.sql).
-2. En **Authentication → Sign In / Providers**, activa **Confirm email**. Supabase rechazará el inicio de sesión por correo y contraseña hasta confirmar la dirección.
+2. En **Authentication → Sign In / Providers → Email**, **desactiva Confirm email**. El registro no pide código: la cuenta se crea y se pasa al login. El correo se comprueba con el código que se envía la **primera vez que la cuenta entra desde cada dispositivo**; después ese dispositivo queda recordado 90 días.
 3. Para Google, habilita el proveedor Google en esa misma sección y configura sus credenciales OAuth.
 4. En **Authentication → URL Configuration**, permite `http://localhost:8100/auth/login` y `http://localhost:8100/landing` como URL de retorno. Al publicar la app, añade las URL equivalentes de producción.
 5. En Google Cloud, configura como URI de retorno autorizada la URL de callback que muestra Supabase para el proveedor Google.
-5b. Para Facebook (RF-01):
-   - En [developers.facebook.com](https://developers.facebook.com) crea una app de tipo **Consumidor** (o "Autenticar y solicitar datos a los usuarios con el inicio de sesión con Facebook").
-   - En **Inicio de sesión con Facebook → Configuración**, pega en **URI de redireccionamiento de OAuth válidos** la URL de callback que muestra Supabase en el proveedor Facebook (termina en `/auth/v1/callback`).
-   - En **Configuración de la app → Básica** copia el **Identificador de la app** y la **Clave secreta**.
-   - En Supabase, **Authentication → Sign In / Providers → Facebook**: actívalo y pega esos dos valores.
-   - Mientras la app de Facebook esté en modo **Desarrollo**, solo pueden entrar las cuentas agregadas como administradores, desarrolladores o evaluadores. Para abrirla a todo el público hay que pasarla a modo **Activo** (Facebook pide una URL de política de privacidad).
+5b. Otras redes sociales: ver [Redes sociales](#redes-sociales-rf-01) más abajo.
 6. Ejecuta también, si todavía no se aplicó, [supabase/migrations/20261102010000_prevent_self_assigned_roles.sql](supabase/migrations/20261102010000_prevent_self_assigned_roles.sql) para proteger los roles solicitados durante el registro.
 
 7. Ejecuta, en este orden, las migraciones de perfil, verificación y reportes:
    - [20261111000000_profile_editing.sql](supabase/migrations/20261111000000_profile_editing.sql): edición de perfil y bucket `avatars` para fotos (RF-05).
    - [20261111010000_organization_verification.sql](supabase/migrations/20261111010000_organization_verification.sql): solicitudes de verificación, bucket privado `verification-documents` y revisión por administradores (RF-06).
    - [20261111020000_reports_anonymous.sql](supabase/migrations/20261111020000_reports_anonymous.sql): tabla `reports` y vista pública `public_reports`, que nunca muestra el autor de un reporte anónimo (RF-07).
+   - [20261112000000_roles_permissions.sql](supabase/migrations/20261112000000_roles_permissions.sql): roles y permisos (RF-03): aprobar voluntarios, cambiar roles desde el panel y permitir que instituciones cambien el estado de los reportes.
+   - [20261113000000_report_media.sql](supabase/migrations/20261113000000_report_media.sql): fotos y videos de los reportes (RF-10, RF-11, RF-12): bucket público `report-media` y tabla `report_media`. Los archivos se guardan por id de reporte, nunca por usuario, para no romper el anonimato.
 8. Para tener un administrador que revise verificaciones, ejecuta en el SQL Editor (cambiando el correo):
 
    ```sql
@@ -63,9 +60,27 @@ npm.cmd run build
    where id = (select id from auth.users where email = 'correo-del-admin@ejemplo.com');
    ```
 
-   Ese usuario verá la opción **Verificaciones** en la barra superior (`/admin/verificaciones`).
+   Ese usuario verá **Administración** en la barra superior (`/admin`). Desde ahí, en **Usuarios y roles**, puede nombrar a otros administradores sin volver a usar SQL.
 
 La confirmación del correo se activa en el panel de Supabase, no con SQL. El SQL de perfiles enlaza cada perfil con una cuenta de `auth.users`; no crea una forma alternativa de iniciar sesión. El correo integrado de Supabase usa el enlace predeterminado mientras el panel no permita editar la plantilla.
+
+## Redes sociales (RF-01)
+
+La pantalla de acceso muestra **solo las redes activadas** en Supabase (las consulta en `/auth/v1/settings`). Al activar una red en Supabase, su botón aparece solo, sin tocar código. Si se pulsa una red que no está activada, la app muestra un aviso en lugar de ir a la página de error de Supabase.
+
+Todas usan la misma **URL de callback**, que Supabase muestra al abrir cualquier proveedor en **Authentication → Sign In / Providers** (tiene la forma `https://<tu-proyecto>.supabase.co/auth/v1/callback`). En cada red hay que registrarla como URL de redirección.
+
+| Red | Dónde se crea la app | Qué se pega en Supabase | A tener en cuenta |
+|---|---|---|---|
+| **Google** | Google Cloud → APIs y servicios → Credenciales → ID de cliente OAuth (aplicación web) | Client ID y Client Secret | Ya está activado. |
+| **Apple** | [developer.apple.com](https://developer.apple.com) → Identifiers (App ID + **Services ID**) y Keys (clave de *Sign in with Apple*) | Services ID, Team ID, Key ID y la clave `.p8` | Requiere la membresía de Apple Developer (de pago). |
+| **Microsoft** | [portal.azure.com](https://portal.azure.com) → App registrations → New registration (cuentas personales y de organizaciones) → Certificates & secrets | Application (client) ID, el *secret* y la URL `https://login.microsoftonline.com/common` | En Supabase el proveedor se llama **Azure**. |
+| **LinkedIn** | [linkedin.com/developers](https://www.linkedin.com/developers) → Create app (pide una página de LinkedIn) → Products → **Sign In with LinkedIn using OpenID Connect** → Auth | Client ID y Client Secret | En Supabase el proveedor se llama **LinkedIn (OIDC)**. |
+| **Facebook, X e Instagram** | — | — | **Retiradas.** Facebook y X se quitaron por decisión del equipo; Instagram no existe en Supabase. Para volver a agregar Facebook o X basta con añadirlas en `core/constants/social-providers.ts` y activarlas en Supabase. |
+
+Las cuentas creadas con cualquier red social empiezan con perfil de **ciudadano**.
+
+Cuando una red pida **URL de política de privacidad** o **de términos**, usa las páginas públicas de la app: `https://<tu-dominio>/privacidad` y `https://<tu-dominio>/terminos`. Deben ser direcciones publicadas en internet: las redes no aceptan `localhost`.
 
 ## Estructura del proyecto
 

@@ -1,0 +1,71 @@
+<ion-content class="app-content">
+  <app-topbar></app-topbar>
+
+  <main class="page">
+    <header class="page-head">
+      <p class="page-kicker">Administración</p>
+      <h1>Usuarios y roles</h1>
+      <p>Busca una cuenta y cambia su rol. Cada cambio queda registrado con fecha y responsable. No puedes cambiar tu propio rol.</p>
+    </header>
+
+    <app-admin-nav></app-admin-nav>
+
+    <div class="users-toolbar">
+      <div class="field__control">
+        <app-icon class="field__icon" name="search"></app-icon>
+        <input type="search" placeholder="Buscar por nombre o correo…" [value]="search" (input)="onSearch($any($event.target).value)" aria-label="Buscar cuentas" />
+      </div>
+      <div class="field__control users-toolbar__filter">
+        <app-icon class="field__icon" name="users"></app-icon>
+        <select [value]="roleFilter" (change)="onFilter($any($event.target).value)" aria-label="Filtrar por rol">
+          <option value="">Todos los roles</option>
+          @for (role of roleOptions; track role) { <option [value]="role">{{ roleLabels[role] }}</option> }
+        </select>
+      </div>
+    </div>
+
+    @if (feedback) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ feedback }}</span></div> }
+    @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+    @if (loading) {
+      <div class="page-state"><span class="spinner"></span></div>
+    } @else if (!error || users.length) {
+      <div class="card users">
+        @for (user of users; track user.id) {
+          <article class="user-row">
+            <div class="avatar avatar--sm">
+              @if (user.avatar_url; as avatar) { <img [src]="avatar" alt="" /> } @else { <app-icon name="user"></app-icon> }
+            </div>
+            <div class="user-row__who">
+              <strong>{{ user.full_name || 'Sin nombre' }} @if (user.id === myId) { <span class="badge">Tú</span> }</strong>
+              <small>{{ user.email }}</small>
+              @if (pendingLabel(user); as pending) { <span class="badge badge--sun"><app-icon name="clock"></app-icon> {{ pending }}</span> }
+            </div>
+            <div class="user-row__role">
+              @if (user.id === myId) {
+                <span class="badge badge--teal">{{ roleLabels[user.role] }}</span>
+              } @else {
+                <select class="user-row__select" [value]="draft[user.id] ?? user.role" (change)="draft[user.id] = $any($event.target).value; confirmingAdmin = ''" [attr.aria-label]="'Rol de ' + (user.full_name || user.email)">
+                  @for (role of roleOptions; track role) { <option [value]="role">{{ roleLabels[role] }}</option> }
+                </select>
+                @if (hasChange(user)) {
+                  <button type="button" class="btn btn--ghost btn--sm" (click)="cancel(user)">Cancelar</button>
+                  <button type="button" class="btn btn--primary btn--sm" (click)="save(user)" [disabled]="busyId === user.id">
+                    @if (busyId === user.id) { <span class="spinner spinner--sm"></span> }
+                    {{ confirmingAdmin === user.id ? 'Sí, hacer administrador' : 'Guardar' }}
+                  </button>
+                }
+              }
+            </div>
+            @if (confirmingAdmin === user.id) {
+              <p class="user-row__warn"><app-icon name="alert"></app-icon> Un administrador puede ver todas las cuentas, documentos y reportes anónimos. Pulsa de nuevo para confirmar.</p>
+            }
+          </article>
+        } @empty {
+          <p class="muted">No se encontraron cuentas.</p>
+        }
+      </div>
+    }
+  </main>
+  <app-bottom-nav></app-bottom-nav>
+</ion-content>

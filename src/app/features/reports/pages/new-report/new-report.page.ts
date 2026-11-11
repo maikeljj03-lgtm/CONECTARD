@@ -5,7 +5,10 @@ import { REPORT_CATEGORIES, REPORT_STATUS_LABELS, type ReportCategoryValue } fro
 import { DR_MAP_VIEW, DR_PROVINCES, isInsideDominicanRepublic } from '../../../../core/constants/geography';
 import type { MyReport, PublicReport } from '../../../../core/models/report.model';
 import { ProfileService } from '../../../../core/services/profile.service';
+import { ReportMediaService } from '../../../../core/services/report-media.service';
 import { ReportsService } from '../../../../core/services/reports.service';
+import type { ProcessedMedia } from '../../../../core/utils/media';
+import { MediaPickerComponent } from '../../components/media-picker/media-picker.component';
 import { friendlyDataError } from '../../../../core/utils/data-errors';
 
 @Component({
@@ -16,11 +19,22 @@ import { friendlyDataError } from '../../../../core/utils/data-errors';
 export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly formBuilder = inject(FormBuilder);
   private readonly reports = inject(ReportsService);
+  private readonly mediaService = inject(ReportMediaService);
   private readonly profiles = inject(ProfileService);
   private readonly zone = inject(NgZone);
   private readonly changeDetector = inject(ChangeDetectorRef);
 
   @ViewChild('pickerMap') private pickerMap?: ElementRef<HTMLDivElement>;
+  @ViewChild(MediaPickerComponent) private mediaPicker?: MediaPickerComponent;
+
+  /** Fotos y videos listos para subir (RF-10, RF-11, ya comprimidos según RF-12). */
+  media: ProcessedMedia[] = [];
+  mediaProcessing = false;
+  /** Archivos que no se pudieron subir tras crear el reporte (se pueden reintentar). */
+  failedMedia: ProcessedMedia[] = [];
+  uploadedMediaUrls: { url: string; kind: 'image' | 'video' }[] = [];
+  uploadingMedia = false;
+  mediaError = '';
   private map?: L.Map;
   private marker?: L.Marker;
   private resizeObserver?: ResizeObserver;
@@ -115,6 +129,10 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
       this.message = !this.hasLocation ? 'Marca en el mapa dónde está el problema.' : 'Revisa los campos marcados.';
       return;
     }
+    if (this.mediaProcessing) {
+      this.message = 'Espera a que terminen de procesarse las fotos.';
+      return;
+    }
     this.sending = true;
     this.message = '';
     try {
@@ -131,6 +149,8 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
         sector: value.sector,
         is_anonymous: value.is_anonymous,
       });
+      // Las fotos se suben después de crear el reporte: se guardan en la carpeta de ese reporte.
+      if (this.media.length) await this.uploadMedia(this.media, 0);
       // Se lee desde la vista pública para mostrar exactamente lo que verán los demás.
       this.publicView = await this.reports.getPublic(this.created.id).catch(() => null);
     } catch (error) {
@@ -141,9 +161,42 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  /** Vuelve a intentar subir los archivos que fallaron. */
+  async retryMedia(): Promise<void> {
+    if (!this.created || !this.failedMedia.length) return;
+    await this.uploadMedia(this.failedMedia, this.uploadedMediaUrls.length);
+    this.changeDetector.markForCheck();
+  }
+
+  private async uploadMedia(items: ProcessedMedia[], startPosition: number): Promise<void> {
+    if (!this.created) return;
+    this.uploadingMedia = true;
+    this.mediaError = '';
+    this.changeDetector.markForCheck();
+    try {
+      const result = await this.mediaService.upload(this.created.id, items, startPosition);
+      for (const media of result.uploaded) {
+        this.uploadedMediaUrls.push({ url: await this.mediaService.publicUrl(media.path), kind: media.kind });
+      }
+      this.failedMedia = result.failed.map((index) => items[index]);
+      if (this.failedMedia.length) {
+        this.mediaError = `${this.failedMedia.length === 1 ? 'Un archivo no se pudo subir' : this.failedMedia.length + ' archivos no se pudieron subir'}: ${friendlyDataError(result.firstError)}`;
+      }
+    } catch (error) {
+      this.failedMedia = items;
+      this.mediaError = friendlyDataError(error);
+    } finally {
+      this.uploadingMedia = false;
+    }
+  }
+
   startAnother(): void {
     this.created = null;
     this.publicView = null;
+    this.failedMedia = [];
+    this.uploadedMediaUrls = [];
+    this.mediaError = '';
+    this.mediaPicker?.clear();
     this.form.reset({ ...this.form.getRawValue(), title: '', description: '', category: '', latitude: null, longitude: null, address: '', is_anonymous: false });
     this.marker?.remove();
     this.marker = undefined;

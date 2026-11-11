@@ -1,6 +1,14 @@
 import { Injectable } from '@angular/core';
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
+import type { SocialProvider } from '../constants/social-providers';
 import type { RequestedRole } from '../models/profile.model';
+
+/** Correo que está esperando el código de acceso (lo leen el guard y la pantalla del código). */
+export const PENDING_LOGIN_EMAIL = 'conectard.pending-login-email';
+
+/** Dispositivos donde cada cuenta ya confirmó un código: userId → fecha de vencimiento (ms). */
+const TRUSTED_DEVICES_KEY = 'conectard.trusted-devices';
+const TRUST_DAYS = 90;
 
 interface SupabaseRuntimeConfig {
   supabaseUrl: string;
@@ -8,13 +16,10 @@ interface SupabaseRuntimeConfig {
   signupOtpEnabled?: boolean;
 }
 
-/** Redes sociales habilitadas para entrar o registrarse (RF-01). */
-export type SocialProvider = 'google' | 'facebook';
-
-export const SOCIAL_PROVIDER_LABELS: Record<SocialProvider, string> = {
-  google: 'Google',
-  facebook: 'Facebook',
-};
+/** Respuesta pública de GET /auth/v1/settings (solo lo que usamos). */
+interface AuthSettings {
+  external?: Record<string, boolean>;
+}
 
 export interface SignUpProfile {
   fullName: string;
@@ -32,6 +37,7 @@ export class AuthService {
   private signupOtpEnabled = false;
   private supabaseUrl = '';
   private supabasePublishableKey = '';
+  private enabledProvidersPromise?: Promise<Set<string> | null>;
 
   private readonly fetchWithTimeout: typeof fetch = async (input, init = {}) => {
     const controller = new AbortController();
@@ -107,6 +113,16 @@ export class AuthService {
     return client;
   }
 
+  /**
+   * URL pública de un archivo de un bucket público, sin llamar a la red.
+   * Devuelve null si la configuración aún no se cargó.
+   */
+  publicStorageUrl(bucket: string, path: string): string | null {
+    if (!this.supabaseUrl) return null;
+    const encoded = path.split('/').map(encodeURIComponent).join('/');
+    return `${this.supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${bucket}/${encoded}`;
+  }
+
   /** Cliente de Supabase compartido (para servicios de datos: perfiles, reportes, etc.). */
   supabase(): Promise<SupabaseClient> {
     return this.getClient();
@@ -122,7 +138,12 @@ export class AuthService {
     return client.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
   }
 
-  async validatePasswordAndSendLoginOtp(email: string, password: string) {
+  /**
+   * Inicio de sesión con correo y contraseña.
+   * - Dispositivo ya confirmado para esa cuenta: entra directo (needsOtp = false).
+   * - Dispositivo nuevo: valida la contraseña y envía un código al correo (needsOtp = true).
+   */
+  async signInWithPasswordOnDevice(email: string, password: string): Promise<{ error: unknown; needsOtp: boolean }> {
     const client = await this.getClient();
     // Reuse an isolated, non-persistent client for password checks. Creating one
     // on every login attempt causes duplicate GoTrueClient instances in the tab.
@@ -136,19 +157,59 @@ export class AuthService {
       },
     });
     const passwordClient = this.passwordClient;
-    const { error: passwordError } = await passwordClient.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-    if (passwordError) return { error: passwordError };
+    const normalized = email.trim().toLowerCase();
+    const { data, error: passwordError } = await passwordClient.auth.signInWithPassword({ email: normalized, password });
+    if (passwordError) return { error: passwordError, needsOtp: false };
+    const userId = data.user?.id;
     await passwordClient.auth.signOut({ scope: 'local' });
+
+    if (userId && this.isDeviceTrusted(userId)) {
+      const { error } = await client.auth.signInWithPassword({ email: normalized, password });
+      return { error, needsOtp: false };
+    }
+    const { error } = await this.sendLoginOtp(normalized);
+    return { error, needsOtp: true };
+  }
+
+  /** Cierra la sesión local y envía un código para confirmar el dispositivo (p. ej. tras entrar con Google). */
+  async startDeviceVerification(email: string) {
+    const client = await this.getClient();
+    await client.auth.signOut({ scope: 'local' });
+    this.currentUserCache = null;
+    this.hasCurrentUserCache = true;
+    return this.sendLoginOtp(email.trim().toLowerCase());
+  }
+
+  private async sendLoginOtp(email: string) {
+    const client = await this.getClient();
     return client.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/auth/login`,
-      },
+      email,
+      options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}/auth/login` },
     });
+  }
+
+  // ---------- Dispositivos de confianza ----------
+  // Nota: es una comodidad de la interfaz, no un control del servidor. La verificación
+  // en dos pasos real (RF-53, para administradores e instituciones) debe usar Supabase MFA.
+
+  isDeviceTrusted(userId: string): boolean {
+    const expiresAt = this.readTrustedDevices()[userId];
+    return typeof expiresAt === 'number' && expiresAt > Date.now();
+  }
+
+  trustDevice(userId: string): void {
+    const devices = this.readTrustedDevices();
+    devices[userId] = Date.now() + TRUST_DAYS * 24 * 60 * 60 * 1000;
+    try { localStorage.setItem(TRUSTED_DEVICES_KEY, JSON.stringify(devices)); } catch { /* almacenamiento no disponible */ }
+  }
+
+  private readTrustedDevices(): Record<string, number> {
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem(TRUSTED_DEVICES_KEY) ?? '{}');
+      return parsed && typeof parsed === 'object' ? parsed as Record<string, number> : {};
+    } catch {
+      return {};
+    }
   }
 
   async resendLoginOtp(email: string) {
@@ -178,10 +239,30 @@ export class AuthService {
       provider,
       options: {
         redirectTo: new URL('/landing', window.location.origin).toString(),
-        // Google: deja elegir la cuenta. Facebook: pide el correo para crear el perfil.
-        ...(provider === 'google' ? { queryParams: { prompt: 'select_account' } } : { scopes: 'email' }),
+        ...providerOptions(provider),
       },
     });
+  }
+
+  /**
+   * Redes sociales activadas en el panel de Supabase (Authentication → Providers).
+   * Devuelve null si no se pudo consultar; en ese caso la app muestra todas.
+   */
+  getEnabledProviders(): Promise<Set<string> | null> {
+    this.enabledProvidersPromise ??= (async () => {
+      try {
+        await this.getClient();
+        const response = await this.fetchWithTimeout(new URL('/auth/v1/settings', this.supabaseUrl), {
+          headers: { apikey: this.supabasePublishableKey },
+        });
+        if (!response.ok) return null;
+        const settings = (await response.json()) as AuthSettings;
+        return new Set(Object.entries(settings.external ?? {}).filter(([, enabled]) => enabled).map(([name]) => name));
+      } catch {
+        return null;
+      }
+    })();
+    return this.enabledProvidersPromise;
   }
 
   async signUp(email: string, password: string, profile: SignUpProfile) {
@@ -273,5 +354,17 @@ export class AuthService {
       this.hasCurrentUserCache = true;
     }
     return result;
+  }
+}
+
+/** Opciones específicas de cada red social al iniciar el acceso. */
+function providerOptions(provider: SocialProvider): { scopes?: string; queryParams?: Record<string, string> } {
+  switch (provider) {
+    case 'google':
+      return { queryParams: { prompt: 'select_account' } }; // deja elegir la cuenta
+    case 'azure':
+      return { scopes: 'email' }; // el correo es necesario para crear el perfil
+    default:
+      return {}; // Apple y LinkedIn ya entregan lo necesario por defecto
   }
 }

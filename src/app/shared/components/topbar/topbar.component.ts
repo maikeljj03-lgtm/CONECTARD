@@ -1,9 +1,9 @@
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { ProfileService } from '../../../core/services/profile.service';
+import { RolesService } from '../../../core/services/roles.service';
 
-/** Barra superior de las páginas internas (perfil, reportes, administración). */
+/** Barra superior de las páginas internas. Las opciones dependen del rol (*appCan). */
 @Component({
   selector: 'app-topbar',
   standalone: false,
@@ -11,24 +11,14 @@ import { ProfileService } from '../../../core/services/profile.service';
   styleUrls: ['./topbar.component.scss'],
   host: { class: 'app-topbar' },
 })
-export class TopbarComponent implements OnInit {
+export class TopbarComponent {
   private readonly auth = inject(AuthService);
-  private readonly profiles = inject(ProfileService);
+  private readonly roles = inject(RolesService);
   private readonly router = inject(Router);
-  private readonly changeDetector = inject(ChangeDetectorRef);
-  isAdmin = false;
-
-  ngOnInit(): void {
-    void this.profiles.getMyProfile()
-      .then((profile) => {
-        this.isAdmin = profile.role === 'administrator';
-        this.changeDetector.markForCheck();
-      })
-      .catch(() => undefined);
-  }
 
   async signOut(): Promise<void> {
     await this.auth.signOut();
+    this.roles.clearCache();
     await this.router.navigateByUrl('/landing', { replaceUrl: true });
   }
 }

@@ -1,0 +1,75 @@
+@if (report) {
+  <div class="backdrop" (click)="closed.emit()"></div>
+  <section class="sheet" role="dialog" aria-modal="true" [attr.aria-label]="report.title">
+    <button type="button" class="sheet__close" (click)="closed.emit()" aria-label="Cerrar"><app-icon name="x"></app-icon></button>
+
+    <!-- Galería -->
+    <div class="gallery" [class.gallery--empty]="!media.length">
+      @if (media.length) {
+        @for (item of media; track item.url; let i = $index) {
+          @if (i === activeIndex) {
+            @if (item.kind === 'video') {
+              <video [src]="item.url" controls playsinline preload="metadata"></video>
+            } @else {
+              <img [src]="item.url" [alt]="'Foto ' + (i + 1) + ' del reporte'" />
+            }
+          }
+        }
+        @if (media.length > 1) {
+          <button type="button" class="gallery__nav gallery__nav--prev" (click)="step(-1)" aria-label="Foto anterior"><app-icon name="arrow-left"></app-icon></button>
+          <button type="button" class="gallery__nav gallery__nav--next" (click)="step(1)" aria-label="Foto siguiente"><app-icon name="arrow-right"></app-icon></button>
+          <span class="gallery__count">{{ activeIndex + 1 }} / {{ media.length }}</span>
+        }
+      } @else if (loadingMedia) {
+        <span class="gallery__state"><span class="spinner"></span></span>
+      } @else {
+        <span class="gallery__state"><app-icon [name]="category.icon"></app-icon><small>Sin fotos</small></span>
+      }
+    </div>
+
+    <div class="sheet__body">
+      <div class="sheet__tags">
+        <span class="sheet__category"><app-icon [name]="category.icon"></app-icon>{{ category.label }}</span>
+        <span class="sheet__status" [style.--status]="statusColor">{{ statusLabels[report.status] }}</span>
+      </div>
+      <h2>{{ report.title }}</h2>
+      <p class="sheet__meta">
+        <span><app-icon name="map-pin"></app-icon>{{ place }}</span>
+        <span><app-icon name="clock"></app-icon>{{ age }}</span>
+        @if (distance) { <span><app-icon name="locate"></app-icon>a {{ distance }}</span> }
+      </p>
+      <p class="sheet__description">{{ report.description }}</p>
+      @if (report.address) { <p class="sheet__address"><strong>Referencia:</strong> {{ report.address }}</p> }
+
+      <!-- Seguimiento (RF-16) -->
+      <div class="track">
+        <p class="track__title">Seguimiento</p>
+        @if (report.status === 'rechazado') {
+          <p class="track__rejected"><app-icon name="alert-circle"></app-icon> Este reporte fue rechazado por moderación.</p>
+        } @else {
+          <ol class="track__steps">
+            @for (status of lifecycle; track status; let i = $index) {
+              <li [class.is-done]="i < stepIndex" [class.is-current]="i === stepIndex"><i></i><span>{{ statusLabels[status] }}</span></li>
+            }
+          </ol>
+        }
+      </div>
+
+      <div class="sheet__footer">
+        <span class="sheet__author">
+          @if (report.is_anonymous) {
+            <span class="sheet__avatar sheet__avatar--anon"><app-icon name="eye-off"></app-icon></span> Vecino anónimo
+          } @else {
+            <span class="sheet__avatar">
+              @if (report.author_avatar_url; as avatar) { <img [src]="avatar" alt="" /> } @else { <app-icon name="user"></app-icon> }
+            </span>
+            {{ report.author_name || 'Vecino' }}
+          }
+        </span>
+        @if (showMapAction) {
+          <button type="button" class="sheet__action" (click)="showOnMap.emit(report)"><app-icon name="map"></app-icon> Ver en el mapa</button>
+        }
+      </div>
+    </div>
+  </section>
+}

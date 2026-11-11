@@ -390,30 +390,6 @@
     }
   }
 
-  // Botón de Google en su variante clara oficial.
-  .btn--google {
-    border-color: #747775;
-    background: #fff;
-    color: #1f1f1f;
-    font-family: Roboto, Arial, sans-serif;
-    font-weight: 500;
-
-    &:hover:not(:disabled) { background: #f8faff; box-shadow: var(--crd-shadow-sm); }
-  }
-
-  // Botón de Facebook con sus colores oficiales.
-  .btn--facebook {
-    border-color: #1877f2;
-    background: #1877f2;
-    color: #fff;
-    font-family: Roboto, Arial, sans-serif;
-    font-weight: 500;
-
-    &:hover:not(:disabled) { background: #166fe5; box-shadow: 0 10px 22px -12px rgb(24 119 242 / 70%); }
-  }
-
-  .social-buttons { display: grid; gap: 10px; }
-  .social-mark { width: 19px; height: 19px; flex: none; }
 
   .btn__spinner {
     width: 16px;
@@ -611,6 +587,13 @@
   .check input:checked + .check__box { border-color: var(--crd-teal); background: var(--crd-teal); color: #fff; }
   .check input:focus-visible + .check__box { outline: 3px solid var(--crd-teal-line); outline-offset: 2px; }
   .check.is-invalid .check__box { border-color: #dc8f87; }
+
+  .check__text a {
+    color: var(--crd-teal-text);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
 
   // ---------- Mensajes ----------
   .alert {

@@ -1,0 +1,5 @@
+<nav class="admin-nav" aria-label="Administración">
+  @for (item of items; track item.path) {
+    <a [routerLink]="item.path" routerLinkActive="is-active"><app-icon [name]="item.icon"></app-icon><span>{{ item.label }}</span></a>
+  }
+</nav>

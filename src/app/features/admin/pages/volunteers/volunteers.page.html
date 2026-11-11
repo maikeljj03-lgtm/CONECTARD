@@ -1,0 +1,53 @@
+<ion-content class="app-content">
+  <app-topbar></app-topbar>
+
+  <main class="page">
+    <header class="page-head">
+      <p class="page-kicker">Administración</p>
+      <h1>Solicitudes de voluntariado</h1>
+      <p>Personas que pidieron ser voluntarias. Al aprobarlas podrán sumarse a soluciones y jornadas; mientras tanto usan ConectaRD como ciudadanos.</p>
+    </header>
+
+    <app-admin-nav></app-admin-nav>
+
+    @if (feedback) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ feedback }}</span></div> }
+    @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+    @if (loading) {
+      <div class="page-state"><span class="spinner"></span><p>Cargando…</p></div>
+    } @else if (!error || requests.length) {
+      <div class="stack">
+        @for (profile of requests; track profile.id) {
+          <article class="card review">
+            <div class="review__head">
+              <div class="avatar">
+                @if (profile.avatar_url; as avatar) { <img [src]="avatar" alt="" /> } @else { <span>{{ initials(profile.full_name) }}</span> }
+              </div>
+              <div class="review__title">
+                <h2>{{ profile.full_name || 'Sin nombre' }}</h2>
+                <small><app-icon name="map-pin"></app-icon> {{ place(profile) }}</small>
+              </div>
+              <small class="muted">Desde {{ profile.updated_at | date: 'd MMM y' }}</small>
+            </div>
+            @if (profile.bio) { <p class="muted">{{ profile.bio }}</p> }
+
+            <label class="field__label" [attr.for]="'notes-' + profile.id">Nota para la persona <span class="optional">(obligatoria si rechazas)</span></label>
+            <textarea class="textarea" [id]="'notes-' + profile.id" rows="2" maxlength="500" [value]="notes[profile.id] ?? ''" (input)="notes[profile.id] = $any($event.target).value" placeholder="Ej. Completa tu perfil con tu sector para asignarte jornadas cercanas."></textarea>
+            <div class="actions">
+              <button type="button" class="btn btn--danger" (click)="review(profile, false)" [disabled]="busyId === profile.id"><app-icon name="x"></app-icon> Rechazar</button>
+              <button type="button" class="btn btn--primary" (click)="review(profile, true)" [disabled]="busyId === profile.id">
+                @if (busyId === profile.id) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="check"></app-icon> } Aprobar
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <div class="card result">
+            <span class="result__icon"><app-icon name="check-circle"></app-icon></span>
+            <h2>No hay solicitudes de voluntariado pendientes</h2>
+          </div>
+        }
+      </div>
+    }
+  </main>
+  <app-bottom-nav></app-bottom-nav>
+</ion-content>

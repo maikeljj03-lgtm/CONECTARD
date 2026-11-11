@@ -1,0 +1,46 @@
+<div class="scene" [class.scene--compact]="compact" role="img"
+  [attr.aria-label]="'Mapa en 3D de República Dominicana con ' + pins.length + ' reportes'">
+  <div class="stage">
+    <div class="board" [style.aspect-ratio]="aspect">
+      <!-- Bloque del país: capas apiladas que dan grosor -->
+      <svg class="board__layer board__layer--depth" [attr.viewBox]="viewBox" aria-hidden="true" focusable="false"><path [attr.d]="outlinePath" /></svg>
+      <svg class="board__layer board__layer--mid" [attr.viewBox]="viewBox" aria-hidden="true" focusable="false"><path [attr.d]="outlinePath" /></svg>
+      <svg class="board__layer board__layer--top" [attr.viewBox]="viewBox" aria-hidden="true" focusable="false">
+        <defs>
+          <pattern id="crd-scene-grid" width="26" height="26" patternUnits="userSpaceOnUse">
+            <path d="M26 0H0V26" fill="none" stroke="currentColor" stroke-width="1" />
+          </pattern>
+          <clipPath id="crd-scene-clip"><path [attr.d]="outlinePath" /></clipPath>
+          <radialGradient id="crd-scene-glow" cx="50%" cy="45%" r="65%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity=".95" />
+            <stop offset="100%" stop-color="#e3f5f3" stop-opacity="1" />
+          </radialGradient>
+        </defs>
+        <path class="board__land" [attr.d]="outlinePath" fill="url(#crd-scene-glow)" />
+        <rect class="board__grid" width="100%" height="100%" fill="url(#crd-scene-grid)" clip-path="url(#crd-scene-clip)" />
+        <path class="board__coast" [attr.d]="outlinePath" />
+      </svg>
+
+      <!-- Faro de la persona -->
+      @if (userPoint; as point) {
+        <div class="beacon" [style.left.%]="point.x" [style.top.%]="point.y">
+          <span class="beacon__ring"></span><span class="beacon__ring beacon__ring--late"></span>
+          <span class="beacon__label">Tú</span>
+        </div>
+      }
+
+      <!-- Columnas de luz: un reporte real cada una -->
+      @for (pin of pins; track pin.report.id) {
+        <button type="button" class="pin" [class.pin--fresh]="pin.fresh"
+          [style.left.%]="pin.x" [style.top.%]="pin.y"
+          [style.--pin-color]="pin.color" [style.--pin-height.px]="pin.height" [style.--pin-delay.ms]="pin.delay"
+          (click)="selectReport.emit(pin.report)" [attr.aria-label]="pin.label">
+          <span class="pin__shadow"></span>
+          @if (pin.fresh) { <span class="pin__pulse"></span> }
+          <span class="pin__column"><i></i><i></i></span>
+          <span class="pin__head"><span class="pin__tip">{{ pin.label }}</span></span>
+        </button>
+      }
+    </div>
+  </div>
+</div>

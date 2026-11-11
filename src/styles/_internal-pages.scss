@@ -361,6 +361,20 @@
     app-icon { margin-top: 2px; color: var(--crd-teal-text); font-size: 17px; }
   }
 
+  .note a { color: var(--crd-teal-text); font-weight: 650; }
+
+  .perm-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li { display: flex; gap: 8px; color: var(--crd-text-2); font-size: 13.5px; line-height: 1.45; }
+    app-icon { margin-top: 2px; color: var(--crd-teal-text); font-size: 15px; }
+  }
+  .note + form { margin-top: 18px; }
+
   // ---------- Botones ----------
   .btn {
     display: inline-flex;
@@ -682,6 +696,15 @@
     small { display: inline-flex; align-items: center; gap: 6px; }
   }
 
+  .result-media {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    width: 100%;
+
+    img, video { width: 100%; aspect-ratio: 4 / 3; border-radius: 12px; object-fit: cover; background: var(--crd-surface-3); }
+  }
+
   .public-preview__author {
     display: flex;
     align-items: center;
@@ -748,3 +771,8 @@
 }
 
 @keyframes app-spin { to { transform: rotate(360deg); } }
+
+// Espacio para la barra inferior del teléfono.
+@media (max-width: 760px) {
+  .app-content .page { padding-bottom: 120px; }
+}

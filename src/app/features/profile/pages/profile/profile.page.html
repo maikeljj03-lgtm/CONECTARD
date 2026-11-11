@@ -17,6 +17,10 @@
         <p>Esta información ayuda a tu comunidad a saber quién participa. Tu correo nunca se muestra.</p>
       </header>
 
+      @if (noPermission) {
+        <div class="alert alert--error" role="alert"><app-icon name="shield"></app-icon><span>Tu rol no tiene acceso a esa sección.</span></div>
+      }
+
       <div class="layout-2">
         <!-- Identidad -->
         <aside class="card identity">
@@ -35,6 +39,34 @@
           }
           <small class="identity__hint">JPG, PNG o WebP · máximo 2 MB</small>
 
+          <!-- Rol y permisos (RF-03) -->
+          <div class="identity__section">
+            <h3>Lo que puedes hacer</h3>
+            <ul class="perm-list">
+              @for (permission of myPermissions; track permission) { <li><app-icon name="check"></app-icon>{{ permission }}</li> }
+            </ul>
+          </div>
+
+          <!-- Voluntariado (RF-03) -->
+          @if (profile.role === 'citizen' || volunteerPending || volunteerRejected) {
+            <div class="identity__section">
+              <h3>Voluntariado</h3>
+              @if (volunteerPending) {
+                <p class="status-line status-line--wait"><app-icon name="clock"></app-icon> Tu solicitud para ser voluntario está en revisión.</p>
+              } @else {
+                @if (volunteerRejected) {
+                  <p class="status-line status-line--bad"><app-icon name="alert-circle"></app-icon> Tu solicitud de voluntariado fue rechazada.@if (profile.role_review_notes) { Motivo: {{ profile.role_review_notes }} }</p>
+                }
+                @if (canRequestVolunteer) {
+                  <p class="muted">Súmate a jornadas y soluciones en tu comunidad. Un administrador revisará tu solicitud.</p>
+                  <button type="button" class="btn btn--ghost btn--block" (click)="requestVolunteer()" [disabled]="requestingVolunteer">
+                    @if (requestingVolunteer) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="heart"></app-icon> } {{ volunteerRejected ? 'Volver a solicitarlo' : 'Quiero ser voluntario' }}
+                  </button>
+                }
+              }
+            </div>
+          }
+
           <!-- Verificación (RF-06) -->
           <div class="identity__section">
             <h3>Verificación</h3>
@@ -52,7 +84,7 @@
               }
             }
             @if (profile.role === 'administrator') {
-              <a class="btn btn--ghost btn--block" routerLink="/admin/verificaciones"><app-icon name="landmark"></app-icon> Revisar solicitudes</a>
+              <a class="btn btn--ghost btn--block" routerLink="/admin"><app-icon name="landmark"></app-icon> Ir a administración</a>
             }
           </div>
         </aside>
@@ -140,4 +172,5 @@
       </div>
     }
   </main>
+  <app-bottom-nav></app-bottom-nav>
 </ion-content>

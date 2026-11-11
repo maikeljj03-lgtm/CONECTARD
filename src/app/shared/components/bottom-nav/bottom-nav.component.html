@@ -1,0 +1,7 @@
+<nav class="bottom-nav" aria-label="Navegación principal">
+  <a routerLink="/inicio" routerLinkActive="is-active"><app-icon name="home"></app-icon><span>Inicio</span></a>
+  <a routerLink="/explorar" routerLinkActive="is-active"><app-icon name="map"></app-icon><span>Explorar</span></a>
+  <a class="bottom-nav__report" routerLink="/reportes/nuevo" aria-label="Reportar un problema"><app-icon name="plus"></app-icon></a>
+  <a routerLink="/perfil" routerLinkActive="is-active"><app-icon name="user"></app-icon><span>Perfil</span></a>
+  <a *appCan="'users.manage'" routerLink="/admin" routerLinkActive="is-active"><app-icon name="shield-check"></app-icon><span>Admin</span></a>
+</nav>

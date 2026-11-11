@@ -61,3 +61,8 @@
   .app-topbar__inner { gap: 6px; width: calc(100% - 24px); }
   .app-topbar__nav a { padding: 9px 11px; span { display: none; } }
 }
+
+// En el teléfono la navegación va en la barra inferior (app-bottom-nav).
+@media (max-width: 760px) {
+  .app-topbar__nav { display: none; }
+}

@@ -1,0 +1,121 @@
+<ion-content class="app-content explore-content" [scrollY]="false">
+  @if (signedIn) {
+    <app-topbar></app-topbar>
+  } @else {
+    <header class="explore-guest">
+      <a routerLink="/landing" aria-label="ConectaRD, inicio"><app-logo [size]="30"></app-logo></a>
+      <div class="explore-guest__actions">
+        <a class="btn btn--ghost btn--sm" routerLink="/auth/login">Iniciar sesión</a>
+        <a class="btn btn--primary btn--sm" routerLink="/auth/register">Únete</a>
+      </div>
+    </header>
+  }
+
+  <div class="explore" [class.explore--list]="mobileView === 'lista'">
+    <!-- ================= Panel: búsqueda, filtros y lista ================= -->
+    <aside class="explore-panel">
+      <header class="explore-panel__head">
+        <h1>Explorar</h1>
+        <p>{{ loading ? 'Buscando reportes…' : reports.length + (reports.length === 1 ? ' reporte' : ' reportes') }}{{ activeFilterCount ? ' con filtros' : ' en todo el país' }}</p>
+      </header>
+
+      <div class="explore-search">
+        <app-icon name="search"></app-icon>
+        <input type="search" placeholder="Busca por palabra, sector o dirección…" [value]="search" (input)="onSearch($any($event.target).value)" aria-label="Buscar reportes" />
+        <button type="button" class="explore-search__filters" [class.is-active]="filtersOpen || activeFilterCount" (click)="filtersOpen = !filtersOpen" [attr.aria-expanded]="filtersOpen">
+          <app-icon name="bar-chart"></app-icon> Filtros @if (activeFilterCount) { <b>{{ activeFilterCount }}</b> }
+        </button>
+      </div>
+
+      <div class="explore-chips" role="group" aria-label="Categoría">
+        <button type="button" class="chip" [class.is-selected]="!category" (click)="setFilter('category', '')">Todas</button>
+        @for (item of categories; track item.value) {
+          <button type="button" class="chip" [class.is-selected]="category === item.value" (click)="setFilter('category', category === item.value ? '' : item.value)"><app-icon [name]="item.icon"></app-icon>{{ item.label }}</button>
+        }
+      </div>
+
+      @if (filtersOpen) {
+        <div class="explore-filters">
+          <label>
+            <span>Provincia</span>
+            <select [value]="province" (change)="setFilter('province', $any($event.target).value)">
+              <option value="">Todas</option>
+              @for (item of provinces; track item) { <option [value]="item">{{ item }}</option> }
+            </select>
+          </label>
+          <label>
+            <span>Municipio o sector</span>
+            <input type="text" placeholder="Ej. Los Alcarrizos" [value]="municipality" (input)="setFilter('municipality', $any($event.target).value)" />
+          </label>
+          <label>
+            <span>Estado</span>
+            <select [value]="status" (change)="setFilter('status', $any($event.target).value)">
+              <option value="">Todos</option>
+              @for (item of statuses; track item) { <option [value]="item">{{ statusLabels[item] }}</option> }
+            </select>
+          </label>
+          <label>
+            <span>Fecha</span>
+            <select [value]="period" (change)="setFilter('period', $any($event.target).value)">
+              <option value="">Cualquier fecha</option>
+              <option value="7">Últimos 7 días</option>
+              <option value="30">Últimos 30 días</option>
+              <option value="90">Últimos 3 meses</option>
+            </select>
+          </label>
+          @if (activeFilterCount || search) {
+            <button type="button" class="link-button" (click)="clearFilters()">Quitar filtros</button>
+          }
+        </div>
+      }
+
+      <div class="explore-sort">
+        <span>Ordenar:</span>
+        <button type="button" [class.is-active]="sort === 'recientes'" (click)="setSort('recientes')">Más recientes</button>
+        <button type="button" [class.is-active]="sort === 'cercanos'" (click)="setSort('cercanos')">Más cercanos</button>
+      </div>
+      @if (locationError) { <p class="hint">{{ locationError }}</p> }
+      @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+      <div class="explore-list">
+        @for (report of sortedReports; track report.id) {
+          <app-report-card [report]="report" [coverUrl]="coverOf(report)" [distanceKm]="distanceTo(report)" [selected]="selected?.id === report.id" (open)="open($event)"></app-report-card>
+        } @empty {
+          @if (!loading && !error) {
+            <div class="empty">
+              <app-icon name="search"></app-icon>
+              <strong>{{ activeFilterCount || search ? 'Ningún reporte coincide' : 'Aún no hay reportes publicados' }}</strong>
+              @if (activeFilterCount || search) {
+                <button type="button" class="link-button" (click)="clearFilters()">Quitar filtros</button>
+              } @else {
+                <a class="btn btn--primary btn--sm" routerLink="/reportes/nuevo">Crear el primero</a>
+              }
+            </div>
+          }
+        }
+      </div>
+    </aside>
+
+    <!-- ================= Mapa (RF-18) ================= -->
+    <section class="explore-map" aria-label="Mapa de reportes">
+      <div #mapEl class="explore-map__canvas" role="application" aria-label="Mapa de República Dominicana con los reportes"></div>
+      <div class="explore-map__tools">
+        <button type="button" (click)="resetView()" title="Ver todo el país" aria-label="Ver todo el país"><b>RD</b></button>
+        <button type="button" (click)="locate()" title="Mi ubicación" aria-label="Mostrar mi ubicación"><app-icon name="locate"></app-icon></button>
+      </div>
+      <ul class="explore-map__legend" aria-label="Leyenda">
+        @for (item of statuses; track item) { <li><i [style.background]="statusColors[item]"></i>{{ statusLabels[item] }}</li> }
+      </ul>
+      @if (loading) { <span class="explore-map__loading"><span class="spinner spinner--sm"></span> Cargando</span> }
+    </section>
+
+    <!-- Alternar mapa / lista en el teléfono -->
+    <div class="explore-toggle">
+      <button type="button" [class.is-active]="mobileView === 'mapa'" (click)="showMobile('mapa')"><app-icon name="map"></app-icon> Mapa</button>
+      <button type="button" [class.is-active]="mobileView === 'lista'" (click)="showMobile('lista')"><app-icon name="file-text"></app-icon> Lista</button>
+    </div>
+  </div>
+
+  <app-report-preview slot="fixed" [report]="selected" [distanceKm]="selected ? distanceTo(selected) : null" [showMapAction]="false" (closed)="closePreview()"></app-report-preview>
+  @if (signedIn) { <app-bottom-nav></app-bottom-nav> }
+</ion-content>

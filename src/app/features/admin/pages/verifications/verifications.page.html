@@ -4,9 +4,11 @@
   <main class="page">
     <header class="page-head">
       <p class="page-kicker">Administración</p>
-      <h1>Solicitudes de verificación</h1>
+      <h1>Verificación de organizaciones</h1>
       <p>Revisa la documentación oficial antes de conceder permisos de organización o institución. Cada decisión queda registrada con fecha y responsable.</p>
     </header>
+
+    <app-admin-nav></app-admin-nav>
 
     @if (loading) {
       <div class="page-state"><span class="spinner"></span><p>Cargando…</p></div>
@@ -83,4 +85,5 @@
       }
     }
   </main>
+  <app-bottom-nav></app-bottom-nav>
 </ion-content>

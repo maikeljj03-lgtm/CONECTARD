@@ -1,12 +1,15 @@
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { REPORT_CATEGORIES, REPORT_STATUS_LABELS, ROLE_LABELS } from '../../../../core/constants/catalogs';
 import { DR_PROVINCES } from '../../../../core/constants/geography';
+import { PERMISSION_LABELS, ROLE_PERMISSIONS } from '../../../../core/constants/permissions';
 import type { Profile } from '../../../../core/models/profile.model';
 import type { MyReport } from '../../../../core/models/report.model';
 import type { VerificationRequest } from '../../../../core/models/verification.model';
 import { ProfileService } from '../../../../core/services/profile.service';
 import { ReportsService } from '../../../../core/services/reports.service';
+import { RolesService } from '../../../../core/services/roles.service';
 import { VerificationService } from '../../../../core/services/verification.service';
 import { friendlyDataError } from '../../../../core/utils/data-errors';
 
@@ -21,6 +24,12 @@ export class ProfilePage implements OnInit {
   private readonly reports = inject(ReportsService);
   private readonly verification = inject(VerificationService);
   private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly roles = inject(RolesService);
+  private readonly route = inject(ActivatedRoute);
+
+  /** Llegó aquí porque intentó entrar a una sección sin permiso. */
+  readonly noPermission = this.route.snapshot.queryParamMap.has('sinPermiso');
+  requestingVolunteer = false;
 
   readonly provinces = DR_PROVINCES;
   readonly roleLabels = ROLE_LABELS;
@@ -74,6 +83,41 @@ export class ProfilePage implements OnInit {
     const profile = this.profile;
     if (!profile || ['organization', 'institution', 'administrator'].includes(profile.role)) return false;
     return this.lastRequest?.status !== 'pending';
+  }
+
+  /** Lo que el rol actual permite hacer (RF-03). */
+  get myPermissions(): string[] {
+    return this.profile ? ROLE_PERMISSIONS[this.profile.role].map((permission) => PERMISSION_LABELS[permission]) : [];
+  }
+
+  get volunteerPending(): boolean {
+    const p = this.profile;
+    return !!p && p.role === 'citizen' && p.requested_role === 'volunteer' && p.verification_status === 'pending';
+  }
+
+  get volunteerRejected(): boolean {
+    const p = this.profile;
+    return !!p && p.role === 'citizen' && p.requested_role === 'volunteer' && p.verification_status === 'rejected';
+  }
+
+  /** Un ciudadano sin otra solicitud en curso puede pedir ser voluntario. */
+  get canRequestVolunteer(): boolean {
+    return this.profile?.role === 'citizen' && !this.volunteerPending && this.lastRequest?.status !== 'pending';
+  }
+
+  async requestVolunteer(): Promise<void> {
+    this.requestingVolunteer = true;
+    this.message = '';
+    this.notice = '';
+    try {
+      this.profile = await this.roles.requestVolunteer();
+      this.notice = 'Solicitud enviada. Te avisaremos cuando un administrador la revise.';
+    } catch (error) {
+      this.message = friendlyDataError(error);
+    } finally {
+      this.requestingVolunteer = false;
+      this.changeDetector.markForCheck();
+    }
   }
 
   categoryLabel(value: string): string {

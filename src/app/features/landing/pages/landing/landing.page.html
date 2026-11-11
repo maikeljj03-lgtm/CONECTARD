@@ -10,7 +10,7 @@
         }
         <div class="site-nav__mobile-actions">
           @if (user) {
-            <a class="btn btn--ghost" routerLink="/perfil"><app-icon name="user"></app-icon> Mi perfil</a>
+            <a class="btn btn--primary" routerLink="/inicio"><app-icon name="home"></app-icon> Mi inicio</a>
             <button type="button" class="btn btn--ghost" (click)="signOut()"><app-icon name="log-out"></app-icon> Cerrar sesión</button>
           } @else {
             <a class="btn btn--ghost" routerLink="/auth/login">Iniciar sesión</a>
@@ -21,9 +21,9 @@
 
       <div class="site-header__actions">
         @if (user) {
-          <a class="user-chip" routerLink="/perfil" title="Mi perfil">
+          <a class="user-chip" routerLink="/inicio" title="Ir a mi inicio">
             <span class="user-chip__avatar">{{ initials }}</span>
-            <span class="user-chip__name">Hola, {{ displayName }}</span>
+            <span class="user-chip__name">Mi inicio</span>
           </a>
           <button type="button" class="icon-button" (click)="signOut()" aria-label="Cerrar sesión" title="Cerrar sesión"><app-icon name="log-out"></app-icon></button>
         } @else {
@@ -176,80 +176,32 @@
       </div>
     </section>
 
-    <!-- ================= Mapa ================= -->
+    <!-- ================= Mapa: maqueta 3D con los reportes reales ================= -->
     <section class="section section--sand" id="mapa" aria-labelledby="map-title">
-      <div class="container">
-        <div class="section-head section-head--row" data-reveal>
-          <div>
-            <p class="eyebrow">Mapa de reportes</p>
-            <h2 id="map-title">Mira lo que ocurre cerca de ti</h2>
-          </div>
-          <p class="sample-note"><app-icon name="sparkles"></app-icon> Vista previa con reportes de ejemplo</p>
-        </div>
-
-        <div class="map-toolbar" data-reveal>
-          <label class="search">
-            <app-icon name="search"></app-icon>
-            <span class="sr-only">Buscar reportes</span>
-            <input type="search" placeholder="Busca por sector, municipio o problema…" [value]="searchTerm" (input)="updateSearch($event)" />
-          </label>
-          <div class="chips" role="group" aria-label="Filtrar por categoría">
-            @for (category of categoryFilters; track category) {
-              <button type="button" class="chip" [class.is-selected]="selectedCategory === category" [attr.aria-pressed]="selectedCategory === category" (click)="selectCategory(category)">{{ category }}</button>
+      <div class="container live-map">
+        <div class="live-map__copy" data-reveal>
+          <p class="eyebrow">Mapa de reportes</p>
+          <h2 id="map-title">Todo el país, en tiempo real</h2>
+          <p>Cada columna es un reporte publicado por la comunidad: su color dice en qué estado está y su altura, qué tan reciente es. Toca una para ver de qué se trata.</p>
+          <ul class="live-map__legend">
+            @for (stage of lifecycle; track stage.status) {
+              <li><i [style.background]="statusColors[stage.status]"></i>{{ stage.status }}</li>
+            }
+          </ul>
+          <div class="live-map__actions">
+            <a class="btn btn--primary btn--lg" routerLink="/explorar"><app-icon name="map"></app-icon> Abrir el mapa completo</a>
+            @if (!user) {
+              <a class="btn btn--ghost btn--lg" routerLink="/auth/register">Reportar en mi zona</a>
             }
           </div>
         </div>
 
-        <div class="map-layout" data-reveal>
-          <div #mapShell class="map-shell">
-            <div #reportMap class="map" role="application" aria-label="Mapa de República Dominicana con reportes de ejemplo"></div>
-            <div class="map-controls">
-              <button type="button" (click)="resetMap()" aria-label="Ver todo el país" title="Ver todo el país"><span class="map-controls__rd">RD</span></button>
-              <button type="button" (click)="locateMe()" aria-label="Mostrar mi ubicación" title="Mi ubicación"><app-icon name="locate"></app-icon></button>
-              <button type="button" (click)="toggleMapFullscreen()" aria-label="Pantalla completa" title="Pantalla completa"><app-icon name="maximize"></app-icon></button>
-            </div>
-            <div class="map-zoom">
-              <button type="button" (click)="zoomMap(1)" aria-label="Acercar"><app-icon name="plus"></app-icon></button>
-              <button type="button" (click)="zoomMap(-1)" aria-label="Alejar"><app-icon name="minus"></app-icon></button>
-            </div>
-            <ul class="map-legend" aria-label="Leyenda de estados">
-              @for (stage of lifecycle; track stage.status) {
-                <li><i [style.--dot]="statusColors[stage.status]"></i>{{ stage.status }}</li>
-              }
-              <li><i [style.--dot]="statusColors['Rechazado']"></i>Rechazado</li>
-            </ul>
-          </div>
-
-          <aside class="map-list" aria-label="Reportes encontrados">
-            <div class="map-list__head">
-              <strong>{{ filteredReports.length }} {{ filteredReports.length === 1 ? 'reporte' : 'reportes' }}</strong>
-              <span>{{ selectedCategory === 'Todas' ? 'Todo el país' : selectedCategory }}</span>
-            </div>
-            <div class="map-list__items">
-              @for (report of filteredReports; track report.id) {
-                <button type="button" class="report-row" [class.is-selected]="selectedReportId === report.id" (click)="focusReport(report)">
-                  <span class="report-row__icon"><app-icon [name]="categoryIcon(report.category)"></app-icon></span>
-                  <span class="report-row__body">
-                    <strong>{{ report.title }}</strong>
-                    <small>{{ report.sector }}, {{ report.municipality }}</small>
-                    <span class="report-row__meta">
-                      <span [class]="'status ' + statusClass(report.status)">{{ report.status }}</span>
-                      <span><app-icon name="thumbs-up"></app-icon> {{ report.supports }}</span>
-                      <span>{{ report.age }}</span>
-                    </span>
-                  </span>
-                </button>
-              } @empty {
-                <div class="map-list__empty">
-                  <app-icon name="search"></app-icon>
-                  <p>No hay reportes que coincidan.</p>
-                  <button type="button" class="link-button" (click)="clearFilters()">Limpiar filtros</button>
-                </div>
-              }
-            </div>
-          </aside>
+        <div class="live-map__scene" data-reveal>
+          <app-community-scene [reports]="sceneReports" [compact]="true" (selectReport)="openReport($event)"></app-community-scene>
+          @if (sceneLoaded && !sceneReports.length) {
+            <p class="live-map__empty">Aún no hay reportes publicados. El primero puede ser el tuyo.</p>
+          }
         </div>
-        @if (mapFeedback) { <p class="map-feedback" role="status" aria-live="polite">{{ mapFeedback }}</p> }
       </div>
     </section>
 
@@ -398,7 +350,7 @@
         <div class="site-footer__col">
           <strong>Plataforma</strong>
           <a href="#como-funciona" (click)="navigateTo($event, 'como-funciona')">Cómo funciona</a>
-          <a href="#mapa" (click)="navigateTo($event, 'mapa')">Mapa de reportes</a>
+          <a routerLink="/explorar">Mapa de reportes</a>
           <a href="#transparencia" (click)="navigateTo($event, 'transparencia')">Transparencia</a>
         </div>
         <div class="site-footer__col">
@@ -410,8 +362,8 @@
         <div class="site-footer__col">
           <strong>Ayuda</strong>
           <a href="#preguntas" (click)="navigateTo($event, 'preguntas')">Preguntas frecuentes</a>
-          <span>Privacidad</span>
-          <span>Términos de uso</span>
+          <a routerLink="/privacidad">Privacidad</a>
+          <a routerLink="/terminos">Términos de uso</a>
         </div>
       </div>
       <div class="site-footer__bottom">
@@ -424,4 +376,5 @@
   @if (toast) {
     <div class="toast" slot="fixed" role="status" aria-live="polite"><app-icon name="sparkles"></app-icon><span>{{ toast }}</span></div>
   }
+  <app-report-preview slot="fixed" [report]="selected" (closed)="selected = null" (showOnMap)="showOnMap($event)"></app-report-preview>
 </ion-content>

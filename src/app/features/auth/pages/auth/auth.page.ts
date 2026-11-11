@@ -1,9 +1,12 @@
 import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService, SOCIAL_PROVIDER_LABELS, type SocialProvider } from '../../../../core/services/auth.service';
+import { socialProviderLabel, type SocialProvider } from '../../../../core/constants/social-providers';
+import { AuthService, PENDING_LOGIN_EMAIL } from '../../../../core/services/auth.service';
+import { ProfileService } from '../../../../core/services/profile.service';
+import { VerificationService } from '../../../../core/services/verification.service';
 import { matchingPasswords, nonBlank } from '../../../../shared/validators/form.validators';
-import { AUTH_MODES, AuthMode, PASSWORD_LABELS, PENDING_LOGIN_EMAIL, PENDING_SIGNUP_EMAIL, ROLE_OPTIONS, RoleOption } from '../../auth.constants';
+import { AUTH_MODES, AuthMode, PASSWORD_LABELS, PENDING_SIGNUP_EMAIL, ROLE_OPTIONS, RoleOption } from '../../auth.constants';
 
 @Component({
   selector: 'app-auth',
@@ -20,6 +23,8 @@ export class AuthPage implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly profiles = inject(ProfileService);
+  private readonly verification = inject(VerificationService);
 
   mode: AuthMode = 'login';
   loginForm: FormGroup;
@@ -30,6 +35,8 @@ export class AuthPage implements OnInit, OnDestroy {
   busy = false;
   /** Red social en proceso de conexión (null si ninguna). */
   oauthBusy: SocialProvider | null = null;
+  /** Redes activadas en Supabase (null mientras carga o si no se pudo consultar). */
+  enabledProviders: Set<string> | null = null;
   signupOtpEnabled = false;
   loginNeedsSignup = false;
   showPassword = false;
@@ -69,6 +76,11 @@ export class AuthPage implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    void this.auth.getEnabledProviders().then((providers) => {
+      this.enabledProviders = providers;
+      this.refreshView();
+    });
+
     this.route.paramMap.subscribe((params) => {
       const requestedMode = params.get('mode') as AuthMode | null;
       const nextMode = requestedMode && (AUTH_MODES as readonly string[]).includes(requestedMode)
@@ -115,8 +127,8 @@ export class AuthPage implements OnInit, OnDestroy {
         this.mode = 'login';
         const reason = (params.get('reason') ?? '').toLowerCase();
         if (reason.includes('email')) {
-          // Facebook no entrega correo si la cuenta se creó con un número de teléfono.
-          this.message = 'Tu cuenta de la red social no compartió un correo electrónico. Agrega un correo a esa cuenta, o regístrate con tu correo o con Google.';
+          // Algunas redes no entregan correo (p. ej. cuentas creadas solo con teléfono).
+          this.message = 'Tu cuenta de la red social no compartió un correo electrónico. Agrega un correo a esa cuenta, o regístrate con tu correo o con otra red.';
         } else if (reason.includes('denied') || reason.includes('cancel')) {
           this.notice = 'Cancelaste el acceso con la red social. Puedes intentarlo de nuevo o entrar con tu correo.';
         } else {
@@ -135,10 +147,13 @@ export class AuthPage implements OnInit, OnDestroy {
       this.notice = 'Confirmando tu correo…';
       void this.auth.initialize()
         .then(async () => {
-          const pendingLoginEmail = sessionStorage.getItem(PENDING_LOGIN_EMAIL);
-          if (pendingLoginEmail) {
+          // El enlace del correo confirma la cuenta y el dispositivo: entra directo.
+          const user = await this.auth.getCurrentUser();
+          if (user) {
+            this.auth.trustDevice(user.id);
             sessionStorage.removeItem(PENDING_LOGIN_EMAIL);
-            await this.router.navigateByUrl('/landing', { replaceUrl: true });
+            sessionStorage.removeItem(PENDING_SIGNUP_EMAIL);
+            await this.goAfterLogin();
           } else {
             this.notice = 'Correo confirmado. Ya puedes iniciar sesión.';
           }
@@ -160,8 +175,13 @@ export class AuthPage implements OnInit, OnDestroy {
     this.startRequest();
     try {
       const email = String(this.loginForm.value.email).trim().toLowerCase();
-      const { error } = await this.auth.validatePasswordAndSendLoginOtp(email, this.loginForm.value.password);
+      const { error, needsOtp } = await this.auth.signInWithPasswordOnDevice(email, this.loginForm.value.password);
       if (error) throw error;
+      if (!needsOtp) {
+        // Dispositivo ya confirmado para esta cuenta: entra directo.
+        await this.goAfterLogin();
+        return;
+      }
       this.registeredEmail = email;
       sessionStorage.setItem(PENDING_LOGIN_EMAIL, email);
       this.otpForm.reset({ token: '' });
@@ -176,7 +196,7 @@ export class AuthPage implements OnInit, OnDestroy {
         }
       } else if ((error as { code?: string })?.code === 'invalid_credentials') {
         this.loginNeedsSignup = false;
-        this.message = 'Correo o contraseña incorrectos. Si tu cuenta es de Google o Facebook, usa ese botón; si te registraste por correo, revisa la contraseña o pulsa “¿La olvidaste?”.';
+        this.message = 'Correo o contraseña incorrectos. Si entraste con una red social, usa ese mismo botón; si te registraste por correo, revisa la contraseña o pulsa “¿La olvidaste?”.';
       } else {
         this.message = this.friendlyError(error);
       }
@@ -194,10 +214,11 @@ export class AuthPage implements OnInit, OnDestroy {
     this.startRequest();
     try {
       const { token } = this.otpForm.getRawValue();
-      const { error } = await this.auth.verifyLoginOtp(this.registeredEmail, token);
+      const { data, error } = await this.auth.verifyLoginOtp(this.registeredEmail, token);
       if (error) throw error;
+      if (data.user) this.auth.trustDevice(data.user.id);
       sessionStorage.removeItem(PENDING_LOGIN_EMAIL);
-      await this.router.navigateByUrl('/landing', { replaceUrl: true });
+      await this.goAfterLogin();
     } catch (error) {
       this.message = this.friendlyError(error);
     } finally {
@@ -240,31 +261,18 @@ export class AuthPage implements OnInit, OnDestroy {
       if (data.user?.identities?.length === 0) {
         await this.router.navigateByUrl('/auth/login', { replaceUrl: true });
         this.loginForm.patchValue({ email });
-        this.notice = 'Ese correo ya tiene una cuenta. Inicia sesión con el método que usaste al crearla; si fue Google o Facebook, usa ese botón.';
+        this.notice = 'Ese correo ya tiene una cuenta. Inicia sesión con el método que usaste al crearla; si fue una red social, usa ese mismo botón.';
         return;
       }
+      // El registro no pide código: la cuenta queda creada y se pasa al login.
+      // El correo se confirma con el código del primer inicio de sesión en el dispositivo.
       this.registeredEmail = email;
-      if (data.session) {
-        await this.auth.signOut('local');
-        await this.router.navigateByUrl('/auth/login', { replaceUrl: true });
-        this.loginForm.patchValue({ email });
-        this.notice = 'Supabase no pidió confirmar el correo, así que no se envió un código. Activa Confirm email para usar OTP.';
-      } else {
-        this.signupOtpEnabled = await this.auth.isSignupOtpEnabled();
-        if (this.signupOtpEnabled) {
-          sessionStorage.setItem(PENDING_SIGNUP_EMAIL, email);
-          this.otpForm.reset({ token: '' });
-          this.startResendCooldown();
-          await this.router.navigateByUrl('/auth/verify-email', {
-            state: { email },
-            replaceUrl: true,
-          });
-        } else {
-          await this.router.navigateByUrl('/auth/login', { replaceUrl: true });
-          this.loginForm.patchValue({ email });
-          this.notice = `Cuenta creada. Confirma el enlace que Supabase envió a ${email} y luego inicia sesión.`;
-        }
-      }
+      if (data.session) await this.auth.signOut('local');
+      await this.router.navigateByUrl('/auth/login', { replaceUrl: true });
+      this.loginForm.patchValue({ email, password: '' });
+      this.notice = value.requestedRole === 'organization' || value.requestedRole === 'institution'
+        ? 'Cuenta creada. Inicia sesión y luego sube los documentos de tu organización para verificarla.'
+        : 'Cuenta creada. Inicia sesión: la primera vez te enviaremos un código a tu correo.';
       this.refreshView();
     } catch (error) {
       this.message = this.friendlyError(error);
@@ -282,13 +290,12 @@ export class AuthPage implements OnInit, OnDestroy {
     this.startRequest();
     try {
       const { token } = this.otpForm.getRawValue();
-      const { error } = await this.auth.verifySignupOtp(this.registeredEmail, token);
+      const { data, error } = await this.auth.verifySignupOtp(this.registeredEmail, token);
       if (error) throw error;
-      await this.auth.signOut('local');
+      // El código ya confirmó el correo y este dispositivo: la cuenta queda lista y con sesión iniciada.
+      if (data.user) this.auth.trustDevice(data.user.id);
       sessionStorage.removeItem(PENDING_SIGNUP_EMAIL);
-      await this.router.navigateByUrl('/auth/login', { replaceUrl: true });
-      this.loginForm.patchValue({ email: this.registeredEmail });
-      this.notice = 'Correo verificado. Ahora inicia sesión con tu correo y contraseña.';
+      await this.goAfterLogin();
     } catch (error) {
       this.message = this.friendlyError(error);
     } finally {
@@ -332,9 +339,14 @@ export class AuthPage implements OnInit, OnDestroy {
       : `La cuenta existe, pero falta confirmar el correo. Usa el enlace que ya recibiste en ${email}. Si no lo tienes, podrás pedir otro cuando termine la espera.`;
   }
 
-  /** Entrar o registrarse con Google o Facebook (RF-01). Si todo va bien, el navegador sale hacia la red social. */
+  /** Entrar o registrarse con una red social (RF-01). Si todo va bien, el navegador sale hacia la red social. */
   async continueWithProvider(provider: SocialProvider): Promise<void> {
-    const label = SOCIAL_PROVIDER_LABELS[provider];
+    const label = socialProviderLabel(provider);
+    // Si la red no está activada en Supabase, avisar aquí en vez de ir a una página de error.
+    if (this.enabledProviders && !this.enabledProviders.has(provider)) {
+      this.message = `${label} aún no está disponible. Entra con tu correo u otra opción.`;
+      return;
+    }
     this.oauthBusy = provider;
     this.message = '';
     this.notice = '';
@@ -393,6 +405,27 @@ export class AuthPage implements OnInit, OnDestroy {
       this.busy = false;
       this.refreshView();
     }
+  }
+
+  /**
+   * Destino después de iniciar sesión. Las cuentas que pidieron ser ONG o institución
+   * y todavía no enviaron sus documentos van a la verificación (RF-06).
+   */
+  private async goAfterLogin(): Promise<void> {
+    let target = '/inicio';
+    try {
+      const profile = await this.profiles.getMyProfile();
+      const wantsVerification = profile.requested_role === 'organization' || profile.requested_role === 'institution';
+      const alreadyVerified = ['organization', 'institution', 'administrator'].includes(profile.role);
+      if (wantsVerification && !alreadyVerified) {
+        const requests = await this.verification.getMyRequests();
+        const hasOpenRequest = requests.some((request) => request.status === 'pending' || request.status === 'approved');
+        if (!hasOpenRequest) target = '/verificacion?bienvenida=1';
+      }
+    } catch {
+      // Si no se puede consultar (p. ej. faltan migraciones), se va al inicio normal.
+    }
+    await this.router.navigateByUrl(target, { replaceUrl: true });
   }
 
   togglePassword(): void {
@@ -476,7 +509,7 @@ export class AuthPage implements OnInit, OnDestroy {
     if ((error as { name?: string })?.name === 'AbortError') {
       return 'No pudimos verificar tu cuenta. Supabase no respondió; revisa la conexión y la configuración e inténtalo otra vez.';
     }
-    if (code === 'invalid_credentials') return 'Correo o contraseña incorrectos. Si te registraste con Google o Facebook, usa ese botón. Si acabas de registrarte por correo, confirma primero tu cuenta.';
+    if (code === 'invalid_credentials') return 'Correo o contraseña incorrectos. Si te registraste con una red social, usa ese mismo botón. Si acabas de registrarte por correo, confirma primero tu cuenta.';
     if (code === 'auth_timeout') return 'No pudimos verificar tu cuenta. Supabase no respondió; revisa la conexión y la configuración e inténtalo otra vez.';
     if (code === 'email_not_confirmed') return 'Confirma tu correo antes de iniciar sesión.';
     if (code === 'otp_expired' || detail.toLowerCase().includes('token has expired')) return 'El código venció. Solicita uno nuevo.';

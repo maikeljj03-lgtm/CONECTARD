@@ -1,0 +1,79 @@
+// Botones de redes sociales (RF-01). Cada red usa sus colores oficiales.
+:host { display: block; }
+
+.social { display: grid; gap: 10px; }
+
+.social-btn,
+.social-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  font-family: Roboto, Arial, sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, box-shadow .2s, opacity .2s;
+
+  &:disabled { cursor: not-allowed; opacity: .55; }
+  &:focus-visible { outline: 3px solid var(--crd-teal-line); outline-offset: 2px; }
+}
+
+.social-btn {
+  position: relative;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 20px;
+  border-radius: 999px;
+  font-size: 15px;
+}
+
+// Google: variante clara oficial.
+.social-btn--google {
+  border-color: #747775;
+  background: #fff;
+  color: #1f1f1f;
+  &:hover:not(:disabled) { background: #f8faff; box-shadow: var(--crd-shadow-sm); }
+}
+
+.social-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  justify-self: center;
+  padding: 4px 10px;
+  border: 0;
+  background: none;
+  color: var(--crd-teal-text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+
+  app-icon { font-size: 15px; transition: transform .2s; }
+  app-icon.is-open { transform: rotate(180deg); }
+  &:hover { text-decoration: underline; }
+}
+
+.social-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.social-tile {
+  position: relative;
+  min-height: 46px;
+  padding: 0 14px;
+  border-color: var(--crd-border-strong);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--crd-ink);
+  font-size: 14px;
+
+  &:hover:not(:disabled) { border-color: var(--crd-ink); }
+}
+
+.social-mark { flex: none; width: 19px; height: 19px; }
+

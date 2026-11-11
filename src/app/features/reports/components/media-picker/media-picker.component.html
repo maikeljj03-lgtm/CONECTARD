@@ -1,0 +1,66 @@
+<div class="picker-media" [class.is-dragging]="dragging" (dragover)="onDragOver($event)" (dragleave)="dragging = false" (drop)="onDrop($event)">
+  <div class="picker-media__actions">
+    <!-- RF-10: en el teléfono abre directamente la cámara -->
+    <label class="media-action" [class.is-disabled]="disabled || remaining <= 0">
+      <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" capture="environment"
+        (change)="onFilesSelected($event)" [disabled]="disabled || remaining <= 0" />
+      <app-icon name="camera"></app-icon>
+      <span><strong>Cámara</strong><small>Toma una foto o un video</small></span>
+    </label>
+    <!-- RF-11: elegir archivos guardados (varios a la vez) -->
+    <label class="media-action" [class.is-disabled]="disabled || remaining <= 0">
+      <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" multiple
+        (change)="onFilesSelected($event)" [disabled]="disabled || remaining <= 0" />
+      <app-icon name="image"></app-icon>
+      <span><strong>Galería</strong><small>Elige de tus archivos</small></span>
+    </label>
+  </div>
+
+  <p class="picker-media__hint">
+    Hasta {{ maxItems }} archivos · videos de máximo {{ maxVideoSeconds }} s y {{ maxVideoSize }}.
+    Las fotos se comprimen automáticamente y se les quita la ubicación guardada por la cámara.
+  </p>
+
+  @if (items.length) {
+    <ul class="media-grid">
+      @for (item of items; track item.id; let i = $index; let first = $first; let last = $last) {
+        <li class="media-tile" [class.is-error]="item.status === 'error'">
+          <div class="media-tile__preview">
+            @if (item.status === 'processing') {
+              <span class="media-tile__state"><span class="spinner spinner--sm"></span> Comprimiendo…</span>
+            } @else if (item.status === 'error') {
+              <span class="media-tile__state"><app-icon name="alert-circle"></app-icon></span>
+            } @else if (item.processed?.kind === 'video') {
+              <video [src]="item.previewUrl" muted playsinline preload="metadata"></video>
+              <span class="media-tile__badge"><app-icon name="video"></app-icon> Video</span>
+            } @else {
+              <img [src]="item.previewUrl" [alt]="'Vista previa de ' + item.name" />
+            }
+            @if (first && item.status === 'ready') { <span class="media-tile__cover">Portada</span> }
+          </div>
+
+          <div class="media-tile__info">
+            @if (item.status === 'error') {
+              <small class="media-tile__error">{{ item.error }}</small>
+            } @else {
+              <small>{{ item.status === 'ready' ? sizeLabel(item) : item.name }}</small>
+            }
+          </div>
+
+          <div class="media-tile__tools">
+            @if (item.status === 'ready' && items.length > 1) {
+              <button type="button" (click)="move(item, -1)" [disabled]="first || disabled" aria-label="Mover antes"><app-icon name="arrow-left"></app-icon></button>
+              <button type="button" (click)="move(item, 1)" [disabled]="last || disabled" aria-label="Mover después"><app-icon name="arrow-right"></app-icon></button>
+            }
+            <button type="button" class="media-tile__remove" (click)="remove(item)" [disabled]="disabled" [attr.aria-label]="'Quitar ' + item.name"><app-icon name="x"></app-icon></button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (savedBytes > 0) {
+    <p class="picker-media__saved"><app-icon name="check-circle"></app-icon> Ahorraste {{ formatBytes(savedBytes) }} de datos al comprimir las fotos.</p>
+  }
+  @if (notice) { <p class="picker-media__notice">{{ notice }}</p> }
+</div>

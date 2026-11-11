@@ -32,5 +32,35 @@ export interface PublicReport extends Omit<NewReport, 'is_anonymous'> {
   is_anonymous: boolean;
   author_name: string | null;
   author_avatar_url: string | null;
+  /** Ruta de la primera foto en el almacenamiento report-media (null si no tiene). */
+  cover_path?: string | null;
+  media_count?: number;
   created_at: string;
+}
+
+/** Foto o video de un reporte (tabla report_media). */
+export interface ReportMedia {
+  id: string;
+  report_id: string;
+  path: string;
+  kind: 'image' | 'video';
+  mime_type: string;
+  size_bytes: number;
+  width: number | null;
+  height: number | null;
+  duration_seconds: number | null;
+  position: number;
+  created_at: string;
+}
+
+/** Filtros del listado y del mapa (RF-20, RF-22). */
+export interface PublicReportFilters {
+  category?: string | null;
+  status?: ReportStatus | null;
+  province?: string | null;
+  municipality?: string | null;
+  /** Fecha ISO: solo reportes desde esa fecha. */
+  since?: string | null;
+  search?: string | null;
+  limit?: number;
 }

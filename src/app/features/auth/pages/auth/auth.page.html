@@ -51,7 +51,7 @@
             <span class="auth-icon-badge"><app-icon name="shield-check"></app-icon></span>
             <header class="auth-head">
               <h2>Confirma que eres tú</h2>
-              <p>Enviamos un código de 6 dígitos a <strong>{{ registeredEmail }}</strong>. También puedes abrir el enlace del correo.</p>
+              <p>Es la primera vez que esta cuenta entra desde este dispositivo. Enviamos un código de 6 dígitos a <strong>{{ registeredEmail }}</strong>; después no te lo volveremos a pedir aquí.</p>
             </header>
             <form [formGroup]="otpForm" (ngSubmit)="verifyLoginOtp()" novalidate>
               <label class="sr-only" for="login-otp-token">Código de verificación</label>
@@ -83,7 +83,7 @@
             <header class="auth-head">
               <h2>{{ signupOtpEnabled ? 'Confirma tu correo' : 'Revisa tu correo' }}</h2>
               @if (signupOtpEnabled) {
-                <p>Escribe el código de 6 dígitos que enviamos a <strong>{{ registeredEmail }}</strong>. Después podrás iniciar sesión.</p>
+                <p>Escribe el código de 6 dígitos que enviamos a <strong>{{ registeredEmail }}</strong>. Al confirmarlo entrarás directo a tu cuenta.</p>
               } @else {
                 <p>Te enviamos un enlace de confirmación a <strong>{{ registeredEmail }}</strong>. Ábrelo para activar tu cuenta y luego inicia sesión.</p>
               }
@@ -134,7 +134,7 @@
                   <p>Inicia sesión para seguir tus reportes y lo que pasa en tu comunidad.</p>
                 </header>
 
-                <ng-container *ngTemplateOutlet="socialButtons; context: { verb: 'Continuar con' }"></ng-container>
+                <app-social-login verb="Continuar con" [disabled]="busy || !!oauthBusy" [busyProvider]="oauthBusy" [enabledProviders]="enabledProviders" (selectProvider)="continueWithProvider($event)"></app-social-login>
 
                 <div class="auth-divider"><span>o con tu correo</span></div>
 
@@ -177,7 +177,7 @@
                   <button class="btn btn--primary" type="submit" [disabled]="busy || !!oauthBusy">
                     @if (busy) { <span class="btn__spinner" aria-hidden="true"></span> Verificando… } @else { Continuar <app-icon name="arrow-right"></app-icon> }
                   </button>
-                  <p class="auth-hint"><app-icon name="shield-check"></app-icon> Por seguridad te enviaremos un código de 6 dígitos a tu correo.</p>
+                  <p class="auth-hint"><app-icon name="shield-check"></app-icon> La primera vez que entres desde este dispositivo te enviaremos un código a tu correo.</p>
                 </form>
 
                 <p class="auth-switch">¿Nuevo en ConectaRD? <a routerLink="/auth/register">Crea una cuenta</a></p>
@@ -283,7 +283,7 @@
                     <label class="check" [class.is-invalid]="registerForm.controls['acceptTerms'].invalid && registerForm.controls['acceptTerms'].touched">
                       <input type="checkbox" formControlName="acceptTerms">
                       <span class="check__box" aria-hidden="true"><app-icon name="check"></app-icon></span>
-                      <span class="check__text">Acepto los Términos de uso y la Política de privacidad de ConectaRD y el tratamiento de mis datos según la Ley 172-13.</span>
+                      <span class="check__text">Acepto los <a routerLink="/terminos" target="_blank">Términos de uso</a> y la <a routerLink="/privacidad" target="_blank">Política de privacidad</a> de ConectaRD y el tratamiento de mis datos según la Ley 172-13.</span>
                     </label>
                     @if (registerForm.controls['acceptTerms'].invalid && registerForm.controls['acceptTerms'].touched) {
                       <small class="field__error"><app-icon name="alert-circle"></app-icon>Necesitas aceptar los términos para crear la cuenta.</small>
@@ -296,8 +296,8 @@
                   </form>
 
                   <div class="auth-divider"><span>o</span></div>
-                  <ng-container *ngTemplateOutlet="socialButtons; context: { verb: 'Registrarme con' }"></ng-container>
-                  <p class="auth-fineprint">Las cuentas creadas con Google o Facebook empiezan con perfil de ciudadano.</p>
+                  <app-social-login verb="Registrarme con" [disabled]="busy || !!oauthBusy" [busyProvider]="oauthBusy" [enabledProviders]="enabledProviders" (selectProvider)="continueWithProvider($event)"></app-social-login>
+                  <p class="auth-fineprint">Las cuentas creadas con una red social empiezan con perfil de ciudadano.</p>
                   <p class="auth-switch">¿Ya tienes cuenta? <a routerLink="/auth/login">Inicia sesión</a></p>
                 }
               </div>
@@ -377,24 +377,4 @@
     </section>
   </main>
 
-  <!-- Botones de redes sociales (RF-01), compartidos por el login y el registro -->
-  <ng-template #socialButtons let-verb="verb">
-    <div class="social-buttons">
-      <button class="btn btn--google" type="button" (click)="continueWithProvider('google')" [disabled]="busy || !!oauthBusy">
-        <svg class="social-mark" aria-hidden="true" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.55-.2-2.27H12v4.3h6.44a5.5 5.5 0 0 1-2.39 3.61v2.78h3.87c2.26-2.08 3.57-5.15 3.57-8.42Z"/>
-          <path fill="#34A853" d="M12 24c3.24 0 5.96-1.08 7.95-2.91l-3.87-2.78c-1.08.72-2.45 1.15-4.08 1.15-3.14 0-5.8-2.12-6.75-4.97H1.25v2.88A12 12 0 0 0 12 24Z"/>
-          <path fill="#FBBC05" d="M5.25 14.49a7.2 7.2 0 0 1 0-4.98V6.63h-4a12 12 0 0 0 0 10.74l4-2.88Z"/>
-          <path fill="#EA4335" d="M12 4.54c1.77 0 3.36.61 4.61 1.81l3.45-3.45A11.6 11.6 0 0 0 12 0 12 12 0 0 0 1.25 6.63l4 2.88C6.2 6.66 8.86 4.54 12 4.54Z"/>
-        </svg>
-        <span>{{ oauthBusy === 'google' ? 'Conectando con Google…' : verb + ' Google' }}</span>
-      </button>
-      <button class="btn btn--facebook" type="button" (click)="continueWithProvider('facebook')" [disabled]="busy || !!oauthBusy">
-        <svg class="social-mark" aria-hidden="true" viewBox="0 0 24 24">
-          <path fill="#FFFFFF" d="M24 12.07C24 5.41 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.04V9.41c0-3.02 1.8-4.7 4.54-4.7 1.31 0 2.68.24 2.68.24v2.97h-1.5c-1.5 0-1.96.93-1.96 1.89v2.26h3.32l-.53 3.5h-2.8V24C19.62 23.1 24 18.1 24 12.07Z"/>
-        </svg>
-        <span>{{ oauthBusy === 'facebook' ? 'Conectando con Facebook…' : verb + ' Facebook' }}</span>
-      </button>
-    </div>
-  </ng-template>
 </ion-content>

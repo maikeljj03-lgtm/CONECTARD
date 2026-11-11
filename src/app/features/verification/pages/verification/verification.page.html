@@ -33,6 +33,9 @@
         <a class="btn btn--ghost" routerLink="/perfil">Volver a mi perfil</a>
       </div>
     } @else {
+      @if (welcome) {
+        <div class="note"><app-icon name="shield-check"></app-icon><span><strong>¡Tu cuenta ya está creada!</strong> Como te registraste como {{ form.controls.requested_role.value === 'institution' ? 'institución pública' : 'organización' }}, falta un último paso: sube los documentos oficiales para verificarla. Mientras tanto puedes usar ConectaRD como ciudadano. <a routerLink="/landing">Hacerlo más tarde</a></span></div>
+      }
       <form class="card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <h2 class="card__title">¿Qué tipo de cuenta quieres verificar?</h2>
         <div class="choice-grid">
@@ -148,4 +151,5 @@
       }
     }
   </main>
+  <app-bottom-nav></app-bottom-nav>
 </ion-content>

@@ -3,7 +3,6 @@ import type { RequestedRole } from '../../core/models/profile.model';
 export const AUTH_MODES = ['login', 'register', 'verify-email', 'verify-login', 'forgot-password', 'reset-password'] as const;
 export type AuthMode = typeof AUTH_MODES[number];
 export const PENDING_SIGNUP_EMAIL = 'conectard.pending-signup-email';
-export const PENDING_LOGIN_EMAIL = 'conectard.pending-login-email';
 
 export interface RoleOption {
   value: RequestedRole;

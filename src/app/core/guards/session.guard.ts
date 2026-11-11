@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { requireTrustedDevice } from './device-verification';
 
 /**
  * Para páginas públicas: deja pasar siempre, pero antes resuelve la sesión
@@ -11,7 +12,7 @@ export const sessionGuard: CanActivateFn = async (_route, state) => {
   const router = inject(Router);
   const isAuthCallback = state.url.includes('code=');
 
-  // Si Google o Facebook rechazan el acceso, Supabase vuelve con ?error_description=...
+  // Si la red social rechaza el acceso, Supabase vuelve con ?error_description=...
   // Se envía al login para mostrar un mensaje claro en vez de dejarlo en la URL.
   const params = new URLSearchParams(state.url.split('?')[1]?.split('#')[0] ?? '');
   const providerError = params.get('error_description') ?? params.get('error');
@@ -26,7 +27,13 @@ export const sessionGuard: CanActivateFn = async (_route, state) => {
       await auth.signOut('local');
       return router.createUrlTree(['/auth/login'], { queryParams: { unverified: '1' } });
     }
-    if (user) auth.cacheAuthenticatedUser(user);
+    if (user) {
+      const verification = await requireTrustedDevice(auth, router, user);
+      if (verification) return verification;
+      auth.cacheAuthenticatedUser(user);
+      // Al volver de Google (?code=...) se entra directo a la homepage.
+      if (isAuthCallback) return router.createUrlTree(['/inicio']);
+    }
     return true;
   } catch {
     // Si Supabase no responde, la página pública sigue funcionando sin sesión.

@@ -1,0 +1,25 @@
+<button type="button" class="card" [class.is-selected]="selected" (click)="open.emit(report)" [attr.aria-label]="'Ver reporte: ' + report.title">
+  <span class="card__media">
+    @if (coverUrl) {
+      <img [src]="coverUrl" alt="" loading="lazy" />
+    } @else {
+      <span class="card__placeholder"><app-icon [name]="category.icon"></app-icon></span>
+    }
+  </span>
+  <span class="card__body">
+    <span class="card__top">
+      <span class="card__category"><app-icon [name]="category.icon"></app-icon>{{ category.label }}</span>
+      <span class="card__status" [style.--status]="statusColor">{{ statusLabel }}</span>
+    </span>
+    <strong class="card__title">{{ report.title }}</strong>
+    <span class="card__meta">
+      <span><app-icon name="map-pin"></app-icon>{{ place }}</span>
+      <span><app-icon name="clock"></app-icon>{{ age }}</span>
+      @if (distance) { <span class="card__distance">a {{ distance }}</span> }
+    </span>
+    <span class="card__author">
+      @if (report.is_anonymous) { <app-icon name="eye-off"></app-icon> Vecino anónimo } @else { <app-icon name="user"></app-icon> {{ report.author_name || 'Vecino' }} }
+    </span>
+  </span>
+  <app-icon class="card__chevron" name="arrow-right"></app-icon>
+</button>

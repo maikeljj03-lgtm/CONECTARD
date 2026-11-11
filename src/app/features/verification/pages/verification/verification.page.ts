@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { INSTITUTION_TYPES, ORGANIZATION_TYPES } from '../../../../core/constants/catalogs';
 import type { Profile } from '../../../../core/models/profile.model';
 import type { VerificationRequest } from '../../../../core/models/verification.model';
@@ -17,6 +18,10 @@ export class VerificationPage implements OnInit {
   private readonly profiles = inject(ProfileService);
   private readonly verification = inject(VerificationService);
   private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly route = inject(ActivatedRoute);
+
+  /** Llegó aquí justo después de su primer inicio de sesión. */
+  readonly welcome = this.route.snapshot.queryParamMap.has('bienvenida');
 
   readonly organizationTypes = ORGANIZATION_TYPES;
   readonly maxDocuments = MAX_DOCUMENTS;

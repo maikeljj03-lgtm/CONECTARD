@@ -24,10 +24,25 @@
           <span class="badge badge--sun">{{ categoryLabel(created.category) }}</span>
           <h2>{{ created.title }}</h2>
           <p>{{ created.description }}</p>
+          @if (uploadedMediaUrls.length) {
+            <div class="result-media">
+              @for (media of uploadedMediaUrls; track media.url) {
+                @if (media.kind === 'video') { <video [src]="media.url" controls playsinline preload="metadata"></video> } @else { <img [src]="media.url" alt="Foto del reporte" loading="lazy" /> }
+              }
+            </div>
+          }
           @if (created.sector || created.municipality || created.province) {
             <small class="muted"><app-icon name="map-pin"></app-icon> {{ created.sector ? created.sector + ', ' : '' }}{{ created.municipality ? created.municipality + ', ' : '' }}{{ created.province }}</small>
           }
         </article>
+        @if (mediaError) {
+          <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>El reporte se publicó, pero {{ mediaError.charAt(0).toLowerCase() + mediaError.slice(1) }}</span></div>
+          @if (failedMedia.length) {
+            <button type="button" class="btn btn--ghost" (click)="retryMedia()" [disabled]="uploadingMedia">
+              @if (uploadingMedia) { <span class="spinner spinner--sm"></span> Subiendo… } @else { <app-icon name="arrow-up-right"></app-icon> Reintentar subir {{ failedMedia.length === 1 ? 'el archivo' : 'los archivos' }} }
+            </button>
+          }
+        }
         @if (!publicView) {
           <p class="muted small">No pudimos leer la vista pública para confirmarlo; la vista previa se basa en tu elección.</p>
         }
@@ -84,10 +99,17 @@
         </div>
       </section>
 
-      <!-- 2. Dónde -->
+      <!-- 2. Fotos y video (RF-10, RF-11, RF-12) -->
+      <section class="card">
+        <h2 class="card__title"><span class="step-num">2</span> Fotos o video <span class="optional">(recomendado)</span></h2>
+        <p class="muted small">Una foto ayuda a que el problema se entienda y se atienda más rápido. Evita que se vean rostros o placas.</p>
+        <app-media-picker [disabled]="sending" (readyChange)="media = $event" (processingChange)="mediaProcessing = $event"></app-media-picker>
+      </section>
+
+      <!-- 3. Dónde -->
       <section class="card">
         <div class="card__head">
-          <h2 class="card__title"><span class="step-num">2</span> ¿Dónde está?</h2>
+          <h2 class="card__title"><span class="step-num">3</span> ¿Dónde está?</h2>
           <button type="button" class="btn btn--ghost btn--sm" (click)="useMyLocation()" [disabled]="locating">
             @if (locating) { <span class="spinner spinner--sm"></span> Buscando… } @else { <app-icon name="locate"></app-icon> Usar mi ubicación }
           </button>
@@ -127,9 +149,9 @@
         </div>
       </section>
 
-      <!-- 3. Privacidad (RF-07) -->
+      <!-- 4. Privacidad (RF-07) -->
       <section class="card">
-        <h2 class="card__title"><span class="step-num">3</span> ¿Cómo quieres publicarlo?</h2>
+        <h2 class="card__title"><span class="step-num">4</span> ¿Cómo quieres publicarlo?</h2>
         <div class="choice-grid">
           <button type="button" class="choice" [class.is-selected]="!form.controls.is_anonymous.value" (click)="form.controls.is_anonymous.setValue(false)" [attr.aria-pressed]="!form.controls.is_anonymous.value">
             <span class="choice__icon"><app-icon name="user"></app-icon></span>
@@ -151,10 +173,11 @@
 
       <div class="actions">
         <a class="btn btn--ghost" routerLink="/landing">Cancelar</a>
-        <button class="btn btn--primary btn--lg" type="submit" [disabled]="sending">
-          @if (sending) { <span class="spinner spinner--sm"></span> Enviando… } @else { Enviar reporte <app-icon name="arrow-right"></app-icon> }
+        <button class="btn btn--primary btn--lg" type="submit" [disabled]="sending || mediaProcessing">
+          @if (sending) { <span class="spinner spinner--sm"></span> {{ uploadingMedia ? 'Subiendo fotos…' : 'Enviando…' }} } @else if (mediaProcessing) { <span class="spinner spinner--sm"></span> Procesando fotos… } @else { Enviar reporte <app-icon name="arrow-right"></app-icon> }
         </button>
       </div>
     </form>
   </main>
+  <app-bottom-nav></app-bottom-nav>
 </ion-content>

@@ -1,0 +1,58 @@
+<ion-content class="legal-content">
+  <header class="legal-bar">
+    <div class="legal-bar__inner">
+      <a routerLink="/landing" aria-label="ConectaRD, inicio"><app-logo [size]="30"></app-logo></a>
+      <a class="legal-bar__back" routerLink="/landing"><app-icon name="arrow-left"></app-icon> Volver al inicio</a>
+    </div>
+  </header>
+
+  <div class="legal">
+    <header class="legal__head">
+      <p class="legal__kicker">Documento legal</p>
+      <h1>{{ document.title }}</h1>
+      <p class="legal__summary">{{ document.summary }}</p>
+      <p class="legal__date"><app-icon name="clock"></app-icon> Última actualización: {{ document.updatedAt }}</p>
+    </header>
+
+    <div class="legal__layout">
+      <nav class="legal__toc" aria-label="Contenido">
+        <p>Contenido</p>
+        <ol>
+          @for (section of document.sections; track section.id) {
+            <li><a [href]="'#' + section.id" (click)="scrollTo($event, section.id)">{{ section.title }}</a></li>
+          }
+          <li><a href="#contacto" (click)="scrollTo($event, 'contacto')">Contacto</a></li>
+        </ol>
+        <a class="legal__other" [routerLink]="otherPath"><app-icon name="file-text"></app-icon> Ver {{ otherDocument.title }}</a>
+      </nav>
+
+      <article class="legal__body">
+        @for (section of document.sections; track section.id) {
+          <section [id]="section.id">
+            <h2>{{ section.title }}</h2>
+            @for (paragraph of section.body ?? []; track $index) { <p>{{ paragraph }}</p> }
+            @if (section.items?.length) {
+              <ul>
+                @for (item of section.items; track $index) { <li>{{ item }}</li> }
+              </ul>
+            }
+          </section>
+        }
+
+        <section id="contacto" class="legal__contact">
+          <h2>Contacto</h2>
+          @if (document.kind === 'privacidad') {
+            <p>Para ejercer tus derechos de acceso, rectificación, cancelación u oposición, o para cualquier consulta sobre tus datos, escríbenos indicando tu nombre y el correo de tu cuenta. Responderemos dentro de los plazos que establece la Ley 172-13.</p>
+          } @else {
+            <p>Si tienes dudas sobre estos términos o quieres denunciar un uso indebido de la plataforma, escríbenos.</p>
+          }
+          @if (contactEmail) {
+            <p class="legal__email"><app-icon name="mail"></app-icon> {{ contactEmail }}</p>
+          } @else {
+            <p class="legal__email legal__email--pending"><app-icon name="mail"></app-icon> Correo de contacto pendiente de publicar.</p>
+          }
+        </section>
+      </article>
+    </div>
+  </div>
+</ion-content>
