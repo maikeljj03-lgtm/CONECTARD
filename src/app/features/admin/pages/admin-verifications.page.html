@@ -1,0 +1,86 @@
+<ion-content class="app-content">
+  <app-topbar></app-topbar>
+
+  <main class="page">
+    <header class="page-head">
+      <p class="page-kicker">Administración</p>
+      <h1>Solicitudes de verificación</h1>
+      <p>Revisa la documentación oficial antes de conceder permisos de organización o institución. Cada decisión queda registrada con fecha y responsable.</p>
+    </header>
+
+    @if (loading) {
+      <div class="page-state"><span class="spinner"></span><p>Cargando…</p></div>
+    } @else if (!isAdmin) {
+      <div class="card result">
+        <span class="result__icon result__icon--bad"><app-icon name="shield"></app-icon></span>
+        <h2>Solo para administradores</h2>
+        <p class="muted">Tu cuenta no tiene permiso para revisar solicitudes.</p>
+        @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+        <a class="btn btn--ghost" routerLink="/perfil">Volver a mi perfil</a>
+      </div>
+    } @else {
+      <div class="tabs" role="tablist">
+        @for (item of tabs; track item.id) {
+          <button type="button" role="tab" class="tab" [class.is-active]="tab === item.id" [attr.aria-selected]="tab === item.id" (click)="selectTab(item.id)">{{ item.label }}</button>
+        }
+      </div>
+
+      @if (feedback) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ feedback }}</span></div> }
+      @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+      @if (listLoading) {
+        <div class="page-state"><span class="spinner"></span></div>
+      } @else {
+        <div class="stack">
+          @for (request of requests; track request.id) {
+            <article class="card review">
+              <div class="review__head">
+                <div class="avatar">
+                  @if (request.profiles?.avatar_url; as avatar) { <img [src]="avatar" alt="" /> } @else { <app-icon name="users"></app-icon> }
+                </div>
+                <div class="review__title">
+                  <h2>{{ request.organization_name }}</h2>
+                  <small>{{ roleLabels[request.requested_role] }} · {{ typeLabel(request.organization_type) }} · solicitada por {{ request.profiles?.full_name || 'usuario sin nombre' }}</small>
+                </div>
+                <small class="muted">{{ request.created_at | date: 'd MMM y, h:mm a' }}</small>
+              </div>
+
+              <dl class="details">
+                <div><dt>RNC</dt><dd>{{ request.rnc || 'No indicado' }}</dd></div>
+                <div><dt>Responsable</dt><dd>{{ request.contact_name }}</dd></div>
+                <div><dt>Teléfono</dt><dd>{{ request.contact_phone }}</dd></div>
+                <div><dt>Cobertura</dt><dd>{{ request.coverage_area }}</dd></div>
+              </dl>
+
+              <div class="review__docs">
+                @for (path of request.document_paths; track path) {
+                  <button type="button" class="file-row file-row--button" (click)="openDocument(path)">
+                    <app-icon name="file-text"></app-icon><span class="file-row__name">{{ documentName(path) }}</span><app-icon name="arrow-up-right"></app-icon>
+                  </button>
+                }
+              </div>
+
+              @if (request.status === 'pending') {
+                <label class="field__label" [attr.for]="'notes-' + request.id">Nota para la organización <span class="optional">(obligatoria si rechazas)</span></label>
+                <textarea class="textarea" [id]="'notes-' + request.id" rows="2" maxlength="500" [value]="notes[request.id] ?? ''" (input)="notes[request.id] = $any($event.target).value" placeholder="Ej. El documento está vencido; envía la certificación actualizada."></textarea>
+                <div class="actions">
+                  <button type="button" class="btn btn--danger" (click)="review(request, false)" [disabled]="busyId === request.id"><app-icon name="x"></app-icon> Rechazar</button>
+                  <button type="button" class="btn btn--primary" (click)="review(request, true)" [disabled]="busyId === request.id">
+                    @if (busyId === request.id) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="check"></app-icon> } Aprobar
+                  </button>
+                </div>
+              } @else if (request.review_notes) {
+                <p class="muted"><strong>Nota:</strong> {{ request.review_notes }}</p>
+              }
+            </article>
+          } @empty {
+            <div class="card result">
+              <span class="result__icon"><app-icon name="check-circle"></app-icon></span>
+              <h2>No hay solicitudes {{ tab === 'pending' ? 'pendientes' : tab === 'approved' ? 'aprobadas' : 'rechazadas' }}</h2>
+            </div>
+          }
+        </div>
+      }
+    }
+  </main>
+</ion-content>

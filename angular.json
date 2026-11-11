@@ -34,7 +34,7 @@
                 "output": "./svg"
               }
             ],
-            "styles": ["src/global.scss", "src/theme/variables.scss", "node_modules/leaflet/dist/leaflet.css", "src/styles/landing.scss"],
+            "styles": ["src/global.scss", "src/theme/variables.scss", "node_modules/leaflet/dist/leaflet.css", "src/styles/auth.scss", "src/styles/landing.scss", "src/styles/app.scss"],
             "scripts": []
           },
           "configurations": {

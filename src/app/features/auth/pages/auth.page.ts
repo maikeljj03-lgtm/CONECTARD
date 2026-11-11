@@ -1,11 +1,40 @@
 import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../../../core/auth/auth.service';
+import { AuthService, type SignUpProfile } from '../../../core/auth/auth.service';
 
 type AuthMode = 'login' | 'register' | 'verify-email' | 'verify-login' | 'forgot-password' | 'reset-password';
+type RequestedRole = SignUpProfile['requestedRole'];
 const PENDING_SIGNUP_EMAIL = 'conectard.pending-signup-email';
 const PENDING_LOGIN_EMAIL = 'conectard.pending-login-email';
+
+interface RoleOption {
+  value: RequestedRole;
+  slug: string;
+  icon: string;
+  title: string;
+  description: string;
+  badge?: string;
+  note?: string;
+}
+
+const ROLE_OPTIONS: RoleOption[] = [
+  { value: 'citizen', slug: 'ciudadano', icon: 'user', title: 'Ciudadano', description: 'Reporta problemas, apoya los de tus vecinos y sigue su solución.' },
+  {
+    value: 'volunteer', slug: 'voluntario', icon: 'heart', title: 'Voluntario', description: 'Súmate a soluciones y jornadas. Ideal para horas de servicio social.',
+    badge: 'Con revisión', note: 'Empezarás como ciudadano mientras revisamos tu solicitud de voluntariado.',
+  },
+  {
+    value: 'organization', slug: 'ong', icon: 'users', title: 'Organización / ONG', description: 'Coordina eventos, insumos y donaciones para tu comunidad.',
+    badge: 'Verificación', note: 'Después del registro te pediremos documentos de la organización. Hasta verificarla, la cuenta funciona como ciudadano.',
+  },
+  {
+    value: 'institution', slug: 'institucion', icon: 'landmark', title: 'Institución pública', description: 'Recibe los reportes de tu jurisdicción y muestra resultados.',
+    badge: 'Verificación', note: 'Después del registro te pediremos documentación oficial. Hasta verificarla, la cuenta funciona como ciudadano.',
+  },
+];
+
+const PASSWORD_LABELS = ['Muy débil', 'Débil', 'Aceptable', 'Buena', 'Fuerte'];
 
 function matchingPasswords(control: AbstractControl): ValidationErrors | null {
   const password = control.get('password')?.value;
@@ -45,6 +74,9 @@ export class AuthPage implements OnInit, OnDestroy {
   resendCooldownSeconds = 0;
   message = '';
   notice = '';
+  registerStep: 1 | 2 = 1;
+  readonly roleOptions = ROLE_OPTIONS;
+  readonly otpSlots = [0, 1, 2, 3, 4, 5];
   private resendCooldownTimer?: ReturnType<typeof setInterval>;
   private googleRequestTimer?: ReturnType<typeof setTimeout>;
 
@@ -59,6 +91,7 @@ export class AuthPage implements OnInit, OnDestroy {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]],
+      acceptTerms: [false, [Validators.requiredTrue]],
     }, { validators: matchingPasswords });
     this.otpForm = this.formBuilder.group({
       token: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
@@ -79,6 +112,8 @@ export class AuthPage implements OnInit, OnDestroy {
         ? requestedMode
         : 'login';
       this.mode = nextMode;
+      this.showPassword = false;
+      this.registerStep = this.applyRoleFromQuery(this.route.snapshot.queryParamMap.get('rol')) ? 2 : 1;
       if (nextMode === 'verify-email') {
         const navigationEmail = window.history.state?.['email'];
         this.registeredEmail = typeof navigationEmail === 'string' && navigationEmail
@@ -110,6 +145,9 @@ export class AuthPage implements OnInit, OnDestroy {
     });
 
     this.route.queryParamMap.subscribe((params) => {
+      if (this.mode === 'register' && this.applyRoleFromQuery(params.get('rol'))) {
+        this.registerStep = 2;
+      }
       if (params.has('auth_callback')) {
         this.mode = 'login';
         this.notice = 'No se pudo completar el acceso. Inicia sesión de nuevo; si el enlace venció, solicita uno nuevo.';
@@ -225,6 +263,7 @@ export class AuthPage implements OnInit, OnDestroy {
       const { data, error } = await this.auth.signUp(email, value.password, {
         fullName: value.fullName.trim(),
         requestedRole: value.requestedRole,
+        termsAcceptedAt: new Date().toISOString(),
       });
       if (error) throw error;
       if (data.user?.identities?.length === 0) {
@@ -385,6 +424,47 @@ export class AuthPage implements OnInit, OnDestroy {
 
   togglePassword(): void {
     this.showPassword = !this.showPassword;
+  }
+
+  get selectedRole(): RoleOption {
+    return ROLE_OPTIONS.find((role) => role.value === this.registerForm.value.requestedRole) ?? ROLE_OPTIONS[0];
+  }
+
+  goToRegisterStep(step: 1 | 2): void {
+    if (step === 2 && this.registerForm.controls['requestedRole'].invalid) return;
+    this.registerStep = step;
+    this.message = '';
+  }
+
+  get passwordStrength(): { score: number; label: string } {
+    const value = String(this.registerForm.value.password ?? '');
+    if (!value) return { score: 0, label: '' };
+    let score = 0;
+    if (value.length >= 8) score++;
+    if (value.length >= 12) score++;
+    if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score++;
+    if (/\d/.test(value)) score++;
+    if (/[^A-Za-z0-9]/.test(value)) score++;
+    score = value.length < 8 ? Math.min(score, 1) : Math.min(score, 4);
+    return { score, label: PASSWORD_LABELS[score] };
+  }
+
+  get otpValue(): string {
+    return String(this.otpForm.value.token ?? '');
+  }
+
+  onOtpInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digits = input.value.replace(/\D/g, '').slice(0, 6);
+    if (digits !== input.value) input.value = digits;
+    this.otpForm.controls['token'].setValue(digits);
+  }
+
+  private applyRoleFromQuery(slug: string | null): boolean {
+    const role = slug ? ROLE_OPTIONS.find((option) => option.slug === slug) : undefined;
+    if (!role) return false;
+    this.registerForm.patchValue({ requestedRole: role.value });
+    return true;
   }
 
   ngOnDestroy(): void {

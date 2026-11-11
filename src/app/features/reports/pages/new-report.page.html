@@ -1,0 +1,160 @@
+<ion-content class="app-content">
+  <app-topbar></app-topbar>
+
+  <main class="page page--narrow">
+    @if (created) {
+      <!-- Resultado: así lo ve el público -->
+      <div class="card result">
+        <span class="result__icon result__icon--ok"><app-icon name="check-circle"></app-icon></span>
+        <h1>¡Reporte enviado!</h1>
+        <p class="muted">Quedó en estado <strong>{{ statusLabels[created.status] }}</strong>. Así lo verán las demás personas:</p>
+
+        <article class="public-preview">
+          <div class="public-preview__author">
+            @if (!(publicView?.is_anonymous ?? created.is_anonymous)) {
+              <span class="avatar avatar--sm">
+                @if (publicView?.author_avatar_url; as avatar) { <img [src]="avatar" alt="" /> } @else { <app-icon name="user"></app-icon> }
+              </span>
+              <span><strong>{{ publicView?.author_name || authorName }}</strong><small>reportó</small></span>
+            } @else {
+              <span class="avatar avatar--sm avatar--anon"><app-icon name="eye-off"></app-icon></span>
+              <span><strong>Vecino anónimo</strong><small>Su identidad no se muestra</small></span>
+            }
+          </div>
+          <span class="badge badge--sun">{{ categoryLabel(created.category) }}</span>
+          <h2>{{ created.title }}</h2>
+          <p>{{ created.description }}</p>
+          @if (created.sector || created.municipality || created.province) {
+            <small class="muted"><app-icon name="map-pin"></app-icon> {{ created.sector ? created.sector + ', ' : '' }}{{ created.municipality ? created.municipality + ', ' : '' }}{{ created.province }}</small>
+          }
+        </article>
+        @if (!publicView) {
+          <p class="muted small">No pudimos leer la vista pública para confirmarlo; la vista previa se basa en tu elección.</p>
+        }
+
+        <div class="actions actions--center">
+          <a class="btn btn--ghost" routerLink="/perfil">Ver mis reportes</a>
+          <button type="button" class="btn btn--primary" (click)="startAnother()"><app-icon name="plus"></app-icon> Crear otro</button>
+        </div>
+      </div>
+    } @else {
+      <a class="back-link" routerLink="/landing"><app-icon name="arrow-left"></app-icon> Inicio</a>
+      <header class="page-head">
+        <p class="page-kicker">Nuevo reporte</p>
+        <h1>¿Qué está pasando en tu comunidad?</h1>
+        <p>Describe el problema y marca dónde está. Mientras más claro, más rápido llega a quien puede resolverlo.</p>
+      </header>
+    }
+
+    <form class="stack" [formGroup]="form" (ngSubmit)="submit()" novalidate [hidden]="!!created">
+      <!-- 1. Qué pasa -->
+      <section class="card">
+        <h2 class="card__title"><span class="step-num">1</span> ¿Qué tipo de problema es?</h2>
+        <div class="category-grid" role="radiogroup" aria-label="Categoría">
+          @for (category of categories; track category.value) {
+            <button type="button" class="category-pick" role="radio" [attr.aria-checked]="form.controls.category.value === category.value" [class.is-selected]="form.controls.category.value === category.value" (click)="selectCategory(category.value)">
+              <app-icon [name]="category.icon"></app-icon><span>{{ category.label }}</span>
+            </button>
+          }
+        </div>
+        @if (form.controls.category.invalid && form.controls.category.touched) {
+          <small class="field__error"><app-icon name="alert-circle"></app-icon>Elige una categoría.</small>
+        }
+
+        <div class="field">
+          <label class="field__label" for="r-title">Título</label>
+          <div class="field__control" [class.is-invalid]="form.controls.title.invalid && form.controls.title.touched">
+            <app-icon class="field__icon" name="file-text"></app-icon>
+            <input id="r-title" formControlName="title" maxlength="120" placeholder="Ej. Hoyo grande en la calle principal" />
+          </div>
+          @if (form.controls.title.invalid && form.controls.title.touched) {
+            <small class="field__error"><app-icon name="alert-circle"></app-icon>Escribe un título de al menos 5 caracteres.</small>
+          }
+        </div>
+
+        <div class="field">
+          <div class="field__label-row">
+            <label class="field__label" for="r-description">Descripción</label>
+            <small class="counter">{{ descriptionLength }}/2000</small>
+          </div>
+          <textarea id="r-description" class="textarea" formControlName="description" rows="4" maxlength="2000" [class.is-invalid]="form.controls.description.invalid && form.controls.description.touched" placeholder="¿Desde cuándo ocurre? ¿A quién afecta? ¿Hay algún riesgo?"></textarea>
+          @if (form.controls.description.invalid && form.controls.description.touched) {
+            <small class="field__error"><app-icon name="alert-circle"></app-icon>Describe el problema con al menos 10 caracteres.</small>
+          }
+        </div>
+      </section>
+
+      <!-- 2. Dónde -->
+      <section class="card">
+        <div class="card__head">
+          <h2 class="card__title"><span class="step-num">2</span> ¿Dónde está?</h2>
+          <button type="button" class="btn btn--ghost btn--sm" (click)="useMyLocation()" [disabled]="locating">
+            @if (locating) { <span class="spinner spinner--sm"></span> Buscando… } @else { <app-icon name="locate"></app-icon> Usar mi ubicación }
+          </button>
+        </div>
+        <p class="muted small">Toca el mapa para marcar el lugar. Puedes arrastrar el marcador para ajustarlo.</p>
+        <div class="picker" [class.is-invalid]="!hasLocation && form.controls.latitude.touched">
+          <div #pickerMap class="picker__map" role="application" aria-label="Mapa para elegir la ubicación del reporte"></div>
+          @if (hasLocation) {
+            <span class="picker__coords"><app-icon name="map-pin"></app-icon> {{ form.controls.latitude.value | number: '1.5-5' }}, {{ form.controls.longitude.value | number: '1.5-5' }}</span>
+          }
+        </div>
+        @if (locationHint) { <p class="hint">{{ locationHint }}</p> }
+
+        <div class="field-grid field-grid--3">
+          <div class="field">
+            <label class="field__label" for="r-province">Provincia</label>
+            <div class="field__control">
+              <app-icon class="field__icon" name="map"></app-icon>
+              <select id="r-province" formControlName="province">
+                <option value="">Selecciona…</option>
+                @for (province of provinces; track province) { <option [value]="province">{{ province }}</option> }
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field__label" for="r-municipality">Municipio</label>
+            <div class="field__control"><app-icon class="field__icon" name="landmark"></app-icon><input id="r-municipality" formControlName="municipality" maxlength="80" /></div>
+          </div>
+          <div class="field">
+            <label class="field__label" for="r-sector">Sector</label>
+            <div class="field__control"><app-icon class="field__icon" name="map-pin"></app-icon><input id="r-sector" formControlName="sector" maxlength="80" /></div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="r-address">Referencia <span class="optional">(opcional)</span></label>
+          <div class="field__control"><app-icon class="field__icon" name="map-pin"></app-icon><input id="r-address" formControlName="address" maxlength="200" placeholder="Ej. Frente al colmado, al lado de la escuela" /></div>
+        </div>
+      </section>
+
+      <!-- 3. Privacidad (RF-07) -->
+      <section class="card">
+        <h2 class="card__title"><span class="step-num">3</span> ¿Cómo quieres publicarlo?</h2>
+        <div class="choice-grid">
+          <button type="button" class="choice" [class.is-selected]="!form.controls.is_anonymous.value" (click)="form.controls.is_anonymous.setValue(false)" [attr.aria-pressed]="!form.controls.is_anonymous.value">
+            <span class="choice__icon"><app-icon name="user"></app-icon></span>
+            <strong>Con mi nombre</strong>
+            <small>Aparece “{{ authorName }}” como autor.</small>
+          </button>
+          <button type="button" class="choice" [class.is-selected]="form.controls.is_anonymous.value" (click)="form.controls.is_anonymous.setValue(true)" [attr.aria-pressed]="form.controls.is_anonymous.value">
+            <span class="choice__icon"><app-icon name="eye-off"></app-icon></span>
+            <strong>De forma anónima</strong>
+            <small>Se muestra “Vecino anónimo”.</small>
+          </button>
+        </div>
+        @if (form.controls.is_anonymous.value) {
+          <p class="note"><app-icon name="shield-check"></app-icon><span>Tu nombre y tu foto <strong>no se muestran a nadie</strong>: la plataforma solo publica el reporte. Internamente se guarda quién lo creó para evitar abusos (Ley 172-13), y solo los administradores pueden verlo.</span></p>
+        }
+      </section>
+
+      @if (message) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ message }}</span></div> }
+
+      <div class="actions">
+        <a class="btn btn--ghost" routerLink="/landing">Cancelar</a>
+        <button class="btn btn--primary btn--lg" type="submit" [disabled]="sending">
+          @if (sending) { <span class="spinner spinner--sm"></span> Enviando… } @else { Enviar reporte <app-icon name="arrow-right"></app-icon> }
+        </button>
+      </div>
+    </form>
+  </main>
+</ion-content>

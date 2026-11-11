@@ -10,6 +10,8 @@ interface SupabaseRuntimeConfig {
 export interface SignUpProfile {
   fullName: string;
   requestedRole: 'citizen' | 'volunteer' | 'organization' | 'institution';
+  /** Fecha ISO en que aceptó términos y privacidad (RF-50). */
+  termsAcceptedAt: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -96,6 +98,11 @@ export class AuthService {
     return client;
   }
 
+  /** Cliente de Supabase compartido (para servicios de datos: perfiles, reportes, etc.). */
+  supabase(): Promise<SupabaseClient> {
+    return this.getClient();
+  }
+
   async initialize(): Promise<void> {
     const client = await this.getClient();
     await client.auth.getSession();
@@ -176,6 +183,7 @@ export class AuthService {
         data: {
           full_name: profile.fullName,
           requested_role: profile.requestedRole,
+          terms_accepted_at: profile.termsAcceptedAt,
         },
       },
     });

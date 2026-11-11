@@ -1,0 +1,143 @@
+<ion-content class="app-content">
+  <app-topbar></app-topbar>
+
+  <main class="page">
+    @if (loading) {
+      <div class="page-state"><span class="spinner"></span><p>Cargando tu perfil…</p></div>
+    } @else if (loadError) {
+      <div class="page-state">
+        <app-icon class="page-state__icon" name="alert-circle"></app-icon>
+        <h1>No pudimos cargar tu perfil</h1>
+        <p>{{ loadError }}</p>
+      </div>
+    } @else if (profile) {
+      <header class="page-head">
+        <p class="page-kicker">Tu cuenta</p>
+        <h1>Mi perfil</h1>
+        <p>Esta información ayuda a tu comunidad a saber quién participa. Tu correo nunca se muestra.</p>
+      </header>
+
+      <div class="layout-2">
+        <!-- Identidad -->
+        <aside class="card identity">
+          <div class="avatar avatar--xl">
+            @if (profile.avatar_url) { <img [src]="profile.avatar_url" alt="Tu foto de perfil" /> } @else { <span>{{ initials }}</span> }
+            <label class="avatar__edit" [class.is-busy]="uploading" title="Cambiar foto">
+              <input type="file" accept="image/jpeg,image/png,image/webp" (change)="onAvatarSelected($event)" [disabled]="uploading" />
+              @if (uploading) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="camera"></app-icon> }
+              <span class="sr-only">Cambiar foto de perfil</span>
+            </label>
+          </div>
+          <h2>{{ profile.full_name || 'Sin nombre' }}</h2>
+          <span class="badge badge--teal"><app-icon name="user"></app-icon> {{ roleLabels[profile.role] }}</span>
+          @if (profile.province || profile.municipality) {
+            <p class="identity__place"><app-icon name="map-pin"></app-icon> {{ profile.sector ? profile.sector + ', ' : '' }}{{ profile.municipality ? profile.municipality + ', ' : '' }}{{ profile.province }}</p>
+          }
+          <small class="identity__hint">JPG, PNG o WebP · máximo 2 MB</small>
+
+          <!-- Verificación (RF-06) -->
+          <div class="identity__section">
+            <h3>Verificación</h3>
+            @if (profile.role === 'organization' || profile.role === 'institution') {
+              <p class="status-line status-line--ok"><app-icon name="shield-check"></app-icon> Cuenta verificada como {{ roleLabels[profile.role].toLowerCase() }}.</p>
+            } @else if (lastRequest && lastRequest.status === 'pending') {
+              <p class="status-line status-line--wait"><app-icon name="clock"></app-icon> Tu solicitud para “{{ lastRequest.organization_name }}” está en revisión.</p>
+            } @else {
+              @if (lastRequest && lastRequest.status === 'rejected') {
+                <p class="status-line status-line--bad"><app-icon name="alert-circle"></app-icon> Tu última solicitud fue rechazada.@if (lastRequest.review_notes) { Motivo: {{ lastRequest.review_notes }} }</p>
+              }
+              @if (canRequestVerification) {
+                <p class="muted">¿Representas una ONG o institución pública? Verifícala para coordinar eventos o gestionar reportes.</p>
+                <a class="btn btn--ghost btn--block" routerLink="/verificacion"><app-icon name="shield-check"></app-icon> Verificar organización</a>
+              }
+            }
+            @if (profile.role === 'administrator') {
+              <a class="btn btn--ghost btn--block" routerLink="/admin/verificaciones"><app-icon name="landmark"></app-icon> Revisar solicitudes</a>
+            }
+          </div>
+        </aside>
+
+        <div class="stack">
+          <!-- Datos (RF-05) -->
+          <form class="card" [formGroup]="form" (ngSubmit)="save()" novalidate>
+            <h2 class="card__title">Datos personales</h2>
+            <div class="field">
+              <label class="field__label" for="p-name">Nombre completo</label>
+              <div class="field__control" [class.is-invalid]="form.controls.full_name.invalid && form.controls.full_name.touched">
+                <app-icon class="field__icon" name="user"></app-icon>
+                <input id="p-name" formControlName="full_name" autocomplete="name" maxlength="80" />
+              </div>
+              @if (form.controls.full_name.invalid && form.controls.full_name.touched) {
+                <small class="field__error"><app-icon name="alert-circle"></app-icon>Escribe tu nombre (mínimo 2 caracteres).</small>
+              }
+            </div>
+
+            <div class="field-grid field-grid--3">
+              <div class="field">
+                <label class="field__label" for="p-province">Provincia</label>
+                <div class="field__control">
+                  <app-icon class="field__icon" name="map"></app-icon>
+                  <select id="p-province" formControlName="province">
+                    <option value="">Selecciona…</option>
+                    @for (province of provinces; track province) { <option [value]="province">{{ province }}</option> }
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field__label" for="p-municipality">Municipio</label>
+                <div class="field__control">
+                  <app-icon class="field__icon" name="landmark"></app-icon>
+                  <input id="p-municipality" formControlName="municipality" maxlength="80" placeholder="Ej. Santo Domingo Este" />
+                </div>
+              </div>
+              <div class="field">
+                <label class="field__label" for="p-sector">Sector</label>
+                <div class="field__control">
+                  <app-icon class="field__icon" name="map-pin"></app-icon>
+                  <input id="p-sector" formControlName="sector" maxlength="80" placeholder="Ej. Los Mina" />
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field__label-row">
+                <label class="field__label" for="p-bio">Sobre ti</label>
+                <small class="counter" [class.is-over]="bioLength > 280">{{ bioLength }}/280</small>
+              </div>
+              <textarea id="p-bio" class="textarea" formControlName="bio" rows="4" maxlength="280" placeholder="Cuéntale a tu comunidad qué te interesa mejorar."></textarea>
+            </div>
+
+            @if (message) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ message }}</span></div> }
+            @if (notice) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ notice }}</span></div> }
+
+            <div class="actions">
+              <button class="btn btn--primary" type="submit" [disabled]="saving || form.pristine">
+                @if (saving) { <span class="spinner spinner--sm"></span> Guardando… } @else { Guardar cambios }
+              </button>
+            </div>
+          </form>
+
+          <!-- Mis reportes (muestra el estado anónimo, RF-07) -->
+          <section class="card">
+            <div class="card__head">
+              <h2 class="card__title">Mis reportes</h2>
+              <a class="btn btn--primary btn--sm" routerLink="/reportes/nuevo"><app-icon name="plus"></app-icon> Nuevo</a>
+            </div>
+            @for (report of myReports; track report.id) {
+              <article class="list-row">
+                <div class="list-row__body">
+                  <strong>{{ report.title }}</strong>
+                  <small>{{ categoryLabel(report.category) }} · {{ report.created_at | date: 'd MMM y' }}</small>
+                </div>
+                @if (report.is_anonymous) { <span class="badge badge--sun"><app-icon name="eye-off"></app-icon> Anónimo</span> }
+                <span class="badge">{{ statusLabels[report.status] }}</span>
+              </article>
+            } @empty {
+              <p class="muted">Aún no has creado reportes.</p>
+            }
+          </section>
+        </div>
+      </div>
+    }
+  </main>
+</ion-content>

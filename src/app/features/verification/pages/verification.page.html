@@ -1,0 +1,151 @@
+<ion-content class="app-content">
+  <app-topbar></app-topbar>
+
+  <main class="page page--narrow">
+    <a class="back-link" routerLink="/perfil"><app-icon name="arrow-left"></app-icon> Mi perfil</a>
+
+    <header class="page-head">
+      <p class="page-kicker">Verificación</p>
+      <h1>Verifica tu organización</h1>
+      <p>Las ONG e instituciones públicas obtienen sus permisos solo después de que un administrador revisa su documentación oficial. Tus documentos son privados: solo los ve el equipo de revisión.</p>
+    </header>
+
+    @if (loading) {
+      <div class="page-state"><span class="spinner"></span><p>Cargando…</p></div>
+    } @else if (loadError) {
+      <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ loadError }}</span></div>
+    } @else if (alreadyVerified) {
+      <div class="card result">
+        <span class="result__icon result__icon--ok"><app-icon name="shield-check"></app-icon></span>
+        <h2>Tu cuenta ya está verificada</h2>
+        <p class="muted">No necesitas enviar otra solicitud.</p>
+      </div>
+    } @else if (pendingRequest) {
+      <div class="card result">
+        <span class="result__icon result__icon--wait"><app-icon name="clock"></app-icon></span>
+        <h2>{{ submitted ? '¡Solicitud enviada!' : 'Tu solicitud está en revisión' }}</h2>
+        <p class="muted">Revisaremos los documentos de <strong>{{ pendingRequest.organization_name }}</strong>. Mientras tanto tu cuenta funciona como ciudadano. Verás el resultado en tu perfil.</p>
+        <dl class="details">
+          <div><dt>Tipo</dt><dd>{{ typeLabel(pendingRequest.organization_type) }}</dd></div>
+          <div><dt>Documentos</dt><dd>{{ pendingRequest.document_paths.length }}</dd></div>
+          <div><dt>Enviada</dt><dd>{{ pendingRequest.created_at | date: 'd MMM y, h:mm a' }}</dd></div>
+        </dl>
+        <a class="btn btn--ghost" routerLink="/perfil">Volver a mi perfil</a>
+      </div>
+    } @else {
+      <form class="card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <h2 class="card__title">¿Qué tipo de cuenta quieres verificar?</h2>
+        <div class="choice-grid">
+          <button type="button" class="choice" [class.is-selected]="form.controls.requested_role.value === 'organization'" (click)="setRole('organization')">
+            <span class="choice__icon"><app-icon name="users"></app-icon></span>
+            <strong>Organización / ONG</strong>
+            <small>Coordina eventos, insumos y donaciones.</small>
+          </button>
+          <button type="button" class="choice" [class.is-selected]="form.controls.requested_role.value === 'institution'" (click)="setRole('institution')">
+            <span class="choice__icon"><app-icon name="landmark"></app-icon></span>
+            <strong>Institución pública</strong>
+            <small>Recibe y gestiona reportes de su jurisdicción.</small>
+          </button>
+        </div>
+
+        <div class="field-grid">
+          <div class="field field--wide">
+            <label class="field__label" for="v-name">Nombre de la {{ form.controls.requested_role.value === 'institution' ? 'institución' : 'organización' }}</label>
+            <div class="field__control" [class.is-invalid]="form.controls.organization_name.invalid && form.controls.organization_name.touched">
+              <app-icon class="field__icon" name="users"></app-icon>
+              <input id="v-name" formControlName="organization_name" maxlength="120" />
+            </div>
+            @if (form.controls.organization_name.invalid && form.controls.organization_name.touched) {
+              <small class="field__error"><app-icon name="alert-circle"></app-icon>Escribe el nombre oficial.</small>
+            }
+          </div>
+          <div class="field">
+            <label class="field__label" for="v-type">Tipo</label>
+            <div class="field__control">
+              <app-icon class="field__icon" name="file-text"></app-icon>
+              <select id="v-type" formControlName="organization_type">
+                @for (type of visibleTypes; track type.value) { <option [value]="type.value">{{ type.label }}</option> }
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field__label" for="v-rnc">RNC <span class="optional">(opcional)</span></label>
+            <div class="field__control" [class.is-invalid]="form.controls.rnc.invalid && form.controls.rnc.touched">
+              <app-icon class="field__icon" name="file-text"></app-icon>
+              <input id="v-rnc" formControlName="rnc" inputmode="numeric" placeholder="9 u 11 dígitos" />
+            </div>
+            @if (form.controls.rnc.invalid && form.controls.rnc.touched) {
+              <small class="field__error"><app-icon name="alert-circle"></app-icon>El RNC tiene 9 dígitos (o 11 si es cédula).</small>
+            }
+          </div>
+          <div class="field">
+            <label class="field__label" for="v-contact">Persona responsable</label>
+            <div class="field__control" [class.is-invalid]="form.controls.contact_name.invalid && form.controls.contact_name.touched">
+              <app-icon class="field__icon" name="user"></app-icon>
+              <input id="v-contact" formControlName="contact_name" autocomplete="name" maxlength="80" />
+            </div>
+          </div>
+          <div class="field">
+            <label class="field__label" for="v-phone">Teléfono de contacto</label>
+            <div class="field__control" [class.is-invalid]="form.controls.contact_phone.invalid && form.controls.contact_phone.touched">
+              <app-icon class="field__icon" name="smartphone"></app-icon>
+              <input id="v-phone" formControlName="contact_phone" type="tel" autocomplete="tel" placeholder="809-000-0000" />
+            </div>
+            @if (form.controls.contact_phone.invalid && form.controls.contact_phone.touched) {
+              <small class="field__error"><app-icon name="alert-circle"></app-icon>Escribe un teléfono válido.</small>
+            }
+          </div>
+          <div class="field field--wide">
+            <label class="field__label" for="v-area">Zona de cobertura</label>
+            <div class="field__control" [class.is-invalid]="form.controls.coverage_area.invalid && form.controls.coverage_area.touched">
+              <app-icon class="field__icon" name="map"></app-icon>
+              <input id="v-area" formControlName="coverage_area" maxlength="160" placeholder="Ej. Santo Domingo Este, sectores Los Mina y Villa Duarte" />
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field__label">Documentos oficiales</span>
+          <p class="muted small">Acta constitutiva, registro de la ONG, certificación del RNC o una carta oficial firmada. PDF, JPG, PNG o WebP · hasta 5 MB cada uno · máximo {{ maxDocuments }}.</p>
+          <label class="dropzone" [class.is-disabled]="files.length >= maxDocuments">
+            <input type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" (change)="onFilesSelected($event)" [disabled]="files.length >= maxDocuments" />
+            <app-icon name="file-text"></app-icon>
+            <span><strong>Elegir archivos</strong> o arrástralos aquí</span>
+          </label>
+          @for (file of files; track file.name + file.size; let i = $index) {
+            <div class="file-row">
+              <app-icon name="file-text"></app-icon>
+              <span class="file-row__name">{{ file.name }}</span>
+              <small>{{ formatSize(file.size) }}</small>
+              <button type="button" class="icon-btn" (click)="removeFile(i)" [attr.aria-label]="'Quitar ' + file.name"><app-icon name="x"></app-icon></button>
+            </div>
+          }
+        </div>
+
+        @if (message) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ message }}</span></div> }
+
+        <div class="actions">
+          <a class="btn btn--ghost" routerLink="/perfil">Cancelar</a>
+          <button class="btn btn--primary" type="submit" [disabled]="sending">
+            @if (sending) { <span class="spinner spinner--sm"></span> Enviando… } @else { Enviar solicitud <app-icon name="arrow-right"></app-icon> }
+          </button>
+        </div>
+      </form>
+
+      @if (requests.length) {
+        <section class="card">
+          <h2 class="card__title">Solicitudes anteriores</h2>
+          @for (request of requests; track request.id) {
+            <article class="list-row">
+              <div class="list-row__body">
+                <strong>{{ request.organization_name }}</strong>
+                <small>{{ request.created_at | date: 'd MMM y' }}@if (request.review_notes) { · {{ request.review_notes }} }</small>
+              </div>
+              <span class="badge" [class.badge--teal]="request.status === 'approved'" [class.badge--danger]="request.status === 'rejected'">{{ request.status === 'approved' ? 'Aprobada' : request.status === 'rejected' ? 'Rechazada' : 'Pendiente' }}</span>
+            </article>
+          }
+        </section>
+      }
+    }
+  </main>
+</ion-content>
