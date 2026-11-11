@@ -1,0 +1,22 @@
+<svg viewBox="0 0 1440 170" preserveAspectRatio="xMidYMax slice" focusable="false">
+  <g class="skyline__city">
+    @for (b of buildings; track b.x) {
+      <rect [attr.x]="b.x" [attr.y]="170 - b.h" [attr.width]="b.w" [attr.height]="b.h" rx="3" />
+    }
+  </g>
+  <g class="skyline__palms" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    @for (x of palms; track x) {
+      <g [attr.transform]="'translate(' + x + ' 0)'">
+        <path d="M0 170 C4 140 6 112 -2 84" stroke-width="5" />
+        <g class="skyline__fronds">
+          <path d="M-2 84 C-14 72 -32 70 -46 80 C-34 74 -18 76 -2 86 Z" />
+          <path d="M-2 84 C-12 66 -26 58 -40 58 C-28 64 -16 72 -2 86 Z" />
+          <path d="M-2 84 C-4 68 -12 56 -22 50 C-14 60 -8 70 -2 86 Z" />
+          <path d="M-2 84 C4 66 14 58 26 54 C16 62 8 72 -2 86 Z" />
+          <path d="M-2 84 C12 70 30 66 44 72 C30 72 14 76 -2 86 Z" />
+          <path d="M-2 84 C14 78 30 82 40 94 C28 86 12 84 -2 86 Z" />
+        </g>
+      </g>
+    }
+  </g>
+</svg>

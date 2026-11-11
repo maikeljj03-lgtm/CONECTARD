@@ -1,0 +1,63 @@
+// Barra superior de las páginas internas.
+:host {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: block;
+  border-bottom: 1px solid var(--crd-border);
+  background: rgb(251 250 247 / 92%);
+  backdrop-filter: blur(14px) saturate(160%);
+}
+
+.app-topbar__inner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: min(1120px, 100% - 40px);
+  height: 68px;
+  margin-inline: auto;
+}
+
+.app-topbar__brand { display: inline-flex; flex: none; margin-right: auto; text-decoration: none; }
+
+.app-topbar__nav {
+  display: flex;
+  gap: 4px;
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 15px;
+    border-radius: 999px;
+    color: var(--crd-text-2);
+    font-size: 14.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .2s, color .2s;
+
+    app-icon { font-size: 17px; }
+    &:hover { color: var(--crd-ink); background: var(--crd-surface-2); }
+    &.is-active { background: var(--crd-teal-soft); color: var(--crd-teal-text); }
+  }
+}
+
+.app-topbar__out {
+  display: grid;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1.5px solid var(--crd-border);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--crd-text-2);
+  font-size: 17px;
+  cursor: pointer;
+  &:hover { border-color: var(--crd-ink); color: var(--crd-ink); }
+}
+
+@media (max-width: 640px) {
+  .app-topbar__inner { gap: 6px; width: calc(100% - 24px); }
+  .app-topbar__nav a { padding: 9px 11px; span { display: none; } }
+}

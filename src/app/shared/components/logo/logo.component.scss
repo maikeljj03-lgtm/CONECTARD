@@ -1,0 +1,30 @@
+.app-logo {
+  // En fondos claros la mitad "blanca" del globo se dibuja en tinta.
+  // En fondos oscuros: --logo-white: #fff y --logo-gap con el color del fondo.
+  --logo-gap: var(--crd-bg);
+  --logo-white: var(--crd-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--crd-ink);
+  text-decoration: none;
+}
+
+.app-logo .logo-mark { flex: none; }
+.app-logo .logo-word { display: grid; gap: 3px; }
+
+.app-logo .logo-name {
+  font-family: var(--crd-font-display);
+  font-size: 21px;
+  font-weight: 750;
+  letter-spacing: -.5px;
+  line-height: 1;
+}
+
+.app-logo .logo-name > span { color: var(--crd-teal); }
+
+.app-logo .logo-tagline {
+  color: var(--crd-text-3);
+  font-size: 10.5px;
+  letter-spacing: .3px;
+}

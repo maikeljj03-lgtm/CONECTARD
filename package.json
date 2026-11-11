@@ -1,8 +1,7 @@
 {
   "name": "comunica-rd",
   "version": "0.0.1",
-  "author": "Ionic Framework",
-  "homepage": "https://ionicframework.com/",
+  "author": "Equipo ConectaRD",
   "scripts": {
     "ng": "ng",
     "prestart": "node scripts/sync-supabase-env.mjs",
@@ -12,7 +11,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
-    "supabase:confirmation-template": "node scripts/update-supabase-confirmation-template.mjs"
+    "supabase:confirmation-template": "node scripts/update-supabase-confirmation-template.mjs",
+    "supabase:setup": "node scripts/build-supabase-setup.mjs"
   },
   "private": true,
   "dependencies": {

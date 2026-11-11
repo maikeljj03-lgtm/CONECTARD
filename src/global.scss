@@ -1,37 +1,33 @@
 /*
- * App Global CSS
+ * Estilos globales de ConectaRD
  * ----------------------------------------------------------------------------
- * Put style rules here that you want to apply globally. These styles are for
- * the entire app and not just one component. Additionally, this file can be
- * used as an entry point to import other CSS/Sass files to be included in the
- * output CSS.
- * For more information on global stylesheets, visit the documentation:
- * https://ionicframework.com/docs/layout/global-stylesheets
+ * Aquí solo va lo que comparte toda la app. Los estilos de cada página viven
+ * junto a su componente (features/<sección>/pages/<página>/<página>.page.scss).
+ *
+ *   theme/_tokens.scss          → colores, tipografías, radios y sombras (variables CSS)
+ *   styles/_internal-pages.scss → piezas comunes de perfil, reportes, verificación y admin
  */
 
-/* Core CSS required for Ionic components to work properly */
-@import "@ionic/angular/css/core.css";
+// Las reglas @use deben ir antes que cualquier otra regla.
+@use 'theme/tokens';
+@use 'styles/internal-pages';
 
-/* Basic CSS for apps built with Ionic */
+/* Base de Ionic (necesaria para sus componentes) */
+@import "@ionic/angular/css/core.css";
 @import "@ionic/angular/css/normalize.css";
 @import "@ionic/angular/css/structure.css";
 @import "@ionic/angular/css/typography.css";
 @import "@ionic/angular/css/display.css";
 
-/* Optional CSS utils that can be commented out */
+/* Utilidades opcionales de Ionic */
 @import "@ionic/angular/css/padding.css";
 @import "@ionic/angular/css/float-elements.css";
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
+/*
+ * Modo oscuro: desactivado por ahora. La app usa un tema claro propio (theme/_tokens.scss);
+ * la paleta oscura automática de Ionic mezclaba fondos oscuros con el diseño claro.
+ * Cuando se haga el conmutador claro/oscuro (RF-49), se definirá aquí.
  */
-
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import "@ionic/angular/css/palettes/dark.system.css";

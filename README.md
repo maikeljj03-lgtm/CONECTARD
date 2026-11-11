@@ -44,6 +44,12 @@ npm.cmd run build
 3. Para Google, habilita el proveedor Google en esa misma sección y configura sus credenciales OAuth.
 4. En **Authentication → URL Configuration**, permite `http://localhost:8100/auth/login` y `http://localhost:8100/landing` como URL de retorno. Al publicar la app, añade las URL equivalentes de producción.
 5. En Google Cloud, configura como URI de retorno autorizada la URL de callback que muestra Supabase para el proveedor Google.
+5b. Para Facebook (RF-01):
+   - En [developers.facebook.com](https://developers.facebook.com) crea una app de tipo **Consumidor** (o "Autenticar y solicitar datos a los usuarios con el inicio de sesión con Facebook").
+   - En **Inicio de sesión con Facebook → Configuración**, pega en **URI de redireccionamiento de OAuth válidos** la URL de callback que muestra Supabase en el proveedor Facebook (termina en `/auth/v1/callback`).
+   - En **Configuración de la app → Básica** copia el **Identificador de la app** y la **Clave secreta**.
+   - En Supabase, **Authentication → Sign In / Providers → Facebook**: actívalo y pega esos dos valores.
+   - Mientras la app de Facebook esté en modo **Desarrollo**, solo pueden entrar las cuentas agregadas como administradores, desarrolladores o evaluadores. Para abrirla a todo el público hay que pasarla a modo **Activo** (Facebook pide una URL de política de privacidad).
 6. Ejecuta también, si todavía no se aplicó, [supabase/migrations/20261102010000_prevent_self_assigned_roles.sql](supabase/migrations/20261102010000_prevent_self_assigned_roles.sql) para proteger los roles solicitados durante el registro.
 
 7. Ejecuta, en este orden, las migraciones de perfil, verificación y reportes:
@@ -61,17 +67,47 @@ npm.cmd run build
 
 La confirmación del correo se activa en el panel de Supabase, no con SQL. El SQL de perfiles enlaza cada perfil con una cuenta de `auth.users`; no crea una forma alternativa de iniciar sesión. El correo integrado de Supabase usa el enlace predeterminado mientras el panel no permita editar la plantilla.
 
-## Estructura principal
+## Estructura del proyecto
 
-- `src/app/core/`: servicios y guardas compartidos, incluida la integración de autenticación con Supabase.
-- `src/app/features/auth/pages/`: inicio de sesión, registro, verificación y recuperación de contraseña.
-- `src/app/features/landing/pages/`: página principal, mapa y secciones comunitarias.
-- `src/app/features/profile/`, `verification/`, `reports/`, `admin/`: Mi perfil, verificación de organizaciones, nuevo reporte y revisión de solicitudes.
-- `src/app/core/data/`: servicios de datos (perfiles, verificación, reportes) y catálogos (provincias, categorías).
-- `src/styles/`: estilos globales de páginas y librerías visuales.
-- `src/app/app-routing.module.ts`: rutas de la aplicación.
-- `supabase/migrations/`: esquema y políticas de seguridad de la base de datos.
-- `scripts/`: preparación de la configuración local y ejecución de Ionic.
+```
+src/
+├── app/
+│   ├── app.module.ts, app-routing.module.ts   Arranque y rutas principales (cada sección se carga al visitarla)
+│   ├── core/                                  Lo que existe una sola vez en toda la app
+│   │   ├── services/     auth, perfiles, reportes y verificación (conexión con Supabase)
+│   │   ├── guards/       authGuard (páginas privadas) y sessionGuard (páginas públicas)
+│   │   ├── models/       tipos de datos: Profile, Report, VerificationRequest
+│   │   ├── constants/    catálogos (categorías, estados, roles) y geografía (provincias, límites de RD)
+│   │   └── utils/        mensajes de error en español
+│   ├── shared/                                Piezas reutilizables por cualquier sección
+│   │   ├── components/   icon, logo, skyline (silueta) y topbar (barra superior)
+│   │   ├── validators/   validadores de formularios
+│   │   └── shared.module.ts
+│   └── features/                              Una carpeta por sección, con su módulo y sus rutas
+│       ├── landing/      página principal pública (+ landing.content.ts: textos y datos de ejemplo)
+│       ├── auth/         login, registro, códigos y recuperación (+ auth.constants.ts)
+│       ├── profile/      Mi perfil (RF-05)
+│       ├── verification/ verificación de organizaciones (RF-06)
+│       ├── reports/      nuevo reporte (RF-07)
+│       └── admin/        revisión de verificaciones
+├── theme/_tokens.scss    Colores, tipografías, radios y sombras (variables CSS)
+├── styles/               Estilos compartidos por las páginas internas
+├── global.scss           Punto de entrada de los estilos globales
+└── assets/               Imágenes (licencias en images/README.md) e iconos
+supabase/
+├── migrations/           Cambios de la base de datos, en orden
+├── setup-completo.sql    Todas las migraciones juntas (generado con npm.cmd run supabase:setup)
+└── templates/            Plantillas de correo
+scripts/                  Utilidades: arrancar el servidor, sincronizar .env y generar el SQL
+docs/design/              Bocetos y material de diseño
+```
+
+**Convenciones**
+- Cada componente tiene sus archivos `.ts`, `.html` y `.scss` en su propia carpeta.
+- Una página nueva va en `features/<sección>/pages/<página>/` y se declara en el módulo de su sección.
+- Un servicio que usan varias secciones va en `core/services/`; sus tipos, en `core/models/`.
+- Los textos fijos y los datos de ejemplo van en archivos aparte (`*.content.ts`, `*.constants.ts`), no dentro del componente.
+- Para cambiar la base de datos, crea una migración nueva en `supabase/migrations/` (no edites las ya aplicadas) y ejecuta `npm.cmd run supabase:setup`.
 
 ## Colaborar
 

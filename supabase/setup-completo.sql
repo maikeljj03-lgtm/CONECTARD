@@ -2,8 +2,8 @@
 -- ConectaRD · Configuración completa de la base de datos (Supabase)
 -- Pega TODO este archivo en Supabase → SQL Editor → New query → Run.
 -- Es seguro ejecutarlo varias veces: cada parte usa IF NOT EXISTS / DROP IF EXISTS.
--- Generado a partir de supabase/migrations (en orden). Si cambias una migración,
--- vuelve a generar este archivo.
+-- ARCHIVO GENERADO por scripts/build-supabase-setup.mjs a partir de supabase/migrations.
+-- No lo edites a mano: cambia la migración y ejecuta "npm.cmd run supabase:setup".
 -- ============================================================================
 
 

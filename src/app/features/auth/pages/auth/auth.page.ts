@@ -1,0 +1,507 @@
+import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { AuthService, SOCIAL_PROVIDER_LABELS, type SocialProvider } from '../../../../core/services/auth.service';
+import { matchingPasswords, nonBlank } from '../../../../shared/validators/form.validators';
+import { AUTH_MODES, AuthMode, PASSWORD_LABELS, PENDING_LOGIN_EMAIL, PENDING_SIGNUP_EMAIL, ROLE_OPTIONS, RoleOption } from '../../auth.constants';
+
+@Component({
+  selector: 'app-auth',
+  templateUrl: './auth.page.html',
+  styleUrls: ['./auth.page.scss'],
+  // Los estilos ya están limitados por la clase raíz .auth-content y necesitan
+  // alcanzar el contenido de ion-content y de los componentes hijos.
+  encapsulation: ViewEncapsulation.None,
+  standalone: false,
+})
+export class AuthPage implements OnInit, OnDestroy {
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  mode: AuthMode = 'login';
+  loginForm: FormGroup;
+  registerForm: FormGroup;
+  otpForm: FormGroup;
+  emailForm: FormGroup;
+  resetForm: FormGroup;
+  busy = false;
+  /** Red social en proceso de conexión (null si ninguna). */
+  oauthBusy: SocialProvider | null = null;
+  signupOtpEnabled = false;
+  loginNeedsSignup = false;
+  showPassword = false;
+  registeredEmail = '';
+  resendCooldownSeconds = 0;
+  message = '';
+  notice = '';
+  registerStep: 1 | 2 = 1;
+  readonly roleOptions = ROLE_OPTIONS;
+  readonly otpSlots = [0, 1, 2, 3, 4, 5];
+  private resendCooldownTimer?: ReturnType<typeof setInterval>;
+  private oauthRequestTimer?: ReturnType<typeof setTimeout>;
+
+  constructor() {
+    this.loginForm = this.formBuilder.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required]],
+    });
+    this.registerForm = this.formBuilder.group({
+      fullName: ['', [Validators.required, nonBlank, Validators.minLength(2), Validators.maxLength(80)]],
+      requestedRole: ['citizen', [Validators.required]],
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(8)]],
+      confirmPassword: ['', [Validators.required]],
+      acceptTerms: [false, [Validators.requiredTrue]],
+    }, { validators: matchingPasswords });
+    this.otpForm = this.formBuilder.group({
+      token: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
+    });
+    this.emailForm = this.formBuilder.group({
+      email: ['', [Validators.required, Validators.email]],
+    });
+    this.resetForm = this.formBuilder.group({
+      password: ['', [Validators.required, Validators.minLength(8)]],
+      confirmPassword: ['', [Validators.required]],
+    }, { validators: matchingPasswords });
+  }
+
+  ngOnInit(): void {
+    this.route.paramMap.subscribe((params) => {
+      const requestedMode = params.get('mode') as AuthMode | null;
+      const nextMode = requestedMode && (AUTH_MODES as readonly string[]).includes(requestedMode)
+        ? requestedMode
+        : 'login';
+      this.mode = nextMode;
+      this.showPassword = false;
+      this.registerStep = this.applyRoleFromQuery(this.route.snapshot.queryParamMap.get('rol')) ? 2 : 1;
+      if (nextMode === 'verify-email') {
+        const navigationEmail = window.history.state?.['email'];
+        this.registeredEmail = typeof navigationEmail === 'string' && navigationEmail
+          ? navigationEmail
+          : sessionStorage.getItem(PENDING_SIGNUP_EMAIL) ?? this.registeredEmail;
+        if (this.registeredEmail) this.startResendCooldown();
+        void this.auth.isSignupOtpEnabled()
+          .then((enabled) => {
+            this.signupOtpEnabled = enabled;
+            this.refreshView();
+          })
+          .catch(() => {
+            this.signupOtpEnabled = false;
+            this.refreshView();
+          });
+      }
+      if (nextMode === 'verify-login') {
+        const navigationEmail = window.history.state?.['email'];
+        this.registeredEmail = typeof navigationEmail === 'string' && navigationEmail
+          ? navigationEmail
+          : sessionStorage.getItem(PENDING_LOGIN_EMAIL) ?? '';
+        if (!this.registeredEmail) {
+          void this.router.navigateByUrl('/auth/login', { replaceUrl: true });
+        }
+        this.startResendCooldown();
+      }
+      this.message = '';
+      this.notice = '';
+    });
+
+    this.route.queryParamMap.subscribe((params) => {
+      if (this.mode === 'register' && this.applyRoleFromQuery(params.get('rol'))) {
+        this.registerStep = 2;
+      }
+      if (params.has('auth_callback')) {
+        this.mode = 'login';
+        const reason = (params.get('reason') ?? '').toLowerCase();
+        if (reason.includes('email')) {
+          // Facebook no entrega correo si la cuenta se creó con un número de teléfono.
+          this.message = 'Tu cuenta de la red social no compartió un correo electrónico. Agrega un correo a esa cuenta, o regístrate con tu correo o con Google.';
+        } else if (reason.includes('denied') || reason.includes('cancel')) {
+          this.notice = 'Cancelaste el acceso con la red social. Puedes intentarlo de nuevo o entrar con tu correo.';
+        } else {
+          this.notice = 'No se pudo completar el acceso. Inicia sesión de nuevo; si el enlace venció, solicita uno nuevo.';
+        }
+        this.refreshView();
+        return;
+      }
+      if (params.has('unverified')) {
+        this.mode = 'login';
+        this.notice = 'Confirma el correo desde el enlace que te enviamos antes de entrar.';
+        return;
+      }
+      if (!params.has('code')) return;
+      this.mode = 'login';
+      this.notice = 'Confirmando tu correo…';
+      void this.auth.initialize()
+        .then(async () => {
+          const pendingLoginEmail = sessionStorage.getItem(PENDING_LOGIN_EMAIL);
+          if (pendingLoginEmail) {
+            sessionStorage.removeItem(PENDING_LOGIN_EMAIL);
+            await this.router.navigateByUrl('/landing', { replaceUrl: true });
+          } else {
+            this.notice = 'Correo confirmado. Ya puedes iniciar sesión.';
+          }
+          this.refreshView();
+        })
+        .catch((error: unknown) => {
+          this.message = this.friendlyError(error);
+          this.notice = '';
+          this.refreshView();
+        });
+    });
+  }
+
+  async submitLogin(): Promise<void> {
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
+    this.startRequest();
+    try {
+      const email = String(this.loginForm.value.email).trim().toLowerCase();
+      const { error } = await this.auth.validatePasswordAndSendLoginOtp(email, this.loginForm.value.password);
+      if (error) throw error;
+      this.registeredEmail = email;
+      sessionStorage.setItem(PENDING_LOGIN_EMAIL, email);
+      this.otpForm.reset({ token: '' });
+      this.startResendCooldown();
+      await this.router.navigateByUrl('/auth/verify-login', { state: { email }, replaceUrl: true });
+    } catch (error) {
+      if ((error as { code?: string })?.code === 'email_not_confirmed') {
+        try {
+          await this.resumeSignupVerification(String(this.loginForm.value.email).trim().toLowerCase());
+        } catch (resendError) {
+          this.message = this.friendlyError(resendError);
+        }
+      } else if ((error as { code?: string })?.code === 'invalid_credentials') {
+        this.loginNeedsSignup = false;
+        this.message = 'Correo o contraseña incorrectos. Si tu cuenta es de Google o Facebook, usa ese botón; si te registraste por correo, revisa la contraseña o pulsa “¿La olvidaste?”.';
+      } else {
+        this.message = this.friendlyError(error);
+      }
+    } finally {
+      this.busy = false;
+      this.refreshView();
+    }
+  }
+
+  async verifyLoginOtp(): Promise<void> {
+    if (this.otpForm.invalid || !this.registeredEmail) {
+      this.otpForm.markAllAsTouched();
+      return;
+    }
+    this.startRequest();
+    try {
+      const { token } = this.otpForm.getRawValue();
+      const { error } = await this.auth.verifyLoginOtp(this.registeredEmail, token);
+      if (error) throw error;
+      sessionStorage.removeItem(PENDING_LOGIN_EMAIL);
+      await this.router.navigateByUrl('/landing', { replaceUrl: true });
+    } catch (error) {
+      this.message = this.friendlyError(error);
+    } finally {
+      this.busy = false;
+      this.refreshView();
+    }
+  }
+
+  async resendLoginOtp(): Promise<void> {
+    if (!this.registeredEmail || this.resendCooldownSeconds > 0) return;
+    this.startRequest();
+    try {
+      const { error } = await this.auth.resendLoginOtp(this.registeredEmail);
+      if (error) throw error;
+      this.notice = 'Si existe una cuenta con ese correo, recibirás un nuevo código.';
+      this.startResendCooldown();
+    } catch (error) {
+      this.message = this.friendlyError(error);
+    } finally {
+      this.busy = false;
+      this.refreshView();
+    }
+  }
+
+  async submitRegister(): Promise<void> {
+    if (this.registerForm.invalid) {
+      this.registerForm.markAllAsTouched();
+      return;
+    }
+    this.startRequest();
+    try {
+      const value = this.registerForm.value;
+      const email = value.email.trim().toLowerCase();
+      const { data, error } = await this.auth.signUp(email, value.password, {
+        fullName: value.fullName.trim(),
+        requestedRole: value.requestedRole,
+        termsAcceptedAt: new Date().toISOString(),
+      });
+      if (error) throw error;
+      if (data.user?.identities?.length === 0) {
+        await this.router.navigateByUrl('/auth/login', { replaceUrl: true });
+        this.loginForm.patchValue({ email });
+        this.notice = 'Ese correo ya tiene una cuenta. Inicia sesión con el método que usaste al crearla; si fue Google o Facebook, usa ese botón.';
+        return;
+      }
+      this.registeredEmail = email;
+      if (data.session) {
+        await this.auth.signOut('local');
+        await this.router.navigateByUrl('/auth/login', { replaceUrl: true });
+        this.loginForm.patchValue({ email });
+        this.notice = 'Supabase no pidió confirmar el correo, así que no se envió un código. Activa Confirm email para usar OTP.';
+      } else {
+        this.signupOtpEnabled = await this.auth.isSignupOtpEnabled();
+        if (this.signupOtpEnabled) {
+          sessionStorage.setItem(PENDING_SIGNUP_EMAIL, email);
+          this.otpForm.reset({ token: '' });
+          this.startResendCooldown();
+          await this.router.navigateByUrl('/auth/verify-email', {
+            state: { email },
+            replaceUrl: true,
+          });
+        } else {
+          await this.router.navigateByUrl('/auth/login', { replaceUrl: true });
+          this.loginForm.patchValue({ email });
+          this.notice = `Cuenta creada. Confirma el enlace que Supabase envió a ${email} y luego inicia sesión.`;
+        }
+      }
+      this.refreshView();
+    } catch (error) {
+      this.message = this.friendlyError(error);
+    } finally {
+      this.busy = false;
+      this.refreshView();
+    }
+  }
+
+  async verifySignupOtp(): Promise<void> {
+    if (this.otpForm.invalid || !this.registeredEmail) {
+      this.otpForm.markAllAsTouched();
+      return;
+    }
+    this.startRequest();
+    try {
+      const { token } = this.otpForm.getRawValue();
+      const { error } = await this.auth.verifySignupOtp(this.registeredEmail, token);
+      if (error) throw error;
+      await this.auth.signOut('local');
+      sessionStorage.removeItem(PENDING_SIGNUP_EMAIL);
+      await this.router.navigateByUrl('/auth/login', { replaceUrl: true });
+      this.loginForm.patchValue({ email: this.registeredEmail });
+      this.notice = 'Correo verificado. Ahora inicia sesión con tu correo y contraseña.';
+    } catch (error) {
+      this.message = this.friendlyError(error);
+    } finally {
+      this.busy = false;
+      this.refreshView();
+    }
+  }
+
+  async resendSignupVerification(): Promise<void> {
+    if (!this.registeredEmail || this.resendCooldownSeconds > 0) return;
+    this.startRequest();
+    try {
+      const { error } = this.signupOtpEnabled
+        ? await this.auth.resendSignupOtp(this.registeredEmail)
+        : await this.auth.resendSignupConfirmation(this.registeredEmail);
+      if (error) throw error;
+      this.notice = this.signupOtpEnabled
+        ? 'Si la cuenta necesita confirmación, enviaremos un nuevo código.'
+        : 'Si la cuenta necesita confirmación, enviaremos un nuevo enlace.';
+      this.startResendCooldown();
+    } catch (error) {
+      this.message = this.friendlyError(error);
+    } finally {
+      this.busy = false;
+      this.refreshView();
+    }
+  }
+
+  private async resumeSignupVerification(email: string): Promise<void> {
+    this.registeredEmail = email;
+    this.signupOtpEnabled = await this.auth.isSignupOtpEnabled();
+    sessionStorage.setItem(PENDING_SIGNUP_EMAIL, email);
+    this.otpForm.reset({ token: '' });
+    this.startResendCooldown();
+    await this.router.navigateByUrl('/auth/verify-email', {
+      state: { email },
+      replaceUrl: true,
+    });
+    this.notice = this.signupOtpEnabled
+      ? `La cuenta existe, pero falta confirmar el correo. Usa el código que ya recibiste en ${email}. Si no lo tienes, podrás pedir otro cuando termine la espera.`
+      : `La cuenta existe, pero falta confirmar el correo. Usa el enlace que ya recibiste en ${email}. Si no lo tienes, podrás pedir otro cuando termine la espera.`;
+  }
+
+  /** Entrar o registrarse con Google o Facebook (RF-01). Si todo va bien, el navegador sale hacia la red social. */
+  async continueWithProvider(provider: SocialProvider): Promise<void> {
+    const label = SOCIAL_PROVIDER_LABELS[provider];
+    this.oauthBusy = provider;
+    this.message = '';
+    this.notice = '';
+    if (this.oauthRequestTimer) clearTimeout(this.oauthRequestTimer);
+    this.oauthRequestTimer = setTimeout(() => {
+      if (this.oauthBusy !== provider) return;
+      this.oauthBusy = null;
+      this.message = `${label} no respondió. Revisa tu conexión e inténtalo otra vez.`;
+      this.oauthRequestTimer = undefined;
+      this.refreshView();
+    }, 15_000);
+    try {
+      const { error } = await this.auth.signInWithProvider(provider);
+      if (error) throw error;
+    } catch (error) {
+      this.message = this.friendlyError(error, label);
+      this.oauthBusy = null;
+      if (this.oauthRequestTimer) clearTimeout(this.oauthRequestTimer);
+      this.oauthRequestTimer = undefined;
+      this.refreshView();
+    }
+  }
+
+  async sendPasswordReset(): Promise<void> {
+    if (this.emailForm.invalid) {
+      this.emailForm.markAllAsTouched();
+      return;
+    }
+    this.startRequest();
+    try {
+      const { error } = await this.auth.sendPasswordReset(this.emailForm.value.email);
+      if (error) throw error;
+      this.notice = 'Si el correo corresponde a una cuenta, recibirás un enlace para cambiar la contraseña.';
+    } catch (error) {
+      this.message = this.friendlyError(error);
+    } finally {
+      this.busy = false;
+      this.refreshView();
+    }
+  }
+
+  async updatePassword(): Promise<void> {
+    if (this.resetForm.invalid) {
+      this.resetForm.markAllAsTouched();
+      return;
+    }
+    this.startRequest();
+    try {
+      const { error } = await this.auth.updatePassword(this.resetForm.value.password);
+      if (error) throw error;
+      this.notice = 'Tu contraseña se actualizó. Ya puedes iniciar sesión.';
+      this.resetForm.reset();
+    } catch (error) {
+      this.message = this.friendlyError(error);
+    } finally {
+      this.busy = false;
+      this.refreshView();
+    }
+  }
+
+  togglePassword(): void {
+    this.showPassword = !this.showPassword;
+  }
+
+  get selectedRole(): RoleOption {
+    return ROLE_OPTIONS.find((role) => role.value === this.registerForm.value.requestedRole) ?? ROLE_OPTIONS[0];
+  }
+
+  goToRegisterStep(step: 1 | 2): void {
+    if (step === 2 && this.registerForm.controls['requestedRole'].invalid) return;
+    this.registerStep = step;
+    this.message = '';
+  }
+
+  get passwordStrength(): { score: number; label: string } {
+    const value = String(this.registerForm.value.password ?? '');
+    if (!value) return { score: 0, label: '' };
+    let score = 0;
+    if (value.length >= 8) score++;
+    if (value.length >= 12) score++;
+    if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score++;
+    if (/\d/.test(value)) score++;
+    if (/[^A-Za-z0-9]/.test(value)) score++;
+    score = value.length < 8 ? Math.min(score, 1) : Math.min(score, 4);
+    return { score, label: PASSWORD_LABELS[score] };
+  }
+
+  get otpValue(): string {
+    return String(this.otpForm.value.token ?? '');
+  }
+
+  onOtpInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digits = input.value.replace(/\D/g, '').slice(0, 6);
+    if (digits !== input.value) input.value = digits;
+    this.otpForm.controls['token'].setValue(digits);
+  }
+
+  private applyRoleFromQuery(slug: string | null): boolean {
+    const role = slug ? ROLE_OPTIONS.find((option) => option.slug === slug) : undefined;
+    if (!role) return false;
+    this.registerForm.patchValue({ requestedRole: role.value });
+    return true;
+  }
+
+  ngOnDestroy(): void {
+    if (this.resendCooldownTimer) clearInterval(this.resendCooldownTimer);
+    if (this.oauthRequestTimer) clearTimeout(this.oauthRequestTimer);
+  }
+
+  private startRequest(): void {
+    this.busy = true;
+    this.message = '';
+    this.notice = '';
+    this.loginNeedsSignup = false;
+  }
+
+  private refreshView(): void {
+    this.changeDetector.markForCheck();
+  }
+
+  private startResendCooldown(): void {
+    if (this.resendCooldownTimer) clearInterval(this.resendCooldownTimer);
+    this.resendCooldownSeconds = 60;
+    this.resendCooldownTimer = setInterval(() => {
+      this.resendCooldownSeconds = Math.max(0, this.resendCooldownSeconds - 1);
+      this.refreshView();
+      if (this.resendCooldownSeconds === 0 && this.resendCooldownTimer) {
+        clearInterval(this.resendCooldownTimer);
+        this.resendCooldownTimer = undefined;
+      }
+    }, 1000);
+  }
+
+  private friendlyError(error: unknown, providerLabel = 'La red social'): string {
+    const candidate = error as { code?: string; message?: string };
+    const code = candidate?.code ?? '';
+    const detail = candidate?.message ?? '';
+    if ((error as { name?: string })?.name === 'AbortError') {
+      return 'No pudimos verificar tu cuenta. Supabase no respondió; revisa la conexión y la configuración e inténtalo otra vez.';
+    }
+    if (code === 'invalid_credentials') return 'Correo o contraseña incorrectos. Si te registraste con Google o Facebook, usa ese botón. Si acabas de registrarte por correo, confirma primero tu cuenta.';
+    if (code === 'auth_timeout') return 'No pudimos verificar tu cuenta. Supabase no respondió; revisa la conexión y la configuración e inténtalo otra vez.';
+    if (code === 'email_not_confirmed') return 'Confirma tu correo antes de iniciar sesión.';
+    if (code === 'otp_expired' || detail.toLowerCase().includes('token has expired')) return 'El código venció. Solicita uno nuevo.';
+    if (detail.toLowerCase().includes('token')) return 'El código no es válido. Revísalo e inténtalo otra vez.';
+    if (['over_email_send_rate_limit', 'email_rate_limit_exceeded'].includes(code)) return 'Supabase limitó temporalmente el envío del correo. Espera un momento antes de solicitar otro.';
+    if (code === 'email_address_not_authorized' || detail.toLowerCase().includes('email address not authorized')) {
+      return 'El correo integrado de Supabase solo envía a direcciones autorizadas del equipo del proyecto.';
+    }
+    if (code === 'user_already_exists') return 'Ese correo ya tiene una cuenta. Inicia sesión con el método que usaste al registrarte.';
+    if (code === 'weak_password') return 'Usa una contraseña más segura, de al menos 8 caracteres.';
+    if (code === 'provider_disabled' || detail.toLowerCase().includes('provider is not enabled')) {
+      return `${providerLabel} aún no está habilitado en Supabase. Actívalo en Authentication → Sign In / Providers y configura sus credenciales.`;
+    }
+    if (detail.toLowerCase().includes('redirect') && detail.toLowerCase().includes('allow')) {
+      return 'Supabase rechazó la URL de retorno. Añade la dirección de esta app en Authentication → URL Configuration → Redirect URLs.';
+    }
+    if (detail.toLowerCase().includes('fetch')) return 'No pudimos conectar con el servicio. Revisa tu conexión e inténtalo de nuevo.';
+    if (detail.toLowerCase().includes('no se pudo cargar la configuración')
+      || detail.toLowerCase().includes('configuración de supabase está incompleta')
+      || detail.toLowerCase().includes('todavía tiene valores de ejemplo')) {
+      return 'Supabase todavía no está configurado. Revisa la URL y la clave pública del proyecto e inicia de nuevo la app.';
+    }
+    if (detail.toLowerCase().includes('invalid api key') || detail.toLowerCase().includes('invalid jwt')) {
+      return 'Supabase no está configurado correctamente. Revisa la URL y la clave pública del proyecto.';
+    }
+    return detail || 'Ocurrió un error. Inténtalo de nuevo en unos momentos.';
+  }
+}

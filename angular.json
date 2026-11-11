@@ -34,8 +34,14 @@
                 "output": "./svg"
               }
             ],
-            "styles": ["src/global.scss", "src/theme/variables.scss", "node_modules/leaflet/dist/leaflet.css", "src/styles/auth.scss", "src/styles/landing.scss", "src/styles/app.scss"],
-            "scripts": []
+            "styles": [
+              "src/global.scss",
+              "node_modules/leaflet/dist/leaflet.css"
+            ],
+            "scripts": [],
+            "allowedCommonJsDependencies": [
+              "leaflet"
+            ]
           },
           "configurations": {
             "production": {
@@ -47,8 +53,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "8kb",
-                  "maximumError": "12kb"
+                  "maximumWarning": "48kb",
+                  "maximumError": "64kb"
                 }
               ],
               "fileReplacements": [
@@ -97,7 +103,9 @@
           "options": {
             "tsConfig": "tsconfig.spec.json",
             "buildTarget": "::development",
-            "setupFiles": ["src/test-setup.ts"]
+            "setupFiles": [
+              "src/test-setup.ts"
+            ]
           },
           "configurations": {
             "ci": {

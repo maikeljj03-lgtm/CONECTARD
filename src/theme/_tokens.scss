@@ -1,0 +1,52 @@
+// Sistema visual de ConectaRD — versión clara y cálida.
+// Base de la propuesta: turquesa #00B2A9 como acento de marca, blanco y gris
+// #9AA0A6. Se suma un tono arena cálido para dar cercanía comunitaria.
+
+:root {
+  // Fondos
+  --crd-bg: #fbfaf7;          // blanco cálido
+  --crd-bg-deep: #f4f0e8;     // arena suave (secciones alternas)
+  --crd-surface: #ffffff;
+  --crd-surface-2: #f7f5f0;
+  --crd-surface-3: #efebe3;
+  --crd-border: #e8e3d9;
+  --crd-border-strong: #d9d2c5;
+
+  // Texto (tinta verde azulada, no negro puro)
+  --crd-ink: #13282b;
+  --crd-text: #182b2e;
+  --crd-text-2: #4e5f61;
+  --crd-text-3: #7d8a89;
+
+  // Marca
+  --crd-teal: #00b2a9;
+  --crd-teal-hover: #00a39b;
+  --crd-teal-text: #00827b;   // turquesa con contraste suficiente sobre blanco
+  --crd-teal-soft: #e3f5f3;
+  --crd-teal-line: #a9e0dc;
+  --crd-on-teal: #04302d;
+
+  // Acento cálido (mango suave), usado con moderación
+  --crd-sun: #e9a13b;
+  --crd-sun-soft: #fdf1df;
+  --crd-sun-text: #9a5d0c;
+
+  // Estados
+  --crd-danger: #b9473f;
+  --crd-danger-soft: #fcefed;
+  --crd-danger-line: #f0c9c4;
+  --crd-warning: #c98a1c;
+  --crd-info: #4d7fb8;
+
+  --crd-font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --crd-font-body: Inter, 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --crd-radius-sm: 10px;
+  --crd-radius: 14px;
+  --crd-radius-lg: 24px;
+  --crd-ease: cubic-bezier(.2, .7, .2, 1);
+  --crd-shadow-sm: 0 1px 2px rgb(19 40 43 / 6%), 0 2px 8px rgb(19 40 43 / 4%);
+  --crd-shadow: 0 18px 40px -18px rgb(19 40 43 / 22%), 0 2px 6px rgb(19 40 43 / 5%);
+  --crd-shadow-lg: 0 40px 80px -30px rgb(19 40 43 / 30%);
+}
+
+::selection { background: rgb(0 178 169 / 25%); color: var(--crd-ink); }
