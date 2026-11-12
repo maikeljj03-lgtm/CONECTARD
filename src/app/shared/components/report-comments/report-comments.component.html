@@ -1,0 +1,101 @@
+<section class="comments" aria-labelledby="comments-title">
+  <h2 id="comments-title" class="comments__title"><app-icon name="message"></app-icon> Conversación @if (total) { <small>{{ total }}</small> }</h2>
+  <p class="comments__hint">Coordina la solución con vecinos, voluntarios e instituciones. Sé respetuoso: no publiques datos personales.</p>
+
+  @if (error) { <div class="comments__error" role="alert"><app-icon name="alert-circle"></app-icon>{{ error }}</div> }
+
+  <!-- Nuevo comentario -->
+  @if (closed) {
+    <p class="comments__notice"><app-icon name="lock"></app-icon> Este reporte fue rechazado: ya no recibe comentarios.</p>
+  } @else if (signedIn) {
+    <form class="composer" (submit)="$event.preventDefault(); send()">
+      <label class="sr-only" for="comment-new">Escribe un comentario</label>
+      <textarea id="comment-new" rows="3" maxlength="1000" placeholder="¿Sabes algo más? ¿Puedes ayudar? Escribe aquí…" [value]="draft" (input)="draft = $any($event.target).value" (keydown)="submitKey($event) && send()"></textarea>
+      <div class="composer__bar">
+        <small>{{ draft.length }}/{{ maxLength }}</small>
+        <button type="submit" class="composer__send" [disabled]="!draft.trim() || sending">
+          @if (sending) { <span class="spin"></span> Publicando… } @else { <app-icon name="arrow-up-right"></app-icon> Comentar }
+        </button>
+      </div>
+    </form>
+  } @else {
+    <p class="comments__notice"><app-icon name="user"></app-icon> <span><a routerLink="/auth/login">Inicia sesión</a> para comentar y coordinar la solución.</span></p>
+  }
+
+  <!-- Hilos -->
+  @if (loading && !threads.length) {
+    <p class="comments__empty"><span class="spin"></span> Cargando comentarios…</p>
+  } @else {
+    <ol class="thread-list">
+      @for (thread of threads; track thread.id) {
+        <li class="thread">
+          <ng-container *ngTemplateOutlet="commentTpl; context: { $implicit: thread, isReply: false }"></ng-container>
+
+          @if (thread.replies.length) {
+            <ol class="replies">
+              @for (reply of thread.replies; track reply.id) {
+                <li><ng-container *ngTemplateOutlet="commentTpl; context: { $implicit: reply, isReply: true }"></ng-container></li>
+              }
+            </ol>
+          }
+
+          @if (replyingTo === thread.id) {
+            <form class="composer composer--reply" (submit)="$event.preventDefault(); sendReply(thread)">
+              <label class="sr-only" [attr.for]="'reply-' + thread.id">Tu respuesta</label>
+              <textarea [id]="'reply-' + thread.id" rows="2" maxlength="1000" placeholder="Escribe tu respuesta…" [value]="replyDraft" (input)="replyDraft = $any($event.target).value" (keydown)="submitKey($event) && sendReply(thread)"></textarea>
+              <div class="composer__bar">
+                <button type="button" class="link" (click)="replyingTo = null">Cancelar</button>
+                <button type="submit" class="composer__send" [disabled]="!replyDraft.trim() || busyId === thread.id">Responder</button>
+              </div>
+            </form>
+          }
+        </li>
+      } @empty {
+        <li class="comments__empty">Aún no hay comentarios. @if (signedIn && !closed) { Sé la primera persona en aportar. }</li>
+      }
+    </ol>
+  }
+</section>
+
+<ng-template #commentTpl let-comment let-isReply="isReply">
+  <article class="comment" [class.comment--reply]="isReply" [class.comment--deleted]="comment.is_deleted">
+    <span class="comment__avatar" [class.comment__avatar--anon]="comment.is_report_author && !comment.author_name">
+      @if (comment.author_avatar_url) { <img [src]="comment.author_avatar_url" alt="" loading="lazy" /> }
+      @else if (comment.is_deleted) { <app-icon name="x"></app-icon> }
+      @else if (comment.is_report_author && !comment.author_name) { <app-icon name="eye-off"></app-icon> }
+      @else { {{ initials(comment) }} }
+    </span>
+    <div class="comment__body">
+      @if (comment.is_deleted) {
+        <p class="comment__deleted">Comentario eliminado</p>
+      } @else {
+        <header class="comment__head">
+          <strong>{{ displayName(comment) }}</strong>
+          @if (badge(comment); as label) { <span class="comment__badge" [class.comment__badge--author]="comment.is_report_author">{{ label }}</span> }
+          <small [title]="comment.created_at | date: 'd MMM y, h:mm a'">{{ age(comment) }}@if (comment.edited_at) { · editado }</small>
+        </header>
+
+        @if (editingId === comment.id) {
+          <form class="composer composer--edit" (submit)="$event.preventDefault(); saveEdit(comment)">
+            <label class="sr-only" [attr.for]="'edit-' + comment.id">Editar comentario</label>
+            <textarea [id]="'edit-' + comment.id" rows="3" maxlength="1000" [value]="editDraft" (input)="editDraft = $any($event.target).value" (keydown)="submitKey($event) && saveEdit(comment)"></textarea>
+            <div class="composer__bar">
+              <button type="button" class="link" (click)="editingId = null">Cancelar</button>
+              <button type="submit" class="composer__send" [disabled]="!editDraft.trim() || busyId === comment.id">Guardar</button>
+            </div>
+          </form>
+        } @else {
+          <p class="comment__text">{{ comment.body }}</p>
+        }
+
+        @if (editingId !== comment.id) {
+          <div class="comment__actions">
+            @if (!isReply && signedIn && !closed) { <button type="button" class="link" (click)="startReply(comment)"><app-icon name="message"></app-icon> Responder</button> }
+            @if (comment.is_mine) { <button type="button" class="link" (click)="startEdit(comment)">Editar</button> }
+            @if (canModify(comment)) { <button type="button" class="link link--danger" (click)="remove(comment)" [disabled]="busyId === comment.id">Eliminar</button> }
+          </div>
+        }
+      }
+    </div>
+  </article>
+</ng-template>

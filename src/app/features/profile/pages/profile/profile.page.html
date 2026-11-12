@@ -153,7 +153,10 @@
           <section class="card">
             <div class="card__head">
               <h2 class="card__title">Mis reportes</h2>
-              <a class="btn btn--primary btn--sm" routerLink="/reportes/nuevo"><app-icon name="plus"></app-icon> Nuevo</a>
+              <div class="actions">
+                <a class="btn btn--ghost btn--sm" routerLink="/reportes/mios"><app-icon name="edit"></app-icon> Gestionar</a>
+                <a class="btn btn--primary btn--sm" routerLink="/reportes/nuevo"><app-icon name="plus"></app-icon> Nuevo</a>
+              </div>
             </div>
             @for (report of myReports; track report.id) {
               <article class="list-row">

@@ -1,0 +1,169 @@
+<section class="resources" aria-labelledby="resources-title">
+  <div class="resources__head">
+    <div>
+      <h2 id="resources-title"><app-icon name="package"></app-icon> Insumos y donaciones</h2>
+      <p>Lo que se necesita para resolverlo, lo que se ha recibido y en qué se usó. Todo es público.</p>
+    </div>
+    @if (canRequest && !showNew) {
+      <button type="button" class="btn-line" (click)="showNew = true; formError = ''"><app-icon name="plus"></app-icon> Solicitar insumo</button>
+    }
+  </div>
+
+  @if (error) { <p class="resources__error" role="alert"><app-icon name="alert-circle"></app-icon> {{ error }}</p> }
+
+  <!-- Nueva solicitud (RF-29) -->
+  @if (showNew) {
+    <form class="mini-form" (submit)="$event.preventDefault(); createRequest()">
+      <p class="mini-form__title">Nueva solicitud de insumos</p>
+      <div class="mini-form__grid">
+        <label class="mini-form__wide"><span>Material</span>
+          <input type="text" maxlength="120" placeholder="Ej. Sacos de cemento" [value]="newItem.item" (input)="newItem.item = $any($event.target).value" />
+        </label>
+        <label><span>Cantidad</span>
+          <input type="number" min="0.01" step="any" inputmode="decimal" [value]="newItem.quantity" (input)="newItem.quantity = $any($event.target).value" />
+        </label>
+        <label><span>Unidad</span>
+          <input type="text" maxlength="30" list="resource-units" [value]="newItem.unit" (input)="newItem.unit = $any($event.target).value" />
+        </label>
+        <label class="mini-form__wide"><span>Para qué se necesita <em>(opcional)</em></span>
+          <textarea rows="2" maxlength="500" [value]="newItem.description" (input)="newItem.description = $any($event.target).value"></textarea>
+        </label>
+      </div>
+      <datalist id="resource-units">
+        <option value="unidades"></option><option value="sacos"></option><option value="galones"></option><option value="libras"></option>
+        <option value="metros"></option><option value="cajas"></option><option value="fundas"></option><option value="pares"></option>
+      </datalist>
+      @if (formError) { <p class="resources__error" role="alert"><app-icon name="alert-circle"></app-icon> {{ formError }}</p> }
+      <div class="mini-form__actions">
+        <button type="button" class="link" (click)="showNew = false">Cancelar</button>
+        <button type="submit" class="btn-solid" [disabled]="saving">{{ saving ? 'Guardando…' : 'Publicar solicitud' }}</button>
+      </div>
+    </form>
+  }
+
+  @if (loading && !requests.length) {
+    <p class="resources__empty">Cargando…</p>
+  } @else {
+    <ul class="request-list">
+      @for (request of requests; track request.id) {
+        <li class="request" [class.is-open]="expandedId === request.id" [class.is-closed]="request.status !== 'abierta'">
+          <button type="button" class="request__head" (click)="toggle(request)" [attr.aria-expanded]="expandedId === request.id">
+            <span class="request__main">
+              <strong>{{ request.item }}</strong>
+              <small>Recibido: {{ number(request.received) }} de {{ amount(request.quantity, request.unit) }} · Usado: {{ number(request.used) }}</small>
+            </span>
+            <span class="request__status request__status--{{ request.status }}">{{ statusLabel(request.status) }}</span>
+            <app-icon class="request__chevron" name="chevron-down"></app-icon>
+          </button>
+          <!-- Barra: lo usado (oscuro) dentro de lo recibido (verde azulado), sobre lo necesario. -->
+          <div class="bar" role="img" [attr.aria-label]="progress(request).received + '% recibido, ' + progress(request).used + '% usado'">
+            <span class="bar__received" [style.width.%]="progress(request).received"></span>
+            <span class="bar__used" [style.width.%]="progress(request).used"></span>
+          </div>
+
+          @if (expandedId === request.id) {
+            <div class="request__detail">
+              @if (request.description) { <p class="request__desc">{{ request.description }}</p> }
+              <p class="request__by">Solicitado por <strong>{{ request.requester_name || 'Organización' }}</strong> ({{ roleLabels[request.requester_role] }}) · {{ request.created_at | date: 'd MMM y' }}</p>
+
+              <div class="ledger">
+                <div>
+                  <h3><app-icon name="heart"></app-icon> Recibido</h3>
+                  <ul>
+                    @for (item of donationsOf(request); track item.id) {
+                      <li>
+                        <strong>{{ amount(item.quantity, request.unit) }}</strong>
+                        <span>{{ item.donor_name || 'Donante anónimo' }} · {{ item.received_on | date: 'd MMM y' }}</span>
+                        @if (item.note) { <em>{{ item.note }}</em> }
+                      </li>
+                    } @empty { <li class="ledger__empty">Aún no se ha recibido nada.</li> }
+                  </ul>
+                </div>
+                <div>
+                  <h3><app-icon name="check-circle"></app-icon> Usado</h3>
+                  <ul>
+                    @for (item of usagesOf(request); track item.id) {
+                      <li>
+                        <strong>{{ amount(item.quantity, request.unit) }}</strong>
+                        <span>{{ item.description }} · {{ item.used_on | date: 'd MMM y' }}</span>
+                        @if (photoUrl(item); as photo) { <a [href]="photo" target="_blank" rel="noopener"><img [src]="photo" alt="Foto del uso de los insumos" loading="lazy" /></a> }
+                      </li>
+                    } @empty { <li class="ledger__empty">Aún no se ha registrado uso.</li> }
+                  </ul>
+                </div>
+              </div>
+
+              @if (canManage(request)) {
+                <div class="request__tools">
+                  @if (request.status === 'abierta') {
+                    <button type="button" class="btn-line" [class.is-active]="panel === 'donacion'" (click)="openPanel('donacion')"><app-icon name="plus"></app-icon> Registrar donación</button>
+                  }
+                  @if (request.received > request.used) {
+                    <button type="button" class="btn-line" [class.is-active]="panel === 'uso'" (click)="openPanel('uso')"><app-icon name="check"></app-icon> Registrar uso</button>
+                  }
+                  @if (request.status === 'abierta') {
+                    <button type="button" class="link" (click)="setStatus(request, 'cerrada')">Marcar completada</button>
+                    <button type="button" class="link link--danger" (click)="setStatus(request, 'cancelada')">Cancelar</button>
+                  }
+                </div>
+
+                @if (panel === 'donacion') {
+                  <form class="mini-form" (submit)="$event.preventDefault(); addDonation(request)">
+                    <div class="mini-form__grid">
+                      <label><span>Cantidad ({{ request.unit }})</span>
+                        <input type="number" min="0.01" step="any" inputmode="decimal" [value]="donation.quantity" (input)="donation.quantity = $any($event.target).value" />
+                      </label>
+                      <label><span>Fecha</span>
+                        <input type="date" [max]="today" [value]="donation.received_on" (change)="donation.received_on = $any($event.target).value" />
+                      </label>
+                      <label class="mini-form__wide"><span>Donante <em>(opcional; vacío = anónimo)</em></span>
+                        <input type="text" maxlength="120" placeholder="Ej. Ferretería del barrio" [value]="donation.donor_name" (input)="donation.donor_name = $any($event.target).value" />
+                      </label>
+                      <label class="mini-form__wide"><span>Nota <em>(opcional)</em></span>
+                        <input type="text" maxlength="300" [value]="donation.note" (input)="donation.note = $any($event.target).value" />
+                      </label>
+                    </div>
+                    <p class="mini-form__hint">Escribe el nombre del donante solo si dio su permiso para publicarlo.</p>
+                    @if (formError) { <p class="resources__error" role="alert"><app-icon name="alert-circle"></app-icon> {{ formError }}</p> }
+                    <div class="mini-form__actions">
+                      <button type="button" class="link" (click)="panel = null">Cancelar</button>
+                      <button type="submit" class="btn-solid" [disabled]="saving">{{ saving ? 'Guardando…' : 'Registrar donación' }}</button>
+                    </div>
+                  </form>
+                }
+
+                @if (panel === 'uso') {
+                  <form class="mini-form" (submit)="$event.preventDefault(); addUsage(request)">
+                    <div class="mini-form__grid">
+                      <label><span>Cantidad usada ({{ request.unit }})</span>
+                        <input type="number" min="0.01" step="any" inputmode="decimal" [max]="request.received - request.used" [value]="usage.quantity" (input)="usage.quantity = $any($event.target).value" />
+                      </label>
+                      <label><span>Fecha</span>
+                        <input type="date" [max]="today" [value]="usage.used_on" (change)="usage.used_on = $any($event.target).value" />
+                      </label>
+                      <label class="mini-form__wide"><span>¿En qué se usó?</span>
+                        <textarea rows="2" maxlength="500" placeholder="Ej. Se rellenó el hoyo frente a la escuela" [value]="usage.description" (input)="usage.description = $any($event.target).value"></textarea>
+                      </label>
+                    </div>
+                    <p class="mini-form__label">Foto como evidencia <em>(opcional)</em></p>
+                    <app-media-picker [maxItems]="1" [allowVideo]="false" [showCover]="false" [disabled]="saving" (readyChange)="onPhoto($event)" (processingChange)="photoProcessing = $event"></app-media-picker>
+                    @if (formError) { <p class="resources__error" role="alert"><app-icon name="alert-circle"></app-icon> {{ formError }}</p> }
+                    <div class="mini-form__actions">
+                      <button type="button" class="link" (click)="panel = null">Cancelar</button>
+                      <button type="submit" class="btn-solid" [disabled]="saving || photoProcessing">{{ saving ? 'Guardando…' : 'Registrar uso' }}</button>
+                    </div>
+                  </form>
+                }
+              }
+            </div>
+          }
+        </li>
+      } @empty {
+        <li class="resources__empty">
+          No se han solicitado insumos para este reporte.
+          @if (!canRequest && open) { <span>Las organizaciones e instituciones verificadas pueden pedirlos aquí.</span> }
+        </li>
+      }
+    </ul>
+  }
+</section>

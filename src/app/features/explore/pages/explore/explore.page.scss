@@ -127,10 +127,12 @@
     background: #fff;
     animation: filters-in .25s ease both;
 
-    label { display: grid; gap: 5px; }
+    label { display: grid; gap: 5px; min-width: 0; }
     span { color: var(--crd-ink); font-size: 12.5px; font-weight: 650; }
 
     select, input {
+      width: 100%;
+      min-width: 0;
       height: 40px;
       padding: 0 10px;
       border: 1.5px solid var(--crd-border);
@@ -142,17 +144,49 @@
       &:focus { border-color: var(--crd-teal); outline: 0; }
     }
 
-    .link-button { grid-column: 1 / -1; justify-self: start; }
+    .explore-filters__wide { grid-column: 1 / -1; }
+  }
+
+  // Filtros activos: se quitan uno a uno.
+  .explore-active {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+
+    button:not(.link-button) {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      max-width: 100%;
+      padding: 4px 8px 4px 11px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--crd-teal-soft);
+      color: var(--crd-teal-text);
+      font: inherit;
+      font-size: 12.5px;
+      font-weight: 650;
+      cursor: pointer;
+      app-icon { font-size: 12px; }
+      &:hover { background: color-mix(in srgb, var(--crd-teal) 22%, #fff); }
+    }
+
+    .link-button { font-size: 12.5px; }
   }
 
   .explore-sort {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 6px;
     color: var(--crd-text-3);
     font-size: 13px;
 
     button {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
       padding: 5px 11px;
       border: 0;
       border-radius: 999px;
@@ -213,6 +247,109 @@
 
   .crd-map-tiles { filter: saturate(.55) contrast(.96) brightness(1.03); }
 
+  // Barra superior del mapa: tipo de mapa y estado de la conexión en vivo.
+  .explore-map__top {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    right: 74px;
+    z-index: 500;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+    > * { pointer-events: auto; }
+  }
+
+  .explore-mode {
+    display: inline-flex;
+    gap: 3px;
+    padding: 4px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: var(--crd-shadow);
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 34px;
+      padding: 0 13px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--crd-text-2);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 650;
+      cursor: pointer;
+      &:hover { color: var(--crd-ink); }
+      &.is-active { background: var(--crd-ink); color: #fff; }
+    }
+  }
+
+  .explore-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 94%);
+    color: var(--crd-text-2);
+    font-size: 12.5px;
+    font-weight: 650;
+    box-shadow: var(--crd-shadow-sm);
+
+    i { position: relative; width: 8px; height: 8px; border-radius: 50%; background: #b8c0be; }
+
+    &.is-live {
+      color: var(--crd-teal-text);
+      i { background: var(--crd-teal); }
+      i::after {
+        position: absolute;
+        inset: -4px;
+        border: 2px solid var(--crd-teal);
+        border-radius: 50%;
+        animation: live-pulse 2s ease-out infinite;
+        content: '';
+      }
+    }
+
+    &.is-off { color: var(--crd-text-3); }
+  }
+
+  // Aviso de un reporte nuevo en vivo.
+  .explore-toast {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    z-index: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: max-content;
+    max-width: min(420px, calc(100% - 32px));
+    padding: 10px 14px 10px 16px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--crd-ink);
+    color: #fff;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: var(--crd-shadow-lg);
+    transform: translateX(-50%);
+    animation: toast-in .4s cubic-bezier(.2, .7, .2, 1) both;
+
+    > i { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--crd-teal); box-shadow: 0 0 0 4px rgb(0 178 169 / 30%); }
+    span { display: grid; min-width: 0; }
+    small { color: rgb(255 255 255 / 65%); font-size: 11.5px; font-weight: 650; letter-spacing: .3px; text-transform: uppercase; }
+    strong { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+    app-icon { flex: none; }
+  }
+
   .explore-map__tools {
     position: absolute;
     top: 16px;
@@ -259,9 +396,23 @@
     i { width: 10px; height: 10px; border-radius: 50%; }
   }
 
+  .explore-map__legend--heat {
+    display: grid;
+    gap: 6px;
+    width: 230px;
+    border-radius: 18px;
+
+    strong { color: var(--crd-ink); font-size: 12.5px; }
+    .heat-scale { display: block; height: 10px; border-radius: 999px; }
+    .heat-labels { display: flex; justify-content: space-between; small { color: var(--crd-text-3); font-size: 11.5px; } }
+    .muted { color: var(--crd-text-3); font-size: 12px; }
+  }
+
+  .heat-layer { position: absolute; top: 0; left: 0; pointer-events: none; opacity: .88; }
+
   .explore-map__loading {
     position: absolute;
-    top: 16px;
+    bottom: 80px;
     left: 50%;
     z-index: 500;
     display: inline-flex;
@@ -282,24 +433,80 @@
     a { color: var(--crd-ink); }
   }
 
+  // Marcador: el color indica el estado y el ícono, la categoría.
   .explore-marker {
     border: 0;
     background: transparent;
 
     span {
       position: absolute;
-      inset: 4px;
-      border: 3px solid #fff;
+      inset: 3px;
+      display: grid;
+      place-items: center;
+      border: 2.5px solid #fff;
       border-radius: 50%;
       background: var(--marker);
-      box-shadow: 0 0 0 5px color-mix(in srgb, var(--marker) 28%, transparent), 0 4px 12px rgb(19 40 43 / 35%);
+      color: #fff;
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--marker) 26%, transparent), 0 4px 12px rgb(19 40 43 / 35%);
       transition: transform .2s, box-shadow .2s;
     }
 
-    &:hover span { transform: scale(1.18); }
+    svg { width: 15px; height: 15px; }
+
+    &:hover span, &:focus-visible span { transform: scale(1.15); }
+    &:focus-visible { outline: none; }
+    &:focus-visible span { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--crd-ink); }
     &.is-selected { z-index: 1000 !important; }
-    &.is-selected span { transform: scale(1.35); box-shadow: 0 0 0 7px color-mix(in srgb, var(--marker) 40%, transparent), 0 0 0 10px #fff, 0 6px 16px rgb(19 40 43 / 40%); }
+    &.is-selected span { transform: scale(1.3); box-shadow: 0 0 0 6px color-mix(in srgb, var(--marker) 40%, transparent), 0 0 0 9px #fff, 0 6px 16px rgb(19 40 43 / 40%); }
+
+    // Recién llegado en vivo: ondas durante unos segundos.
+    &.is-new span { animation: marker-drop .6s cubic-bezier(.2, .9, .3, 1.3) both; }
+    &.is-new span::after {
+      position: absolute;
+      inset: -3px;
+      border: 2px solid var(--marker);
+      border-radius: 50%;
+      animation: live-pulse 1.6s ease-out infinite;
+      content: '';
+    }
   }
+
+  // Grupo de reportes cercanos: número y anillo con el reparto por estado.
+  .explore-cluster {
+    border: 0;
+    background: transparent;
+
+    span {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--ring);
+      box-shadow: 0 6px 16px rgb(19 40 43 / 30%);
+      transition: transform .2s;
+    }
+
+    b {
+      display: grid;
+      width: calc(100% - 10px);
+      height: calc(100% - 10px);
+      place-items: center;
+      border-radius: 50%;
+      background: #fff;
+      color: var(--crd-ink);
+      font-family: var(--crd-font-body);
+      font-size: 13.5px;
+      font-weight: 750;
+    }
+
+    &:hover span, &:focus-visible span { transform: scale(1.08); }
+    &:focus-visible { outline: none; }
+    &:focus-visible span { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--crd-ink); }
+  }
+
+  // Tarjeta de un reporte recién llegado en la lista.
+  app-report-card.is-fresh { animation: fresh-in .6s ease both; }
 
   .explore-toggle { display: none; }
 
@@ -310,7 +517,11 @@
     .explore-list { overflow: visible; }
     .explore--list .explore-panel { display: flex; }
     .explore--list .explore-map { display: none; }
-    .explore-map__legend { display: none; }
+    .explore-map__legend:not(.explore-map__legend--heat) { display: none; }
+    .explore-map__legend--heat { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); width: 190px; }
+    .explore-map__top { right: 66px; }
+    .explore-mode button { padding: 0 10px; font-size: 12.5px; }
+    .explore-toast { top: 112px; }
 
     .explore-toggle {
       position: fixed;
@@ -345,3 +556,15 @@
 }
 
 @keyframes filters-in { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes live-pulse { from { opacity: .9; transform: scale(.6); } to { opacity: 0; transform: scale(2.2); } }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, -12px); } }
+@keyframes marker-drop { from { opacity: 0; transform: translateY(-18px) scale(.6); } }
+@keyframes fresh-in { from { opacity: 0; transform: translateY(-8px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .explore-content .explore-live.is-live i::after,
+  .explore-content .explore-marker.is-new span::after,
+  .explore-content .explore-marker.is-new span,
+  .explore-content .explore-toast,
+  .explore-content app-report-card.is-fresh { animation: none; }
+}

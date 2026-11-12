@@ -57,11 +57,11 @@
           <strong>{{ counts?.resuelto ?? 0 }}</strong>
           <small>Resueltos · {{ resolvedRate }} % del total</small>
         </article>
-        <article class="kpi kpi--mine">
+        <a class="kpi kpi--mine" routerLink="/reportes/mios" aria-label="Ver y gestionar mis reportes">
           <span class="kpi__icon kpi__icon--ink"><app-icon name="user"></app-icon></span>
           <strong>{{ myReports.length }}</strong>
           <small>Tus reportes · {{ myOpenReports }} abiertos, {{ myResolvedReports }} resueltos</small>
-        </article>
+        </a>
       </section>
 
       <div class="home-grid">

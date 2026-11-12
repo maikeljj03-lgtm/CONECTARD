@@ -142,7 +142,15 @@
     small { color: var(--crd-text-2); font-size: 13px; line-height: 1.4; }
   }
 
-  .kpi--mine { border-color: var(--crd-ink); background: var(--crd-ink); strong, small { color: #fff; } small { opacity: .75; } }
+  .kpi--mine {
+    border-color: var(--crd-ink);
+    background: var(--crd-ink);
+    text-decoration: none;
+    transition: transform .2s, box-shadow .2s;
+    strong, small { color: #fff; }
+    small { opacity: .75; }
+    &:hover { box-shadow: var(--crd-shadow); transform: translateY(-2px); }
+  }
 
   .kpi__icon {
     display: grid;

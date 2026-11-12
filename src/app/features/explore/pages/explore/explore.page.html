@@ -16,56 +16,85 @@
     <aside class="explore-panel">
       <header class="explore-panel__head">
         <h1>Explorar</h1>
-        <p>{{ loading ? 'Buscando reportes…' : reports.length + (reports.length === 1 ? ' reporte' : ' reportes') }}{{ activeFilterCount ? ' con filtros' : ' en todo el país' }}</p>
+        <p aria-live="polite">
+          {{ loading ? 'Buscando reportes…' : reports.length + (reports.length === 1 ? ' reporte' : ' reportes') }}{{ hasAnyFilter ? ' con estos filtros' : ' en todo el país' }}
+        </p>
       </header>
 
       <div class="explore-search">
         <app-icon name="search"></app-icon>
-        <input type="search" placeholder="Busca por palabra, sector o dirección…" [value]="search" (input)="onSearch($any($event.target).value)" aria-label="Buscar reportes" />
-        <button type="button" class="explore-search__filters" [class.is-active]="filtersOpen || activeFilterCount" (click)="filtersOpen = !filtersOpen" [attr.aria-expanded]="filtersOpen">
-          <app-icon name="bar-chart"></app-icon> Filtros @if (activeFilterCount) { <b>{{ activeFilterCount }}</b> }
+        <input type="search" placeholder="Busca por palabra, sector o dirección…" [value]="filters.search" (input)="onSearch($any($event.target).value)" aria-label="Buscar reportes" maxlength="120" />
+        <button type="button" class="explore-search__filters" [class.is-active]="filtersOpen || activeFilterCount" (click)="filtersOpen = !filtersOpen" [attr.aria-expanded]="filtersOpen" aria-controls="explore-filters">
+          <app-icon name="sliders"></app-icon> Filtros @if (activeFilterCount) { <b>{{ activeFilterCount }}</b> }
         </button>
       </div>
 
       <div class="explore-chips" role="group" aria-label="Categoría">
-        <button type="button" class="chip" [class.is-selected]="!category" (click)="setFilter('category', '')">Todas</button>
+        <button type="button" class="chip" [class.is-selected]="!filters.category" [attr.aria-pressed]="!filters.category" (click)="setFilter('category', '')">Todas</button>
         @for (item of categories; track item.value) {
-          <button type="button" class="chip" [class.is-selected]="category === item.value" (click)="setFilter('category', category === item.value ? '' : item.value)"><app-icon [name]="item.icon"></app-icon>{{ item.label }}</button>
+          <button type="button" class="chip" [class.is-selected]="filters.category === item.value" [attr.aria-pressed]="filters.category === item.value" (click)="setFilter('category', filters.category === item.value ? '' : item.value)"><app-icon [name]="item.icon"></app-icon>{{ item.label }}</button>
         }
       </div>
 
       @if (filtersOpen) {
-        <div class="explore-filters">
+        <div class="explore-filters" id="explore-filters">
           <label>
             <span>Provincia</span>
-            <select [value]="province" (change)="setFilter('province', $any($event.target).value)">
+            <select [value]="filters.province" (change)="setFilter('province', $any($event.target).value)">
               <option value="">Todas</option>
-              @for (item of provinces; track item) { <option [value]="item">{{ item }}</option> }
+              @for (item of provinces; track item) { <option [value]="item" [selected]="filters.province === item">{{ item }}</option> }
             </select>
-          </label>
-          <label>
-            <span>Municipio o sector</span>
-            <input type="text" placeholder="Ej. Los Alcarrizos" [value]="municipality" (input)="setFilter('municipality', $any($event.target).value)" />
           </label>
           <label>
             <span>Estado</span>
-            <select [value]="status" (change)="setFilter('status', $any($event.target).value)">
+            <select [value]="filters.status" (change)="setFilter('status', $any($event.target).value)">
               <option value="">Todos</option>
-              @for (item of statuses; track item) { <option [value]="item">{{ statusLabels[item] }}</option> }
+              @for (item of statuses; track item) { <option [value]="item" [selected]="filters.status === item">{{ statusLabels[item] }}</option> }
             </select>
           </label>
           <label>
+            <span>Municipio</span>
+            <input type="text" list="explore-municipalities" placeholder="Ej. Los Alcarrizos" maxlength="80" [value]="filters.municipality" (input)="setFilter('municipality', $any($event.target).value)" />
+          </label>
+          <label>
+            <span>Sector</span>
+            <input type="text" list="explore-sectors" placeholder="Ej. Villa Mella" maxlength="80" [value]="filters.sector" (input)="setFilter('sector', $any($event.target).value)" />
+          </label>
+          <datalist id="explore-municipalities">
+            @for (item of municipalitySuggestions; track item) { <option [value]="item"></option> }
+          </datalist>
+          <datalist id="explore-sectors">
+            @for (item of sectorSuggestions; track item) { <option [value]="item"></option> }
+          </datalist>
+          <label class="explore-filters__wide">
             <span>Fecha</span>
-            <select [value]="period" (change)="setFilter('period', $any($event.target).value)">
-              <option value="">Cualquier fecha</option>
-              <option value="7">Últimos 7 días</option>
-              <option value="30">Últimos 30 días</option>
-              <option value="90">Últimos 3 meses</option>
+            <select [value]="filters.period" (change)="setPeriod($any($event.target).value)">
+              <option value="" [selected]="!filters.period">Cualquier fecha</option>
+              <option value="7" [selected]="filters.period === '7'">Últimos 7 días</option>
+              <option value="30" [selected]="filters.period === '30'">Últimos 30 días</option>
+              <option value="90" [selected]="filters.period === '90'">Últimos 3 meses</option>
+              <option value="rango" [selected]="filters.period === 'rango'">Elegir fechas…</option>
             </select>
           </label>
-          @if (activeFilterCount || search) {
-            <button type="button" class="link-button" (click)="clearFilters()">Quitar filtros</button>
+          @if (filters.period === 'rango') {
+            <label>
+              <span>Desde</span>
+              <input type="date" [max]="filters.to || today" [value]="filters.from" (change)="setFilter('from', $any($event.target).value)" />
+            </label>
+            <label>
+              <span>Hasta</span>
+              <input type="date" [min]="filters.from" [max]="today" [value]="filters.to" (change)="setFilter('to', $any($event.target).value)" />
+            </label>
           }
+        </div>
+      }
+
+      @if (activeChips.length) {
+        <div class="explore-active" aria-label="Filtros activos">
+          @for (chip of activeChips; track chip.key) {
+            <button type="button" (click)="removeChip(chip.key)" [attr.aria-label]="'Quitar filtro ' + chip.label">{{ chip.label }} <app-icon name="x"></app-icon></button>
+          }
+          @if (activeChips.length > 1) { <button type="button" class="link-button" (click)="clearFilters()">Quitar todos</button> }
         </div>
       }
 
@@ -73,19 +102,20 @@
         <span>Ordenar:</span>
         <button type="button" [class.is-active]="sort === 'recientes'" (click)="setSort('recientes')">Más recientes</button>
         <button type="button" [class.is-active]="sort === 'cercanos'" (click)="setSort('cercanos')">Más cercanos</button>
+        <button type="button" [class.is-active]="sort === 'apoyados'" (click)="setSort('apoyados')"><app-icon name="thumbs-up"></app-icon> Más apoyados</button>
       </div>
       @if (locationError) { <p class="hint">{{ locationError }}</p> }
       @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
 
       <div class="explore-list">
         @for (report of sortedReports; track report.id) {
-          <app-report-card [report]="report" [coverUrl]="coverOf(report)" [distanceKm]="distanceTo(report)" [selected]="selected?.id === report.id" (open)="open($event)"></app-report-card>
+          <app-report-card [class.is-fresh]="isFresh(report)" [report]="report" [coverUrl]="coverOf(report)" [distanceKm]="distanceTo(report)" [selected]="selected?.id === report.id" (open)="open($event)"></app-report-card>
         } @empty {
           @if (!loading && !error) {
             <div class="empty">
               <app-icon name="search"></app-icon>
-              <strong>{{ activeFilterCount || search ? 'Ningún reporte coincide' : 'Aún no hay reportes publicados' }}</strong>
-              @if (activeFilterCount || search) {
+              <strong>{{ hasAnyFilter ? 'Ningún reporte coincide' : 'Aún no hay reportes publicados' }}</strong>
+              @if (hasAnyFilter) {
                 <button type="button" class="link-button" (click)="clearFilters()">Quitar filtros</button>
               } @else {
                 <a class="btn btn--primary btn--sm" routerLink="/reportes/nuevo">Crear el primero</a>
@@ -93,19 +123,52 @@
             </div>
           }
         }
+        @if (!loading && reports.length >= 500) {
+          <p class="hint">Se muestran los 500 reportes más recientes. Usa los filtros para ver otros.</p>
+        }
       </div>
     </aside>
 
-    <!-- ================= Mapa (RF-18) ================= -->
-    <section class="explore-map" aria-label="Mapa de reportes">
+    <!-- ================= Mapa (RF-18, RF-19) ================= -->
+    <section class="explore-map" [class.is-heat]="mode === 'calor'" aria-label="Mapa de reportes">
       <div #mapEl class="explore-map__canvas" role="application" aria-label="Mapa de República Dominicana con los reportes"></div>
+
+      <div class="explore-map__top">
+        <div class="explore-mode" role="radiogroup" aria-label="Tipo de mapa">
+          <button type="button" role="radio" [class.is-active]="mode === 'marcadores'" [attr.aria-checked]="mode === 'marcadores'" (click)="setMode('marcadores')"><app-icon name="map-pin"></app-icon> Marcadores</button>
+          <button type="button" role="radio" [class.is-active]="mode === 'calor'" [attr.aria-checked]="mode === 'calor'" (click)="setMode('calor')"><app-icon name="flame"></app-icon> Mapa de calor</button>
+        </div>
+        <span class="explore-live" [class.is-live]="live === 'live'" [class.is-off]="live === 'offline'" role="status"
+          [title]="live === 'live' ? 'Los reportes nuevos aparecen solos, sin recargar.' : live === 'offline' ? 'No hay conexión en vivo: recarga la página para ver lo último.' : 'Conectando…'">
+          <i></i>{{ live === 'live' ? 'En vivo' : live === 'offline' ? 'Sin conexión en vivo' : 'Conectando…' }}
+        </span>
+      </div>
+
       <div class="explore-map__tools">
         <button type="button" (click)="resetView()" title="Ver todo el país" aria-label="Ver todo el país"><b>RD</b></button>
         <button type="button" (click)="locate()" title="Mi ubicación" aria-label="Mostrar mi ubicación"><app-icon name="locate"></app-icon></button>
       </div>
-      <ul class="explore-map__legend" aria-label="Leyenda">
-        @for (item of statuses; track item) { <li><i [style.background]="statusColors[item]"></i>{{ statusLabels[item] }}</li> }
-      </ul>
+
+      @if (toast) {
+        <button type="button" class="explore-toast" (click)="openToast()" aria-live="polite">
+          <i></i>
+          <span><small>Nuevo reporte</small><strong>{{ toast.title }}</strong></span>
+          <app-icon name="arrow-right"></app-icon>
+        </button>
+      }
+
+      @if (mode === 'calor') {
+        <div class="explore-map__legend explore-map__legend--heat" aria-label="Leyenda del mapa de calor">
+          <strong>{{ filters.status ? statusLabels[filters.status] : 'Problemas sin resolver' }}</strong>
+          <span class="heat-scale" [style.background]="heatGradient"></span>
+          <span class="heat-labels"><small>Pocos</small><small>Muchos</small></span>
+          @if (!heatReports.length && !loading) { <small class="muted">No hay reportes para mostrar con estos filtros.</small> }
+        </div>
+      } @else {
+        <ul class="explore-map__legend" aria-label="Leyenda: el color indica el estado y el ícono, la categoría">
+          @for (item of statuses; track item) { <li><i [style.background]="statusColors[item]"></i>{{ statusLabels[item] }}</li> }
+        </ul>
+      }
       @if (loading) { <span class="explore-map__loading"><span class="spinner spinner--sm"></span> Cargando</span> }
     </section>
 

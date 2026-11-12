@@ -1,15 +1,21 @@
 import {
-  ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, HostListener, Input, OnChanges, Output, inject,
+  ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges, inject,
 } from '@angular/core';
 import { REPORT_CATEGORIES, REPORT_STATUS_LABELS } from '../../../core/constants/catalogs';
-import type { PublicReport, ReportMedia } from '../../../core/models/report.model';
+import type { PublicReport } from '../../../core/models/report.model';
 import { ReportMediaService } from '../../../core/services/report-media.service';
 import { formatDistance, timeAgo } from '../../../core/utils/geo';
 import { STATUS_COLORS } from '../community-scene/community-scene.component';
 
-const LIFECYCLE = ['reportado', 'en_revision', 'en_proceso', 'resuelto'] as const;
+interface MediaView {
+  url: string;
+  kind: 'image' | 'video';
+}
 
-/** Vista previa de un reporte en una ventana emergente (RF-21). */
+/**
+ * Vista previa de un reporte en una ventana emergente (RF-21): fotos, datos, seguimiento
+ * (RF-16, RF-17) y accesos a la página completa y a compartir (RF-31).
+ */
 @Component({
   selector: 'app-report-preview',
   templateUrl: './report-preview.component.html',
@@ -23,17 +29,16 @@ export class ReportPreviewComponent implements OnChanges {
 
   @Input() report: PublicReport | null = null;
   @Input() distanceKm: number | null = null;
-  /** Muestra el botón "Ver en el mapa". */
+  /** Muestra el botón "Mapa". */
   @Input() showMapAction = true;
   @Output() readonly closed = new EventEmitter<void>();
   @Output() readonly showOnMap = new EventEmitter<PublicReport>();
 
-  media: { url: string; kind: 'image' | 'video' }[] = [];
+  media: MediaView[] = [];
   activeIndex = 0;
   loadingMedia = false;
   private requestId = 0;
 
-  readonly lifecycle = LIFECYCLE;
   readonly statusLabels = REPORT_STATUS_LABELS;
 
   get category() {
@@ -60,24 +65,34 @@ export class ReportPreviewComponent implements OnChanges {
     return this.distanceKm === null ? null : formatDistance(this.distanceKm);
   }
 
-  /** Posición del estado actual en la línea de tiempo (-1 si fue rechazado). */
-  get stepIndex(): number {
-    return this.report ? (LIFECYCLE as readonly string[]).indexOf(this.report.status) : -1;
+  /** La primera foto del reporte: el "Antes" de la comparación. */
+  get beforeImage(): string | null {
+    return this.media.find((item) => item.kind === 'image')?.url ?? null;
   }
 
-  async ngOnChanges(): Promise<void> {
+  get shareText(): string {
+    return this.report ? `${this.report.title} (${this.place}). Míralo en ConectaRD:` : '';
+  }
+
+  async ngOnChanges(changes: SimpleChanges): Promise<void> {
+    const previous = changes['report']?.previousValue as PublicReport | null | undefined;
     const report = this.report;
+    // Mismo reporte con datos actualizados (p. ej. en vivo): no se recargan las fotos.
+    if (report && previous && previous.id === report.id && previous.media_count === report.media_count) return;
     this.media = [];
     this.activeIndex = 0;
-    if (!report || !report.media_count) return;
+    if (!report || !report.media_count) {
+      this.loadingMedia = false;
+      return;
+    }
     const request = ++this.requestId;
     this.loadingMedia = true;
     try {
-      const items: ReportMedia[] = await this.mediaService.listForReport(report.id);
+      const items = await this.mediaService.listForReport(report.id);
       if (request !== this.requestId) return;
       this.media = items
         .map((item) => ({ url: this.mediaService.coverUrl(item.path), kind: item.kind }))
-        .filter((item): item is { url: string; kind: 'image' | 'video' } => !!item.url);
+        .filter((item): item is MediaView => !!item.url);
     } catch {
       this.media = [];
     } finally {

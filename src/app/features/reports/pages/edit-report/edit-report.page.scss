@@ -1,0 +1,4 @@
+// Las fotos ya subidas se muestran con la misma cuadrícula que el selector.
+@use '../../../../shared/components/media-picker/media-tiles';
+
+.media-tile .spinner { width: 14px; height: 14px; }

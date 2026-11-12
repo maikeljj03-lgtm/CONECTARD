@@ -5,6 +5,7 @@ import { socialProviderLabel, type SocialProvider } from '../../../../core/const
 import { AuthService, PENDING_LOGIN_EMAIL } from '../../../../core/services/auth.service';
 import { ProfileService } from '../../../../core/services/profile.service';
 import { VerificationService } from '../../../../core/services/verification.service';
+import { consumeReturnUrl } from '../../../../core/utils/return-url';
 import { matchingPasswords, nonBlank } from '../../../../shared/validators/form.validators';
 import { AUTH_MODES, AuthMode, PASSWORD_LABELS, PENDING_SIGNUP_EMAIL, ROLE_OPTIONS, RoleOption } from '../../auth.constants';
 
@@ -425,6 +426,9 @@ export class AuthPage implements OnInit, OnDestroy {
     } catch {
       // Si no se puede consultar (p. ej. faltan migraciones), se va al inicio normal.
     }
+    // Si venía de otra página (p. ej. el QR de una jornada), vuelve allí.
+    const returnUrl = consumeReturnUrl();
+    if (returnUrl && target === '/inicio') target = returnUrl;
     await this.router.navigateByUrl(target, { replaceUrl: true });
   }
 

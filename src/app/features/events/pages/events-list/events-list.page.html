@@ -1,0 +1,87 @@
+<ion-content class="app-content">
+  @if (signedIn) { <app-topbar></app-topbar> } @else {
+    <header class="guest-bar">
+      <a routerLink="/landing" aria-label="ConectaRD, inicio"><app-logo [size]="30"></app-logo></a>
+      <div class="guest-bar__actions">
+        <a class="btn btn--ghost btn--sm" routerLink="/auth/login">Iniciar sesión</a>
+        <a class="btn btn--primary btn--sm" routerLink="/auth/register">Únete</a>
+      </div>
+    </header>
+  }
+
+  <main class="page">
+    <header class="page-head events-head">
+      <div>
+        <p class="page-kicker">Jornadas comunitarias</p>
+        <h1>Manos a la obra</h1>
+        <p>Limpiezas, siembras y reparaciones organizadas por ONG e instituciones verificadas para resolver los reportes de la comunidad.</p>
+      </div>
+      <a *appCan="'event.create'" class="btn btn--primary" routerLink="/jornadas/nueva"><app-icon name="plus"></app-icon> Organizar jornada</a>
+    </header>
+
+    <div class="events-toolbar">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" class="tab" [class.is-active]="tab === 'proximas'" [attr.aria-selected]="tab === 'proximas'" (click)="setTab('proximas')">Próximas</button>
+        @if (signedIn) { <button type="button" role="tab" class="tab" [class.is-active]="tab === 'mias'" [attr.aria-selected]="tab === 'mias'" (click)="setTab('mias')">Las mías</button> }
+        <button type="button" role="tab" class="tab" [class.is-active]="tab === 'pasadas'" [attr.aria-selected]="tab === 'pasadas'" (click)="setTab('pasadas')">Pasadas</button>
+      </div>
+      <label class="events-province">
+        <app-icon name="map"></app-icon>
+        <select [value]="province" (change)="setProvince($any($event.target).value)" aria-label="Provincia">
+          <option value="">Todo el país</option>
+          @for (item of provinces; track item) { <option [value]="item">{{ item }}</option> }
+        </select>
+      </label>
+    </div>
+
+    @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+    @if (loading) {
+      <div class="page-state"><span class="spinner"></span><p>Cargando jornadas…</p></div>
+    } @else {
+      <div class="event-grid">
+        @for (event of events; track event.id; let i = $index) {
+          <a class="event-card" [class.is-cancelled]="event.status === 'cancelado'" [routerLink]="['/jornadas', event.id]" [style.--i]="i">
+            <span class="event-card__date" aria-hidden="true">
+              <small>{{ event.starts_at | date: 'EEE' }}</small>
+              <b>{{ event.starts_at | date: 'd' }}</b>
+              <small>{{ event.starts_at | date: 'MMM' }}</small>
+            </span>
+            <span class="event-card__body">
+              <span class="event-card__tags">
+                @if (event.status === 'cancelado') { <span class="pill pill--danger">Cancelada</span> }
+                @else if (event.status === 'finalizado') { <span class="pill">Finalizada</span> }
+                @if (event.is_organizer) { <span class="pill pill--ink">Organizas</span> }
+                @else if (event.has_checked_in) { <span class="pill pill--teal"><app-icon name="check"></app-icon> Asististe</span> }
+                @else if (event.is_registered) { <span class="pill pill--teal"><app-icon name="check"></app-icon> Inscrito</span> }
+              </span>
+              <strong>{{ event.title }}</strong>
+              <small><app-icon name="clock"></app-icon> {{ event.starts_at | date: 'h:mm a' }} – {{ event.ends_at | date: 'h:mm a' }}</small>
+              <small><app-icon name="map-pin"></app-icon> {{ event.location_name }}@if (event.municipality) {, {{ event.municipality }}}</small>
+              <span class="event-card__foot">
+                <span class="event-card__org">{{ event.organizer_name || 'Organización' }} · {{ roleLabels[event.organizer_role] }}</span>
+                <span class="event-card__spots">
+                  <app-icon name="users"></app-icon>
+                  @if (tab === 'pasadas') { {{ event.checked_in_count }} asistieron }
+                  @else if (spotsLeft(event) === 0) { Lleno }
+                  @else if (spotsLeft(event) !== null) { {{ event.attendee_count }}/{{ event.capacity }} }
+                  @else { {{ event.attendee_count }} inscritos }
+                </span>
+              </span>
+            </span>
+          </a>
+        } @empty {
+          <div class="card result event-empty">
+            <span class="result__icon"><app-icon name="calendar"></app-icon></span>
+            <h2>{{ tab === 'mias' ? 'No tienes jornadas' : tab === 'pasadas' ? 'No hay jornadas pasadas' : 'No hay jornadas programadas' }}</h2>
+            <p class="muted">
+              @if (tab === 'mias') { Cuando te inscribas u organices una jornada, aparecerá aquí. }
+              @else { Las ONG e instituciones verificadas pueden organizarlas desde la página de un reporte. }
+            </p>
+          </div>
+        }
+      </div>
+    }
+  </main>
+  @if (signedIn) { <app-bottom-nav></app-bottom-nav> }
+</ion-content>

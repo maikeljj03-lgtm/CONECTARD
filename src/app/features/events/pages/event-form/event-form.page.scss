@@ -1,0 +1,42 @@
+.linked, .results {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--crd-border);
+    border-radius: 14px;
+    background: #fff;
+  }
+}
+
+.linked li { border-color: var(--crd-teal-line); background: var(--crd-teal-soft); }
+
+.linked__body {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+  strong { overflow: hidden; color: var(--crd-ink); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+  small { color: var(--crd-text-3); font-size: 12.5px; }
+}
+
+.linked button {
+  display: grid;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--crd-text-2);
+  cursor: pointer;
+  &:hover { color: var(--crd-danger); }
+}

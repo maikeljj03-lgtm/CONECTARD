@@ -108,3 +108,17 @@
   .card__media { width: 72px; height: 72px; }
   .card__chevron { display: none; }
 }
+
+// Apoyos, comentarios y voluntarios (RF-24, RF-25, RF-26).
+.card__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; }
+
+.card__social {
+  display: inline-flex;
+  gap: 10px;
+  color: var(--crd-text-3);
+  font-size: 12px;
+  font-weight: 650;
+
+  > span { display: inline-flex; align-items: center; gap: 4px; }
+  .is-mine { color: var(--crd-teal-text); }
+}

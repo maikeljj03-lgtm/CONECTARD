@@ -1,0 +1,236 @@
+:host { display: grid; gap: 12px; }
+
+.track {
+  margin-top: 4px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--crd-surface-2);
+}
+
+.track__title { margin: 0 0 12px; color: var(--crd-ink); font-size: 13.5px; font-weight: 700; }
+
+.track__steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 7px;
+    color: var(--crd-text-3);
+    font-size: 11.5px;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  li + li::before {
+    position: absolute;
+    top: 6px;
+    right: 50%;
+    width: 100%;
+    height: 2px;
+    background: var(--crd-border-strong);
+    content: '';
+  }
+
+  i {
+    position: relative;
+    z-index: 1;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--crd-border-strong);
+    border-radius: 50%;
+    background: #fff;
+  }
+
+  li.is-done, li.is-current { color: var(--crd-ink); }
+  li.is-done::before, li.is-current::before { background: var(--crd-teal); }
+  li.is-done i { border-color: var(--crd-teal); background: var(--crd-teal); }
+  li.is-current i { border-color: var(--crd-teal); box-shadow: 0 0 0 4px var(--crd-teal-soft); }
+}
+
+.track__rejected {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  color: var(--crd-danger);
+  font-size: 13.5px;
+  line-height: 1.5;
+  strong { font-weight: 700; }
+  app-icon { flex: none; margin-top: 2px; }
+}
+
+// ---------- Antes y después (RF-17) ----------
+.compare { display: grid; gap: 10px; }
+.compare .track__title { display: flex; align-items: center; gap: 7px; margin: 4px 0 0; app-icon { color: var(--crd-teal-text); } }
+
+.compare__frame {
+  --split: 50%;
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--crd-ink);
+  touch-action: pan-y;
+}
+
+.compare__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+// El "Después" se recorta desde la izquierda hasta el divisor.
+.compare__img--after { clip-path: inset(0 0 0 var(--split)); }
+.compare__frame--single .compare__img--after { clip-path: none; }
+
+.compare__line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--split);
+  width: 2px;
+  background: #fff;
+  box-shadow: 0 0 10px rgb(0 0 0 / 35%);
+  transform: translateX(-1px);
+  pointer-events: none;
+
+  i {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--crd-ink);
+    font-size: 12px;
+    box-shadow: var(--crd-shadow);
+    transform: translate(-50%, -50%);
+  }
+}
+
+.compare__tag {
+  position: absolute;
+  top: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgb(19 40 43 / 72%);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  pointer-events: none;
+}
+
+.compare__tag--before { left: 10px; }
+.compare__tag--after { right: 10px; background: var(--crd-teal); }
+
+// Control invisible que cubre la foto: se arrastra en cualquier punto (y funciona con teclado).
+.compare__range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+}
+
+.compare__frame:has(.compare__range:focus-visible) { outline: 3px solid var(--crd-ink); outline-offset: 2px; }
+
+.compare__thumbs {
+  display: flex;
+  gap: 8px;
+
+  button {
+    width: 52px;
+    height: 40px;
+    padding: 0;
+    overflow: hidden;
+    border: 2px solid transparent;
+    border-radius: 9px;
+    background: none;
+    cursor: pointer;
+    opacity: .7;
+    &.is-active { border-color: var(--crd-teal); opacity: 1; }
+  }
+
+  img { width: 100%; height: 100%; object-fit: cover; }
+}
+
+// ---------- Historial (RF-16) ----------
+.history {
+  border: 1px solid var(--crd-border);
+  border-radius: 16px;
+
+  summary {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 12px 16px;
+    color: var(--crd-ink);
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+    &::-webkit-details-marker { display: none; }
+    app-icon { color: var(--crd-teal-text); }
+    small { margin-left: auto; color: var(--crd-text-3); font-weight: 550; }
+  }
+}
+
+.history__list {
+  display: grid;
+  margin: 0;
+  padding: 0 16px 14px;
+  list-style: none;
+
+  li {
+    --status: #8a9693;
+    position: relative;
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    gap: 12px;
+    padding-bottom: 14px;
+
+    // Línea que une los puntos.
+    &:not(:last-child)::before {
+      position: absolute;
+      top: 14px;
+      bottom: 0;
+      left: 6px;
+      width: 2px;
+      background: var(--crd-border);
+      content: '';
+    }
+
+    &:last-child { padding-bottom: 0; }
+  }
+
+  i {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    margin-top: 2px;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    background: var(--status);
+    box-shadow: 0 0 0 1.5px var(--status);
+  }
+
+  strong { display: block; color: var(--crd-ink); font-size: 14px; }
+  small { color: var(--crd-text-3); font-size: 12.5px; }
+  p { margin: 6px 0 0; padding: 8px 11px; border-radius: 10px; background: var(--crd-surface-2); color: var(--crd-text-2); font-size: 13.5px; line-height: 1.5; white-space: pre-line; }
+}

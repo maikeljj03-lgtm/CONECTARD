@@ -1,0 +1,63 @@
+<!-- Seguimiento (RF-16) -->
+<div class="track">
+  <p class="track__title">Seguimiento</p>
+  @if (report.status === 'rechazado') {
+    <p class="track__rejected"><app-icon name="alert-circle"></app-icon>
+      <span>Este reporte fue rechazado.@if (rejectionNote) { <br /><strong>Motivo:</strong> {{ rejectionNote }} }</span>
+    </p>
+  } @else {
+    <ol class="track__steps">
+      @for (status of lifecycle; track status; let i = $index) {
+        <li [class.is-done]="i < stepIndex" [class.is-current]="i === stepIndex"><i></i><span>{{ statusLabels[status] }}</span></li>
+      }
+    </ol>
+  }
+</div>
+
+<!-- Antes y después (RF-17) -->
+@if (evidence.length) {
+  <section class="compare" aria-label="Antes y después">
+    <p class="track__title"><app-icon name="columns"></app-icon> Antes y después</p>
+    @if (beforeImage) {
+      <div class="compare__frame" [style.--split]="split + '%'">
+        <img class="compare__img" [src]="beforeImage" alt="Antes: foto del reporte" />
+        <img class="compare__img compare__img--after" [src]="afterImage" alt="Después: foto de la solución" />
+        <span class="compare__line" aria-hidden="true"><i><app-icon name="arrow-left"></app-icon><app-icon name="arrow-right"></app-icon></i></span>
+        <span class="compare__tag compare__tag--before">Antes</span>
+        <span class="compare__tag compare__tag--after">Después</span>
+        <input class="compare__range" type="range" min="0" max="100" [value]="split" (input)="onSplit($event)" aria-label="Deslizar para comparar antes y después" />
+      </div>
+    } @else {
+      <div class="compare__frame compare__frame--single">
+        <img class="compare__img" [src]="afterImage" alt="Después: foto de la solución" />
+        <span class="compare__tag compare__tag--after">Después</span>
+      </div>
+    }
+    @if (evidence.length > 1) {
+      <div class="compare__thumbs" role="group" aria-label="Fotos de la solución">
+        @for (item of evidence; track item; let i = $index) {
+          <button type="button" [class.is-active]="i === afterIndex" (click)="afterIndex = i" [attr.aria-label]="'Foto de la solución ' + (i + 1)"><img [src]="item" alt="" /></button>
+        }
+      </div>
+    }
+  </section>
+}
+
+<!-- Historial (RF-16) -->
+@if (timeline.length) {
+  <details class="history" [open]="expandHistory || timeline.length <= 3">
+    <summary><app-icon name="history"></app-icon> Historial <small>{{ timeline.length }} {{ timeline.length === 1 ? 'movimiento' : 'movimientos' }}</small></summary>
+    <ol class="history__list">
+      @for (change of timeline; track change.id) {
+        <li [style.--status]="statusColors[change.to_status]">
+          <i></i>
+          <div>
+            <strong>{{ changeLabel(change) }}</strong>
+            <small>{{ change.created_at | date: "d MMM y, h:mm a" }}@if (change.actor_name) { · {{ change.actor_name }} }</small>
+            @if (change.note) { <p>{{ change.note }}</p> }
+          </div>
+        </li>
+      }
+    </ol>
+  </details>
+}

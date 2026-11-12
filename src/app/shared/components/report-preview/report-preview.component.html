@@ -41,19 +41,7 @@
       <p class="sheet__description">{{ report.description }}</p>
       @if (report.address) { <p class="sheet__address"><strong>Referencia:</strong> {{ report.address }}</p> }
 
-      <!-- Seguimiento (RF-16) -->
-      <div class="track">
-        <p class="track__title">Seguimiento</p>
-        @if (report.status === 'rechazado') {
-          <p class="track__rejected"><app-icon name="alert-circle"></app-icon> Este reporte fue rechazado por moderación.</p>
-        } @else {
-          <ol class="track__steps">
-            @for (status of lifecycle; track status; let i = $index) {
-              <li [class.is-done]="i < stepIndex" [class.is-current]="i === stepIndex"><i></i><span>{{ statusLabels[status] }}</span></li>
-            }
-          </ol>
-        }
-      </div>
+      <app-report-progress [report]="report" [beforeImage]="beforeImage"></app-report-progress>
 
       <div class="sheet__footer">
         <span class="sheet__author">
@@ -66,8 +54,21 @@
             {{ report.author_name || 'Vecino' }}
           }
         </span>
+        @if (report.support_count || report.comment_count || report.volunteer_count) {
+          <span class="sheet__social">
+            @if (report.support_count) { <span><app-icon name="thumbs-up"></app-icon>{{ report.support_count }} les afecta</span> }
+            @if (report.comment_count) { <span><app-icon name="message"></app-icon>{{ report.comment_count }}</span> }
+            @if (report.volunteer_count) { <span><app-icon name="users"></app-icon>{{ report.volunteer_count }}</span> }
+          </span>
+        }
+      </div>
+
+      <!-- Acciones: página completa (apoyar, comentar, sumarse), compartir (RF-31) y mapa -->
+      <div class="sheet__actions">
+        <a class="sheet__primary" [routerLink]="['/reporte', report.id]" (click)="closed.emit()"><app-icon name="message"></app-icon> Ver reporte completo</a>
+        <app-share-button [path]="'/reporte/' + report.id" [title]="report.title" [text]="shareText" [compact]="true"></app-share-button>
         @if (showMapAction) {
-          <button type="button" class="sheet__action" (click)="showOnMap.emit(report)"><app-icon name="map"></app-icon> Ver en el mapa</button>
+          <button type="button" class="sheet__action" (click)="showOnMap.emit(report)"><app-icon name="map"></app-icon> Mapa</button>
         }
       </div>
     </div>

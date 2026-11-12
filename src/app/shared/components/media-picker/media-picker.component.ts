@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, Output, inject } from '@angular/core';
-import { MEDIA_LIMITS, formatBytes, processMediaFile, type ProcessedMedia } from '../../../../core/utils/media';
+import { MEDIA_LIMITS, formatBytes, processMediaFile, type ProcessedMedia } from '../../../core/utils/media';
 
 export interface PickedMedia {
   id: string;
@@ -26,17 +26,26 @@ export class MediaPickerComponent implements OnDestroy {
   private readonly changeDetector = inject(ChangeDetectorRef);
 
   @Input() disabled = false;
+  /** Máximo de archivos que se pueden elegir (por ejemplo, los que quedan libres al editar). */
+  @Input() maxItems: number = MEDIA_LIMITS.maxItems;
+  /** false para aceptar solo fotos (la evidencia de solución, RF-17). */
+  @Input() allowVideo = true;
+  /** Marca el primer archivo como portada (al crear un reporte). */
+  @Input() showCover = true;
   /** Archivos listos para subir, cada vez que cambia la selección. */
   @Output() readonly readyChange = new EventEmitter<ProcessedMedia[]>();
   /** true mientras algún archivo se está procesando. */
   @Output() readonly processingChange = new EventEmitter<boolean>();
 
-  readonly maxItems = MEDIA_LIMITS.maxItems;
   readonly maxVideoSeconds = MEDIA_LIMITS.videoMaxSeconds;
   readonly maxVideoSize = formatBytes(MEDIA_LIMITS.videoMaxBytes);
   items: PickedMedia[] = [];
   notice = '';
   dragging = false;
+
+  get accept(): string {
+    return this.allowVideo ? 'image/*,video/mp4,video/webm,video/quicktime' : 'image/*';
+  }
 
   get remaining(): number {
     return this.maxItems - this.items.filter((item) => item.status !== 'error').length;
@@ -110,9 +119,11 @@ export class MediaPickerComponent implements OnDestroy {
   private async addFiles(files: File[]): Promise<void> {
     this.notice = '';
     if (!files.length) return;
-    const accepted = files.slice(0, Math.max(0, this.remaining));
-    if (accepted.length < files.length) {
-      this.notice = `Puedes adjuntar hasta ${this.maxItems} fotos o videos por reporte.`;
+    const allowed = this.allowVideo ? files : files.filter((file) => !file.type.startsWith('video/'));
+    if (allowed.length < files.length) this.notice = 'Aquí solo se aceptan fotos.';
+    const accepted = allowed.slice(0, Math.max(0, this.remaining));
+    if (accepted.length < allowed.length) {
+      this.notice = `Puedes adjuntar hasta ${this.maxItems} ${this.allowVideo ? 'fotos o videos' : 'fotos'}.`;
     }
     const added = accepted.map<PickedMedia>((file) => ({
       id: crypto.randomUUID(),

@@ -3,8 +3,10 @@
   <nav class="app-topbar__nav" aria-label="Navegación de la cuenta">
     <a routerLink="/inicio" routerLinkActive="is-active"><app-icon name="home"></app-icon><span>Inicio</span></a>
     <a routerLink="/explorar" routerLinkActive="is-active"><app-icon name="map"></app-icon><span>Explorar</span></a>
+    <a routerLink="/jornadas" routerLinkActive="is-active"><app-icon name="calendar"></app-icon><span>Jornadas</span></a>
     <a routerLink="/reportes/nuevo" routerLinkActive="is-active"><app-icon name="camera"></app-icon><span>Reportar</span></a>
     <a routerLink="/perfil" routerLinkActive="is-active"><app-icon name="user"></app-icon><span>Perfil</span></a>
+    <a *appCan="'report.manage_status'" routerLink="/gestion" routerLinkActive="is-active"><app-icon name="inbox"></app-icon><span>Gestión</span></a>
     <a *appCan="'users.manage'" routerLink="/admin" routerLinkActive="is-active"><app-icon name="shield-check"></app-icon><span>Admin</span></a>
   </nav>
   <button type="button" class="app-topbar__out" (click)="signOut()" aria-label="Cerrar sesión" title="Cerrar sesión"><app-icon name="log-out"></app-icon></button>

@@ -167,61 +167,6 @@
 .sheet__description { margin: 0; color: var(--crd-text-2); font-size: 15px; line-height: 1.6; white-space: pre-line; }
 .sheet__address { margin: 0; color: var(--crd-text-2); font-size: 14px; strong { color: var(--crd-ink); } }
 
-.track {
-  margin-top: 4px;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: var(--crd-surface-2);
-}
-
-.track__title { margin: 0 0 12px; color: var(--crd-ink); font-size: 13.5px; font-weight: 700; }
-
-.track__steps {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-
-  li {
-    position: relative;
-    display: grid;
-    justify-items: center;
-    gap: 7px;
-    color: var(--crd-text-3);
-    font-size: 11.5px;
-    font-weight: 600;
-    text-align: center;
-  }
-
-  li + li::before {
-    position: absolute;
-    top: 6px;
-    right: 50%;
-    width: 100%;
-    height: 2px;
-    background: var(--crd-border-strong);
-    content: '';
-  }
-
-  i {
-    position: relative;
-    z-index: 1;
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--crd-border-strong);
-    border-radius: 50%;
-    background: #fff;
-  }
-
-  li.is-done, li.is-current { color: var(--crd-ink); }
-  li.is-done::before, li.is-current::before { background: var(--crd-teal); }
-  li.is-done i { border-color: var(--crd-teal); background: var(--crd-teal); }
-  li.is-current i { border-color: var(--crd-teal); box-shadow: 0 0 0 4px var(--crd-teal-soft); }
-}
-
-.track__rejected { display: flex; gap: 6px; margin: 0; color: var(--crd-danger); font-size: 13.5px; }
-
 .sheet__footer {
   display: flex;
   flex-wrap: wrap;
@@ -231,6 +176,34 @@
   margin-top: 6px;
   padding-top: 14px;
   border-top: 1px solid var(--crd-border);
+}
+
+.sheet__social {
+  display: inline-flex;
+  gap: 12px;
+  color: var(--crd-text-3);
+  font-size: 13px;
+  font-weight: 650;
+  span { display: inline-flex; align-items: center; gap: 5px; }
+}
+
+.sheet__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.sheet__primary {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--crd-ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: none;
+  &:hover { background: #0b1d1f; }
 }
 
 .sheet__author { display: inline-flex; align-items: center; gap: 9px; color: var(--crd-ink); font-size: 14px; font-weight: 600; }
@@ -253,7 +226,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 40px;
+  min-height: 42px;
   padding: 0 16px;
   border: 1.5px solid var(--crd-border-strong);
   border-radius: 999px;

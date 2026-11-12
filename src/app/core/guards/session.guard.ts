@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { consumeReturnUrl } from '../utils/return-url';
 import { requireTrustedDevice } from './device-verification';
 
 /**
@@ -32,7 +33,8 @@ export const sessionGuard: CanActivateFn = async (_route, state) => {
       if (verification) return verification;
       auth.cacheAuthenticatedUser(user);
       // Al volver de Google (?code=...) se entra directo a la homepage.
-      if (isAuthCallback) return router.createUrlTree(['/inicio']);
+      // Al volver de Google: a la página de origen (si la había) o al inicio.
+      if (isAuthCallback) return router.parseUrl(consumeReturnUrl() ?? '/inicio');
     }
     return true;
   } catch {

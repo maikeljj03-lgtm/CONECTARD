@@ -31,8 +31,10 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
 
 const CITIZEN: Permission[] = ['report.create', 'report.support', 'report.comment'];
 const VOLUNTEER: Permission[] = [...CITIZEN, 'event.join'];
-const ORGANIZATION: Permission[] = [...VOLUNTEER, 'event.create', 'resource.manage'];
-const INSTITUTION: Permission[] = [...CITIZEN, 'report.manage_status'];
+const ORGANIZATION: Permission[] = [...VOLUNTEER, 'event.create', 'resource.manage', 'report.manage_status'];
+// Sección 4 de la propuesta: los eventos, insumos y donaciones los gestiona su creador (ONG o institución).
+// La ONG cambia estados de forma limitada: solo en los reportes en los que participa.
+const INSTITUTION: Permission[] = [...CITIZEN, 'report.manage_status', 'event.create', 'resource.manage'];
 const ADMINISTRATOR: Permission[] = Object.keys(PERMISSION_LABELS) as Permission[];
 
 export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {

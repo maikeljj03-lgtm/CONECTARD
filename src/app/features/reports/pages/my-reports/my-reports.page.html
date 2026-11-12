@@ -1,0 +1,88 @@
+<ion-content class="app-content">
+  <app-topbar></app-topbar>
+
+  <main class="page page--narrow my-reports">
+    <a class="back-link" routerLink="/inicio"><app-icon name="arrow-left"></app-icon> Inicio</a>
+    <header class="page-head">
+      <p class="page-kicker">Mis reportes</p>
+      <h1>Lo que has reportado</h1>
+      <p>Sigue el avance de cada reporte. Puedes editarlo o eliminarlo durante las primeras {{ editHours }} horas, mientras nadie lo esté atendiendo.</p>
+    </header>
+
+    @if (!loading && reports.length) {
+      <dl class="my-reports__stats">
+        <div><dt>Reportes</dt><dd>{{ reports.length }}</dd></div>
+        <div><dt>Aún editables</dt><dd>{{ editableCount }}</dd></div>
+        <div><dt>Resueltos</dt><dd>{{ resolvedCount }}</dd></div>
+      </dl>
+    }
+
+    @if (feedback) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ feedback }}</span></div> }
+    @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+    @if (loading) {
+      <div class="page-state"><span class="spinner"></span><p>Cargando tus reportes…</p></div>
+    } @else {
+      <div class="stack">
+        @for (report of reports; track report.id) {
+          <article class="card my-report" [style.--status]="statusColors[report.status]">
+            <div class="my-report__main">
+              <button type="button" class="my-report__thumb" (click)="open(report)" [attr.aria-label]="'Ver ' + report.title" [disabled]="!publicById.has(report.id)">
+                @if (coverOf(report); as cover) { <img [src]="cover" alt="" loading="lazy" /> } @else { <app-icon [name]="categoryOf(report).icon"></app-icon> }
+              </button>
+              <div class="my-report__body">
+                <div class="my-report__tags">
+                  <span class="my-report__status">{{ statusLabels[report.status] }}</span>
+                  @if (report.is_anonymous) { <span class="badge badge--sun"><app-icon name="eye-off"></app-icon> Anónimo</span> }
+                </div>
+                <h2>{{ report.title }}</h2>
+                <small>{{ categoryOf(report).label }} · {{ report.created_at | date: "d MMM y, h:mm a" }}</small>
+              </div>
+            </div>
+
+            @if (confirmingId === report.id) {
+              <div class="my-report__confirm" role="alertdialog" [attr.aria-label]="'Confirmar eliminación de ' + report.title">
+                <p><strong>¿Eliminar este reporte?</strong> Se borrarán también sus fotos. No se puede deshacer.</p>
+                <div class="actions">
+                  <button type="button" class="btn btn--ghost btn--sm" (click)="confirmingId = null" [disabled]="deletingId === report.id">Cancelar</button>
+                  <button type="button" class="btn btn--danger btn--sm" (click)="confirmDelete(report)" [disabled]="deletingId === report.id">
+                    @if (deletingId === report.id) { <span class="spinner spinner--sm"></span> Eliminando… } @else { <app-icon name="trash"></app-icon> Sí, eliminar }
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <div class="my-report__foot">
+                @if (canEdit(report)) {
+                  <span class="my-report__window" [title]="'Hasta el ' + (deadline(report) | date: 'd MMM, h:mm a')">
+                    <app-icon name="clock"></app-icon> {{ timeLeft(report) }} para editar
+                  </span>
+                } @else {
+                  <span class="my-report__window my-report__window--locked"><app-icon name="lock"></app-icon> {{ lockedReason(report) }}</span>
+                }
+                <div class="my-report__actions">
+                  @if (publicById.has(report.id)) {
+                    <button type="button" class="btn btn--ghost btn--sm" (click)="open(report)"><app-icon name="eye"></app-icon> Seguimiento</button>
+                  }
+                  @if (canEdit(report)) {
+                    <a class="btn btn--ghost btn--sm" [routerLink]="['/reportes', report.id, 'editar']"><app-icon name="edit"></app-icon> Editar</a>
+                    <button type="button" class="btn btn--ghost btn--sm my-report__delete" (click)="askDelete(report)"><app-icon name="trash"></app-icon> Eliminar</button>
+                  }
+                </div>
+              </div>
+            }
+          </article>
+        } @empty {
+          <div class="card result">
+            <span class="result__icon"><app-icon name="file-text"></app-icon></span>
+            <h2>Aún no has creado reportes</h2>
+            <p class="muted">Cuando veas un problema en tu comunidad, repórtalo y aquí verás su avance.</p>
+            <div class="actions actions--center"><a class="btn btn--primary" routerLink="/reportes/nuevo"><app-icon name="plus"></app-icon> Crear un reporte</a></div>
+          </div>
+        }
+      </div>
+    }
+  </main>
+
+  <app-report-preview [report]="selected" [showMapAction]="false" (closed)="selected = null"></app-report-preview>
+  <app-bottom-nav></app-bottom-nav>
+</ion-content>

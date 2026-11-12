@@ -13,10 +13,18 @@ describe('Permisos por rol (RF-03)', () => {
     expect(roleCan('volunteer', 'event.create')).toBe(false);
   });
 
-  it('la organización crea eventos y gestiona insumos, pero no cambia estados de reportes', () => {
+  it('la organización crea eventos, gestiona insumos y avanza (de forma limitada) los reportes donde participa', () => {
     expect(roleCan('organization', 'event.create')).toBe(true);
     expect(roleCan('organization', 'resource.manage')).toBe(true);
-    expect(roleCan('organization', 'report.manage_status')).toBe(false);
+    // La base de datos limita el cambio a "En proceso"/"Resuelto" y solo en reportes donde se sumó.
+    expect(roleCan('organization', 'report.manage_status')).toBe(true);
+    expect(roleCan('organization', 'content.moderate')).toBe(false);
+  });
+
+  it('la institución también organiza jornadas y pide insumos (sección 4 de la propuesta)', () => {
+    expect(roleCan('institution', 'event.create')).toBe(true);
+    expect(roleCan('institution', 'resource.manage')).toBe(true);
+    expect(roleCan('institution', 'event.join')).toBe(false);
   });
 
   it('la institución cambia el estado de los reportes, pero no modera ni administra', () => {

@@ -1,0 +1,208 @@
+<ion-content class="app-content">
+  @if (signedIn) { <app-topbar></app-topbar> } @else {
+    <header class="guest-bar">
+      <a routerLink="/landing" aria-label="ConectaRD, inicio"><app-logo [size]="30"></app-logo></a>
+      <div class="guest-bar__actions">
+        <a class="btn btn--ghost btn--sm" routerLink="/auth/login">Iniciar sesión</a>
+        <a class="btn btn--primary btn--sm" routerLink="/auth/register">Únete</a>
+      </div>
+    </header>
+  }
+
+  <main class="page">
+    <a class="back-link" routerLink="/jornadas"><app-icon name="arrow-left"></app-icon> Jornadas</a>
+
+    <!-- Resultado del pase de lista por QR (RF-28) -->
+    @if (checkInState === 'working') {
+      <div class="checkin checkin--working" role="status"><span class="spinner spinner--sm"></span> Confirmando tu asistencia…</div>
+    } @else if (checkInState === 'done') {
+      <div class="checkin checkin--done" role="status"><span class="checkin__icon"><app-icon name="check"></app-icon></span><div><strong>{{ checkInMessage }}</strong><small>Tu participación quedó registrada en esta jornada.</small></div></div>
+    } @else if (checkInState === 'failed') {
+      <div class="checkin checkin--failed" role="alert"><span class="checkin__icon"><app-icon name="alert-circle"></app-icon></span><div><strong>No se pudo confirmar la asistencia</strong><small>{{ checkInMessage }}</small></div></div>
+    } @else if (checkInState === 'login') {
+      <div class="checkin" role="status">
+        <span class="checkin__icon"><app-icon name="qr"></app-icon></span>
+        <div><strong>Inicia sesión para confirmar tu asistencia</strong><small>Al entrar volverás aquí y se confirmará automáticamente.</small></div>
+        <button type="button" class="btn btn--primary btn--sm" (click)="goToLogin()">Iniciar sesión</button>
+      </div>
+    }
+
+    @if (loading) {
+      <div class="page-state"><span class="spinner"></span><p>Cargando la jornada…</p></div>
+    } @else if (notFound) {
+      <div class="page-state">
+        <app-icon class="page-state__icon" name="calendar"></app-icon>
+        <h1>No encontramos esta jornada</h1>
+        <a class="btn btn--primary" routerLink="/jornadas">Ver jornadas</a>
+      </div>
+    } @else if (error) {
+      <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div>
+    } @else if (event) {
+      <div class="event-layout">
+        <article class="event-main">
+          <header class="event-hero">
+            <span class="event-date" aria-hidden="true">
+              <small>{{ event.starts_at | date: 'EEE' }}</small>
+              <b>{{ event.starts_at | date: 'd' }}</b>
+              <small>{{ event.starts_at | date: 'MMM' }}</small>
+            </span>
+            <div class="event-hero__text">
+              <div class="event-hero__tags">
+                <span class="pill pill--teal"><app-icon name="calendar"></app-icon> Jornada comunitaria</span>
+                @if (event.status === 'cancelado') { <span class="pill pill--danger">Cancelada</span> }
+                @if (event.status === 'finalizado') { <span class="pill">Finalizada</span> }
+              </div>
+              <h1>{{ event.title }}</h1>
+              <p class="event-hero__org">Organiza <strong>{{ event.organizer_name || 'Organización' }}</strong> · {{ roleLabels[event.organizer_role] }}</p>
+            </div>
+          </header>
+
+          <dl class="event-facts">
+            <div><dt><app-icon name="clock"></app-icon> Cuándo</dt><dd>{{ event.starts_at | date: "EEEE d 'de' MMMM, h:mm a" }} – {{ event.ends_at | date: 'h:mm a' }}</dd></div>
+            <div><dt><app-icon name="map-pin"></app-icon> Dónde</dt><dd>{{ place }} @if (directionsUrl) { <a [href]="directionsUrl" target="_blank" rel="noopener noreferrer">Cómo llegar</a> }</dd></div>
+          </dl>
+
+          <p class="event-description">{{ event.description }}</p>
+
+          @if (reports.length) {
+            <section class="event-section">
+              <h2><app-icon name="file-text"></app-icon> Reportes que atiende</h2>
+              <div class="event-reports">
+                @for (report of reports; track report.id) {
+                  <app-report-card [report]="report" [coverUrl]="coverOf(report)" (open)="selectedReport = $event"></app-report-card>
+                }
+              </div>
+            </section>
+          }
+
+          <!-- Panel de quien organiza: QR y pase de lista (RF-28) -->
+          @if (isOrganizer) {
+            <section class="event-section organizer">
+              <div class="organizer__head">
+                <h2><app-icon name="qr"></app-icon> Pase de lista</h2>
+                <span class="organizer__count"><b>{{ presentCount }}</b> de {{ roster.length }} presentes</span>
+              </div>
+
+              @if (event.status !== 'cancelado') {
+                <div class="qr-box">
+                  @if (qrImage) {
+                    <img class="qr-box__image" [src]="qrImage" alt="Código QR para confirmar asistencia a la jornada" />
+                    <div class="qr-box__text">
+                      <strong>Muestra este código en la jornada</strong>
+                      <p>Cada voluntario lo escanea con la cámara de su teléfono y su asistencia se confirma sola. Funciona desde 1 hora antes del inicio hasta 2 horas después del fin.</p>
+                      <div class="qr-box__actions">
+                        <button type="button" class="btn btn--primary btn--sm" (click)="qrFullscreen = true"><app-icon name="maximize"></app-icon> Pantalla completa</button>
+                        <button type="button" class="btn btn--ghost btn--sm" (click)="showQr(true)" [disabled]="qrLoading"><app-icon name="refresh"></app-icon> Cambiar código</button>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="qr-box__text">
+                      <strong>Código QR de asistencia</strong>
+                      <p>Genera el código para mostrarlo el día de la jornada. Es secreto: no lo publiques antes, o alguien podría marcar asistencia sin ir.</p>
+                      <button type="button" class="btn btn--primary btn--sm" (click)="showQr()" [disabled]="qrLoading">
+                        @if (qrLoading) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="qr"></app-icon> } Mostrar código QR
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (rosterLoading) {
+                <p class="muted small"><span class="spinner spinner--sm"></span> Cargando inscritos…</p>
+              } @else if (roster.length) {
+                <ul class="roster">
+                  @for (entry of roster; track entry.user_id) {
+                    <li [class.is-present]="entry.checked_in_at">
+                      <span class="roster__avatar">@if (entry.avatar_url) { <img [src]="entry.avatar_url" alt="" /> } @else { {{ initials(entry.name) }} }</span>
+                      <span class="roster__name">
+                        <strong>{{ entry.name || 'Voluntario' }}</strong>
+                        <small>{{ roleLabels[entry.role] }} · @if (entry.checked_in_at) { llegó {{ entry.checked_in_at | date: 'h:mm a' }} } @else { inscrito {{ entry.registered_at | date: 'd MMM' }} }</small>
+                      </span>
+                      <label class="switch" [attr.title]="entry.checked_in_at ? 'Marcar ausente' : 'Marcar presente'">
+                        <input type="checkbox" [checked]="!!entry.checked_in_at" (change)="setAttendance(entry, $any($event.target).checked)" [disabled]="rosterBusy === entry.user_id || event.status === 'cancelado'" [attr.aria-label]="'Asistencia de ' + (entry.name || 'voluntario')" />
+                        <span></span>
+                      </label>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <p class="muted small">Todavía nadie se ha inscrito.</p>
+              }
+            </section>
+          }
+        </article>
+
+        <!-- ================= Lateral ================= -->
+        <aside class="event-side">
+          <div class="side-card">
+            @if (event.capacity) {
+              <div class="capacity">
+                <div class="capacity__label"><strong>{{ event.attendee_count }}</strong> de {{ event.capacity }} cupos</div>
+                <div class="capacity__bar"><span [style.width.%]="capacityPercent"></span></div>
+              </div>
+            } @else {
+              <p class="capacity__label"><strong>{{ event.attendee_count }}</strong> {{ event.attendee_count === 1 ? 'persona inscrita' : 'personas inscritas' }}</p>
+            }
+            @if (event.status === 'finalizado') { <p class="side-hint">{{ event.checked_in_count }} {{ event.checked_in_count === 1 ? 'persona asistió' : 'personas asistieron' }}.</p> }
+
+            @if (feedback) { <p class="side-ok" role="status"><app-icon name="check-circle"></app-icon> {{ feedback }}</p> }
+            @if (actionError) { <p class="side-error" role="alert"><app-icon name="alert-circle"></app-icon> {{ actionError }}</p> }
+
+            @if (event.has_checked_in) {
+              <p class="side-ok"><app-icon name="check-circle"></app-icon> Asististe a esta jornada.</p>
+            } @else if (!signedIn) {
+              @if (isOpen) { <p class="side-hint"><a routerLink="/auth/register">Únete</a> o <a routerLink="/auth/login">inicia sesión</a> como voluntario para inscribirte.</p> }
+            } @else if (event.is_registered) {
+              <p class="side-ok"><app-icon name="check-circle"></app-icon> Estás inscrito.</p>
+              @if (isOpen) {
+                <button type="button" class="btn btn--ghost btn--block" (click)="toggleRegistration()" [disabled]="busy">Cancelar mi inscripción</button>
+              }
+            } @else if (isOpen && canRegisterRole && !event.is_organizer) {
+              <button type="button" class="btn btn--primary btn--block btn--lg" (click)="toggleRegistration()" [disabled]="busy || isFull">
+                @if (busy) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="hand"></app-icon> } {{ isFull ? 'Jornada llena' : 'Inscribirme' }}
+              </button>
+            } @else if (isOpen && !isOrganizer && !canRegisterRole) {
+              <p class="side-hint">Para inscribirte necesitas ser voluntario. <a routerLink="/perfil">Solicítalo desde tu perfil.</a></p>
+            }
+
+            @if (event.is_registered && checkInWindowOpen && !event.has_checked_in) {
+              <p class="side-hint"><app-icon name="qr"></app-icon> Al llegar, escanea el código QR que muestra quien organiza.</p>
+            }
+
+            <div class="side-actions">
+              <app-share-button [path]="'/jornadas/' + event.id" [title]="event.title" [text]="shareText"></app-share-button>
+              @if (event.status !== 'cancelado') {
+                <button type="button" class="btn btn--ghost btn--sm" (click)="addToCalendar()"><app-icon name="calendar"></app-icon> A mi calendario</button>
+              }
+            </div>
+          </div>
+
+          @if (isOrganizer && event.status === 'programado') {
+            <div class="side-card">
+              <h2 class="side-title">Administrar</h2>
+              <a class="btn btn--ghost btn--block" [routerLink]="['/jornadas', event.id, 'editar']"><app-icon name="edit"></app-icon> Editar jornada</a>
+              <button type="button" class="btn btn--ghost btn--block side-danger" (click)="cancelEvent()" [disabled]="busy"><app-icon name="x"></app-icon> Cancelar jornada</button>
+            </div>
+          }
+        </aside>
+      </div>
+    }
+  </main>
+
+  <!-- QR en pantalla completa para proyectarlo o mostrarlo desde el teléfono -->
+  @if (qrFullscreen && qrImage && event) {
+    <div class="qr-full" role="dialog" aria-modal="true" aria-label="Código QR de asistencia" (click)="qrFullscreen = false">
+      <div class="qr-full__card" (click)="$event.stopPropagation()">
+        <p class="qr-full__kicker">Pase de lista</p>
+        <h2>{{ event.title }}</h2>
+        <img [src]="qrImage" alt="Código QR para confirmar asistencia" />
+        <p>Escanea con la cámara de tu teléfono para confirmar tu asistencia</p>
+        <strong class="qr-full__count">{{ presentCount }} presentes</strong>
+        <button type="button" class="btn btn--ghost" (click)="qrFullscreen = false; loadRoster()">Cerrar</button>
+      </div>
+    </div>
+  }
+
+  <app-report-preview [report]="selectedReport" (closed)="selectedReport = null" [showMapAction]="false"></app-report-preview>
+  @if (signedIn) { <app-bottom-nav></app-bottom-nav> }
+</ion-content>

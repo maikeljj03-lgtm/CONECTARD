@@ -1,0 +1,108 @@
+:host { position: relative; display: inline-block; }
+
+.share__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1.5px solid var(--crd-border-strong);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--crd-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color .15s;
+  app-icon { color: var(--crd-teal-text); font-size: 16px; }
+  &:hover { border-color: var(--crd-ink); }
+}
+
+.share__trigger--compact { width: 42px; padding: 0; justify-content: center; }
+
+.share__menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 50;
+  display: grid;
+  gap: 2px;
+  width: 260px;
+  padding: 8px;
+  border: 1px solid var(--crd-border);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: var(--crd-shadow-lg);
+  animation: share-in .18s ease both;
+}
+
+.share__item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  color: var(--crd-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  &:hover { background: var(--crd-surface-2); }
+}
+
+.share__logo {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 15px;
+  svg { width: 17px; height: 17px; }
+}
+
+// Colores oficiales de cada red, solo en el círculo del logotipo.
+.share__item--whatsapp .share__logo { background: #25d366; }
+.share__item--facebook .share__logo { background: #1877f2; }
+.share__item--x .share__logo { background: #000; }
+.share__item--telegram .share__logo { background: #229ed9; }
+.share__item--email .share__logo { background: var(--crd-ink); }
+
+.share__copy {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--crd-border);
+
+  input {
+    flex: 1;
+    min-width: 0;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--crd-border);
+    border-radius: 10px;
+    background: var(--crd-surface-2);
+    color: var(--crd-text-2);
+    font: inherit;
+    font-size: 12.5px;
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 36px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--crd-ink);
+    color: #fff;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
+  }
+}
+
+@keyframes share-in { from { opacity: 0; transform: translateY(6px); } }

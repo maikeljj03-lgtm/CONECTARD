@@ -1,0 +1,120 @@
+// Mis reportes (RF-15). Usa las piezas comunes de _internal-pages.scss.
+
+.my-reports__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 0 0 20px;
+
+  div {
+    padding: 14px 16px;
+    border: 1px solid var(--crd-border);
+    border-radius: 18px;
+    background: #fff;
+  }
+
+  dt { color: var(--crd-text-3); font-size: 12.5px; font-weight: 650; }
+  dd { margin: 2px 0 0; color: var(--crd-ink); font-family: var(--crd-font-display); font-size: 26px; font-weight: 700; }
+}
+
+.my-report {
+  --status: #8a9693;
+  display: grid;
+  gap: 14px;
+}
+
+.my-report__main { display: flex; align-items: center; gap: 14px; min-width: 0; }
+
+.my-report__thumb {
+  display: grid;
+  flex: none;
+  width: 76px;
+  height: 76px;
+  padding: 0;
+  overflow: hidden;
+  place-items: center;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(150deg, var(--crd-teal-soft), var(--crd-surface-2));
+  color: var(--crd-teal-text);
+  font-size: 28px;
+  cursor: pointer;
+  img { width: 100%; height: 100%; object-fit: cover; }
+  &:disabled { cursor: default; }
+}
+
+.my-report__body {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+
+  h2 {
+    margin: 0;
+    overflow: hidden;
+    color: var(--crd-ink);
+    font-size: 17px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small { color: var(--crd-text-3); font-size: 13px; }
+}
+
+.my-report__tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.my-report__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--status) 13%, #fff);
+  color: color-mix(in srgb, var(--status) 72%, #13282b);
+  font-size: 12px;
+  font-weight: 650;
+  &::before { width: 7px; height: 7px; border-radius: 50%; background: var(--status); content: ''; }
+}
+
+.my-report__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--crd-border);
+}
+
+.my-report__window {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--crd-teal-text);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.my-report__window--locked { color: var(--crd-text-3); font-weight: 550; }
+
+.my-report__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.btn.my-report__delete { color: var(--crd-danger); }
+
+.my-report__confirm {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--crd-danger-line);
+  border-radius: 16px;
+  background: var(--crd-danger-soft);
+
+  p { margin: 0; color: #8f2f28; font-size: 14px; }
+  .actions { margin: 0; }
+}
+
+@media (max-width: 560px) {
+  .my-reports__stats dd { font-size: 22px; }
+  .my-report__thumb { width: 60px; height: 60px; }
+  .my-report__actions { width: 100%; }
+}

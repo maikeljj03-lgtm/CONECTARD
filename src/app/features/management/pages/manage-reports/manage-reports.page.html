@@ -1,0 +1,149 @@
+<ion-content class="app-content">
+  <app-topbar></app-topbar>
+
+  <main class="page manage">
+    <header class="page-head">
+      <p class="page-kicker">{{ isAdmin ? 'Moderación' : 'Gestión de reportes' }}</p>
+      <h1>{{ isAdmin ? 'Todos los reportes' : isOrganization ? 'Reportes en los que participas' : 'Reportes de tu jurisdicción' }}</h1>
+      @if (isAdmin) {
+        <p>Como administrador moderas: puedes <strong>rechazar</strong> un reporte falso, duplicado o inapropiado, o restaurar uno rechazado por error. El avance (en revisión, en proceso, resuelto) lo marca la institución responsable.</p>
+      } @else if (isOrganization) {
+        <p>Los reportes a los que tu organización se sumó. Puedes marcarlos <strong>En proceso</strong> o <strong>Resuelto</strong> (con foto del después); el resto del seguimiento lo hace la institución responsable.</p>
+      } @else if (profile) {
+        <p>Reportes en <strong>{{ jurisdiction }}</strong>. Cada cambio de estado queda en el historial público con el nombre de tu institución, y para marcar uno como resuelto debes subir una foto de cómo quedó.</p>
+      }
+    </header>
+
+    @if (feedback) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ feedback }}</span></div> }
+    @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+    @if (missingJurisdiction && !loading) {
+      <div class="card result">
+        <span class="result__icon result__icon--wait"><app-icon name="map-pin"></app-icon></span>
+        <h2>Falta tu jurisdicción</h2>
+        <p class="muted">Tu perfil de institución no tiene provincia. Pide a la administración de ConectaRD que la configure para ver los reportes que te corresponden.</p>
+      </div>
+    } @else {
+      <div class="manage__toolbar">
+        <div class="manage__filters" role="tablist" aria-label="Filtrar por estado">
+          <button type="button" role="tab" class="manage__filter" [class.is-active]="filter === 'activos'" [attr.aria-selected]="filter === 'activos'" (click)="setFilter('activos')">
+            Pendientes <span>{{ count('activos') }}</span>
+          </button>
+          @for (status of statusOrder; track status) {
+            <button type="button" role="tab" class="manage__filter" [class.is-active]="filter === status" [attr.aria-selected]="filter === status" (click)="setFilter(status)" [style.--status]="statusColors[status]">
+              <i></i>{{ statusLabels[status] }} <span>{{ count(status) }}</span>
+            </button>
+          }
+        </div>
+        <label class="manage__search">
+          <app-icon name="search"></app-icon>
+          <input type="search" placeholder="Buscar por título, sector o referencia" [value]="search" (input)="search = $any($event.target).value" aria-label="Buscar reportes" />
+        </label>
+      </div>
+
+      @if (loading) {
+        <div class="page-state"><span class="spinner"></span><p>Cargando reportes…</p></div>
+      } @else {
+        <div class="stack">
+          @for (report of visible; track report.id) {
+            <article class="card manage-item" [class.is-open]="openId === report.id" [style.--status]="statusColors[report.status]">
+              <button type="button" class="manage-item__head" (click)="toggle(report)" [attr.aria-expanded]="openId === report.id">
+                <span class="manage-item__thumb">
+                  @if (coverOf(report); as cover) { <img [src]="cover" alt="" loading="lazy" /> } @else { <app-icon [name]="categoryOf(report).icon"></app-icon> }
+                </span>
+                <span class="manage-item__body">
+                  <span class="manage-item__tags">
+                    <span class="manage-item__status">{{ statusLabels[report.status] }}</span>
+                    <span class="manage-item__category"><app-icon [name]="categoryOf(report).icon"></app-icon>{{ categoryOf(report).label }}</span>
+                  </span>
+                  <strong>{{ report.title }}</strong>
+                  <small><app-icon name="map-pin"></app-icon> {{ place(report) }} · <app-icon name="clock"></app-icon> {{ waiting(report) }}</small>
+                </span>
+                <app-icon class="manage-item__chevron" name="chevron-down"></app-icon>
+              </button>
+
+              @if (openId === report.id) {
+                <div class="manage-item__panel">
+                  <p class="manage-item__description">{{ report.description }}</p>
+                  @if (report.address) { <p class="muted small"><strong>Referencia:</strong> {{ report.address }}</p> }
+                  <button type="button" class="btn btn--ghost btn--sm" (click)="preview = report"><app-icon name="history"></app-icon> Ver fotos e historial</button>
+
+                  @if (nextStatuses(report).length) {
+                    <p class="manage-item__label">{{ isAdmin ? 'Moderación' : 'Cambiar estado a' }}</p>
+                    <div class="manage-item__options" role="radiogroup" aria-label="Nuevo estado">
+                      @for (status of nextStatuses(report); track status) {
+                        <button type="button" role="radio" class="status-option" [class.is-selected]="target === status" [attr.aria-checked]="target === status" [style.--status]="statusColors[status]" (click)="choose(status)">
+                          <i></i>
+                          <span><strong>{{ status === 'reportado' ? 'Restaurar' : statusLabels[status] }}</strong><small>{{ status === 'reportado' ? 'Vuelve a estar visible como reportado.' : statusDescriptions[status] }}</small></span>
+                        </button>
+                      }
+                    </div>
+
+                    @if (target) {
+                      @if (needsEvidence(target)) {
+                        <div class="manage-item__evidence">
+                          <p class="manage-item__label"><app-icon name="columns"></app-icon> Evidencia: ¿cómo quedó?</p>
+                          <p class="muted small">Toma la foto desde un ángulo parecido al de la foto original: así el “Antes y después” se entiende mejor.</p>
+                          @if (loadingEvidence) { <span class="spinner spinner--sm"></span> }
+                          @if (evidence.length) {
+                            <ul class="evidence-list">
+                              @for (item of evidence; track item.id) {
+                                <li>
+                                  <img [src]="item.url" alt="Foto de evidencia ya subida" />
+                                  <button type="button" (click)="removeEvidence(report, item)" aria-label="Quitar esta foto"><app-icon name="x"></app-icon></button>
+                                </li>
+                              }
+                            </ul>
+                          }
+                          @if (evidence.length < 5) {
+                            <app-media-picker [allowVideo]="false" [showCover]="false" [maxItems]="5 - evidence.length" [disabled]="saving" (readyChange)="newEvidence = $event" (processingChange)="evidenceProcessing = $event"></app-media-picker>
+                          }
+                        </div>
+                      }
+
+                      <div class="field">
+                        <label class="field__label" [attr.for]="'note-' + report.id">
+                          {{ needsNote(target) ? 'Motivo del rechazo' : 'Nota para la comunidad' }}
+                          <span class="optional">{{ needsNote(target) ? '(obligatorio, será público)' : '(opcional, será pública)' }}</span>
+                        </label>
+                        <textarea class="textarea" [id]="'note-' + report.id" rows="3" maxlength="500" [value]="note" (input)="note = $any($event.target).value"
+                          [placeholder]="needsNote(target) ? 'Ej. Duplicado del reporte de la calle 5; el seguimiento continúa allí.' : 'Ej. La brigada de obras públicas irá el jueves.'"></textarea>
+                      </div>
+
+                      @if (actionError) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ actionError }}</span></div> }
+
+                      <div class="actions">
+                        <button type="button" class="btn btn--ghost" (click)="target = null" [disabled]="saving">Cancelar</button>
+                        <button type="button" class="btn" [class.btn--danger]="target === 'rechazado'" [class.btn--primary]="target !== 'rechazado'" (click)="apply(report)" [disabled]="saving || evidenceProcessing">
+                          @if (saving) { <span class="spinner spinner--sm"></span> Guardando… } @else { <app-icon name="check"></app-icon> Confirmar: {{ target === 'reportado' ? 'Restaurar' : statusLabels[target] }} }
+                        </button>
+                      </div>
+                    }
+                  } @else {
+                    <p class="muted small">No hay cambios de estado disponibles para este reporte.</p>
+                  }
+                </div>
+              }
+            </article>
+          } @empty {
+            <div class="card result">
+              <span class="result__icon"><app-icon name="inbox"></app-icon></span>
+              <h2>{{ search ? 'Ningún reporte coincide con la búsqueda' : (filter === 'activos' ? 'No hay reportes pendientes' : 'No hay reportes en este estado') }}</h2>
+              @if (!search && filter === 'activos') {
+                @if (isOrganization) {
+                  <p class="muted">Súmate a un reporte desde su página (“Sumarme”) para gestionarlo aquí.</p>
+                  <div class="actions actions--center"><a class="btn btn--primary" routerLink="/explorar"><app-icon name="map"></app-icon> Buscar reportes</a></div>
+                } @else {
+                  <p class="muted">Cuando alguien reporte un problema en {{ jurisdiction }}, aparecerá aquí.</p>
+                }
+              }
+            </div>
+          }
+        </div>
+      }
+    }
+  </main>
+
+  <app-report-preview [report]="preview" (closed)="preview = null" [showMapAction]="false"></app-report-preview>
+  <app-bottom-nav></app-bottom-nav>
+</ion-content>

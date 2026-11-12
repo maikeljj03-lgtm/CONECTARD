@@ -8,7 +8,7 @@ import { ProfileService } from '../../../../core/services/profile.service';
 import { ReportMediaService } from '../../../../core/services/report-media.service';
 import { ReportsService } from '../../../../core/services/reports.service';
 import type { ProcessedMedia } from '../../../../core/utils/media';
-import { MediaPickerComponent } from '../../components/media-picker/media-picker.component';
+import { MediaPickerComponent } from '../../../../shared/components/media-picker/media-picker.component';
 import { friendlyDataError } from '../../../../core/utils/data-errors';
 
 @Component({

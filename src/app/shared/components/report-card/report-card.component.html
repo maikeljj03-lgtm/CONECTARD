@@ -17,8 +17,17 @@
       <span><app-icon name="clock"></app-icon>{{ age }}</span>
       @if (distance) { <span class="card__distance">a {{ distance }}</span> }
     </span>
-    <span class="card__author">
-      @if (report.is_anonymous) { <app-icon name="eye-off"></app-icon> Vecino anónimo } @else { <app-icon name="user"></app-icon> {{ report.author_name || 'Vecino' }} }
+    <span class="card__foot">
+      <span class="card__author">
+        @if (report.is_anonymous) { <app-icon name="eye-off"></app-icon> Vecino anónimo } @else { <app-icon name="user"></app-icon> {{ report.author_name || 'Vecino' }} }
+      </span>
+      @if (report.support_count || report.comment_count || report.volunteer_count) {
+        <span class="card__social">
+          @if (report.support_count) { <span [class.is-mine]="report.supported_by_me" [attr.title]="report.support_count + ' personas dicen que les afecta'"><app-icon name="thumbs-up"></app-icon>{{ report.support_count }}</span> }
+          @if (report.comment_count) { <span [attr.title]="report.comment_count + ' comentarios'"><app-icon name="message"></app-icon>{{ report.comment_count }}</span> }
+          @if (report.volunteer_count) { <span [attr.title]="report.volunteer_count + ' voluntarios sumados'"><app-icon name="users"></app-icon>{{ report.volunteer_count }}</span> }
+        </span>
+      }
     </span>
   </span>
   <app-icon class="card__chevron" name="arrow-right"></app-icon>

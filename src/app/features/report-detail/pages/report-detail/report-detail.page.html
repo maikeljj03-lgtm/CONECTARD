@@ -1,0 +1,166 @@
+<ion-content class="app-content report-page">
+  @if (signedIn) {
+    <app-topbar></app-topbar>
+  } @else {
+    <header class="guest-bar">
+      <a routerLink="/landing" aria-label="ConectaRD, inicio"><app-logo [size]="30"></app-logo></a>
+      <div class="guest-bar__actions">
+        <a class="btn btn--ghost btn--sm" routerLink="/auth/login">Iniciar sesión</a>
+        <a class="btn btn--primary btn--sm" routerLink="/auth/register">Únete</a>
+      </div>
+    </header>
+  }
+
+  <main class="page">
+    <a class="back-link" routerLink="/explorar"><app-icon name="arrow-left"></app-icon> Explorar</a>
+
+    @if (loading) {
+      <div class="page-state"><span class="spinner"></span><p>Cargando el reporte…</p></div>
+    } @else if (notFound) {
+      <div class="page-state">
+        <app-icon class="page-state__icon" name="search"></app-icon>
+        <h1>No encontramos este reporte</h1>
+        <p>Puede que el enlace esté incompleto o que su autor lo haya eliminado.</p>
+        <a class="btn btn--primary" routerLink="/explorar">Ver otros reportes</a>
+      </div>
+    } @else if (error) {
+      <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div>
+    } @else if (report) {
+      <div class="report-layout">
+        <!-- ================= Columna principal ================= -->
+        <article class="report-main">
+          <div class="report-gallery" [class.report-gallery--empty]="!media.length">
+            @if (media.length) {
+              @for (item of media; track item.url; let i = $index) {
+                @if (i === activeIndex) {
+                  @if (item.kind === 'video') { <video [src]="item.url" controls playsinline preload="metadata"></video> }
+                  @else { <img [src]="item.url" [alt]="'Foto ' + (i + 1) + ' de ' + report.title" /> }
+                }
+              }
+              @if (media.length > 1) {
+                <button type="button" class="report-gallery__nav report-gallery__nav--prev" (click)="step(-1)" aria-label="Foto anterior"><app-icon name="arrow-left"></app-icon></button>
+                <button type="button" class="report-gallery__nav report-gallery__nav--next" (click)="step(1)" aria-label="Foto siguiente"><app-icon name="arrow-right"></app-icon></button>
+                <span class="report-gallery__count">{{ activeIndex + 1 }} / {{ media.length }}</span>
+              }
+            } @else {
+              <span class="report-gallery__empty"><app-icon [name]="category.icon"></app-icon><small>Sin fotos</small></span>
+            }
+          </div>
+
+          <header class="report-head">
+            <div class="report-head__tags">
+              <span class="report-head__category"><app-icon [name]="category.icon"></app-icon>{{ category.label }}</span>
+              <span class="report-head__status" [style.--status]="statusColors[report.status]">{{ statusLabels[report.status] }}</span>
+            </div>
+            <h1>{{ report.title }}</h1>
+            <p class="report-head__meta">
+              <span><app-icon name="map-pin"></app-icon>{{ place }}</span>
+              <span [title]="report.created_at | date: 'd MMM y, h:mm a'"><app-icon name="clock"></app-icon>{{ age }}</span>
+              <span>
+                @if (report.is_anonymous) { <app-icon name="eye-off"></app-icon> Vecino anónimo }
+                @else { <app-icon name="user"></app-icon> {{ report.author_name || 'Vecino' }} }
+              </span>
+            </p>
+          </header>
+
+          <p class="report-description">{{ report.description }}</p>
+          @if (report.address) { <p class="report-address"><strong>Referencia:</strong> {{ report.address }}</p> }
+
+          <section class="report-section">
+            <app-report-progress [report]="report" [beforeImage]="beforeImage" [expandHistory]="true"></app-report-progress>
+          </section>
+
+          <section class="report-section">
+            <app-report-resources [reportId]="report.id" [role]="role" [open]="!isClosed"></app-report-resources>
+          </section>
+
+          <section class="report-section">
+            <app-report-comments [reportId]="report.id" [role]="role" [closed]="report.status === 'rechazado'" (countChange)="onCommentCount($event)"></app-report-comments>
+          </section>
+        </article>
+
+        <!-- ================= Columna lateral ================= -->
+        <aside class="report-side">
+          <!-- Apoyos y acciones -->
+          <div class="side-card side-card--actions">
+            <div class="support">
+              <button type="button" class="support__button" [class.is-active]="report.supported_by_me" (click)="toggleSupport()"
+                [disabled]="!signedIn || report.is_mine || supporting || (isClosed && !report.supported_by_me)" [attr.aria-pressed]="!!report.supported_by_me">
+                <app-icon name="thumbs-up"></app-icon>
+                <span>{{ report.supported_by_me ? 'Te afecta' : 'Me afecta' }}</span>
+              </button>
+              <p class="support__count"><strong>{{ report.support_count ?? 0 }}</strong> {{ (report.support_count ?? 0) === 1 ? 'persona dice' : 'personas dicen' }} que les afecta</p>
+            </div>
+            @if (!signedIn) {
+              <p class="side-hint"><a routerLink="/auth/login">Inicia sesión</a> para apoyar este reporte y darle prioridad.</p>
+            } @else if (report.is_mine) {
+              <p class="side-hint">Es tu reporte: los apoyos los dan otras personas afectadas.</p>
+            } @else if (isClosed && !report.supported_by_me) {
+              <p class="side-hint">El reporte ya está cerrado.</p>
+            }
+
+            <div class="side-actions">
+              <app-share-button [path]="'/reporte/' + report.id" [title]="report.title" [text]="shareText"></app-share-button>
+              <a class="btn btn--ghost btn--sm" routerLink="/explorar" [queryParams]="{ reporte: report.id }"><app-icon name="map"></app-icon> Ver en el mapa</a>
+              @if (canEdit) {
+                <a class="btn btn--ghost btn--sm" [routerLink]="['/reportes', report.id, 'editar']"><app-icon name="edit"></app-icon> Editar</a>
+              }
+            </div>
+            @if (actionError) { <p class="side-error" role="alert"><app-icon name="alert-circle"></app-icon> {{ actionError }}</p> }
+          </div>
+
+          <!-- Voluntarios (RF-26) -->
+          <div class="side-card">
+            <h2 class="side-title"><app-icon name="hand"></app-icon> Voluntarios <small>{{ volunteers.length }}</small></h2>
+            @if (volunteers.length) {
+              <ul class="people">
+                @for (person of volunteers; track person.created_at + (person.name ?? '')) {
+                  <li>
+                    <span class="people__avatar">@if (person.avatar_url) { <img [src]="person.avatar_url" alt="" loading="lazy" /> } @else { {{ initials(person.name) }} }</span>
+                    <span><strong>{{ person.name || 'Voluntario' }}@if (person.is_mine) { (tú) }</strong><small>{{ roleLabels[person.role] }}</small></span>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="side-hint">Nadie se ha sumado todavía.</p>
+            }
+
+            @if (signedIn && canJoinRole && (!isClosed || report.joined_by_me)) {
+              <button type="button" class="btn btn--block" [class.btn--primary]="!report.joined_by_me" [class.btn--ghost]="report.joined_by_me" (click)="toggleVolunteer()" [disabled]="joining">
+                @if (joining) { <span class="spinner spinner--sm"></span> } @else { <app-icon [name]="report.joined_by_me ? 'x' : 'hand'"></app-icon> }
+                {{ report.joined_by_me ? 'Ya no puedo ayudar' : 'Sumarme como voluntario' }}
+              </button>
+              @if (report.joined_by_me && role === 'organization') {
+                <p class="side-hint">Como organización participante puedes marcarlo “En proceso” o “Resuelto” desde <a routerLink="/gestion">Gestión</a>.</p>
+              }
+            } @else if (signedIn && !canJoinRole && !isClosed) {
+              <p class="side-hint">¿Quieres ayudar a resolverlo? <a routerLink="/perfil">Solicita ser voluntario</a> desde tu perfil.</p>
+            } @else if (!signedIn && !isClosed) {
+              <p class="side-hint"><a routerLink="/auth/register">Únete</a> como voluntario para ayudar a resolverlo.</p>
+            }
+          </div>
+
+          <!-- Jornadas (RF-27) -->
+          <div class="side-card">
+            <h2 class="side-title"><app-icon name="calendar"></app-icon> Jornadas <small>{{ events.length }}</small></h2>
+            @for (event of events; track event.id) {
+              <a class="mini-event" [routerLink]="['/jornadas', event.id]">
+                <span class="mini-event__date"><b>{{ event.starts_at | date: 'd' }}</b>{{ event.starts_at | date: 'MMM' }}</span>
+                <span class="mini-event__body">
+                  <strong>{{ event.title }}</strong>
+                  <small>{{ event.starts_at | date: 'EEE d MMM, h:mm a' }} · {{ event.status === 'cancelado' ? 'Cancelada' : event.status === 'finalizado' ? 'Finalizada' : event.attendee_count + ' inscritos' }}</small>
+                </span>
+              </a>
+            } @empty {
+              <p class="side-hint">No hay jornadas organizadas para este reporte.</p>
+            }
+            @if (canOrganize) {
+              <a class="btn btn--ghost btn--sm btn--block" routerLink="/jornadas/nueva" [queryParams]="{ reporte: report.id }"><app-icon name="plus"></app-icon> Organizar una jornada</a>
+            }
+          </div>
+        </aside>
+      </div>
+    }
+  </main>
+  @if (signedIn) { <app-bottom-nav></app-bottom-nav> }
+</ion-content>

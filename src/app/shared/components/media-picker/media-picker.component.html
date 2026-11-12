@@ -2,14 +2,14 @@
   <div class="picker-media__actions">
     <!-- RF-10: en el teléfono abre directamente la cámara -->
     <label class="media-action" [class.is-disabled]="disabled || remaining <= 0">
-      <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" capture="environment"
+      <input type="file" [accept]="accept" capture="environment"
         (change)="onFilesSelected($event)" [disabled]="disabled || remaining <= 0" />
       <app-icon name="camera"></app-icon>
-      <span><strong>Cámara</strong><small>Toma una foto o un video</small></span>
+      <span><strong>Cámara</strong><small>{{ allowVideo ? 'Toma una foto o un video' : 'Toma una foto' }}</small></span>
     </label>
     <!-- RF-11: elegir archivos guardados (varios a la vez) -->
     <label class="media-action" [class.is-disabled]="disabled || remaining <= 0">
-      <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" multiple
+      <input type="file" [accept]="accept" multiple
         (change)="onFilesSelected($event)" [disabled]="disabled || remaining <= 0" />
       <app-icon name="image"></app-icon>
       <span><strong>Galería</strong><small>Elige de tus archivos</small></span>
@@ -17,7 +17,7 @@
   </div>
 
   <p class="picker-media__hint">
-    Hasta {{ maxItems }} archivos · videos de máximo {{ maxVideoSeconds }} s y {{ maxVideoSize }}.
+    @if (allowVideo) { Hasta {{ maxItems }} archivos · videos de máximo {{ maxVideoSeconds }} s y {{ maxVideoSize }}. } @else { Hasta {{ maxItems }} fotos. }
     Las fotos se comprimen automáticamente y se les quita la ubicación guardada por la cámara.
   </p>
 
@@ -36,7 +36,7 @@
             } @else {
               <img [src]="item.previewUrl" [alt]="'Vista previa de ' + item.name" />
             }
-            @if (first && item.status === 'ready') { <span class="media-tile__cover">Portada</span> }
+            @if (first && item.status === 'ready' && showCover) { <span class="media-tile__cover">Portada</span> }
           </div>
 
           <div class="media-tile__info">

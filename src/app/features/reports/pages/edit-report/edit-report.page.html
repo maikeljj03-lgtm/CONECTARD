@@ -1,0 +1,138 @@
+<ion-content class="app-content">
+  <app-topbar></app-topbar>
+
+  <main class="page page--narrow">
+    <a class="back-link" routerLink="/reportes/mios"><app-icon name="arrow-left"></app-icon> Mis reportes</a>
+
+    @if (loading) {
+      <div class="page-state"><span class="spinner"></span><p>Cargando el reporte…</p></div>
+    } @else if (blocked) {
+      <div class="card result">
+        <span class="result__icon result__icon--wait"><app-icon name="lock"></app-icon></span>
+        <h1>No se puede editar</h1>
+        <p class="muted">{{ blocked }}</p>
+        <div class="actions actions--center"><a class="btn btn--primary" routerLink="/reportes/mios">Volver a mis reportes</a></div>
+      </div>
+    } @else if (report) {
+      <header class="page-head">
+        <p class="page-kicker">Editar reporte</p>
+        <h1>{{ report.title }}</h1>
+        <p>
+          <app-icon name="clock"></app-icon> {{ timeLeft }} para hacer cambios. Después de {{ editHours }} horas,
+          o cuando una institución empiece a atenderlo, el reporte queda fijo.
+        </p>
+      </header>
+
+      <form class="stack" [formGroup]="form" (ngSubmit)="save()" novalidate>
+        <section class="card">
+          <h2 class="card__title"><span class="step-num">1</span> ¿Qué tipo de problema es?</h2>
+          <div class="category-grid" role="radiogroup" aria-label="Categoría">
+            @for (category of categories; track category.value) {
+              <button type="button" class="category-pick" role="radio" [attr.aria-checked]="form.controls.category.value === category.value" [class.is-selected]="form.controls.category.value === category.value" (click)="selectCategory(category.value)">
+                <app-icon [name]="category.icon"></app-icon><span>{{ category.label }}</span>
+              </button>
+            }
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="e-title">Título</label>
+            <div class="field__control" [class.is-invalid]="form.controls.title.invalid && form.controls.title.touched">
+              <app-icon class="field__icon" name="file-text"></app-icon>
+              <input id="e-title" formControlName="title" maxlength="120" />
+            </div>
+            @if (form.controls.title.invalid && form.controls.title.touched) {
+              <small class="field__error"><app-icon name="alert-circle"></app-icon>Escribe un título de al menos 5 caracteres.</small>
+            }
+          </div>
+
+          <div class="field">
+            <div class="field__label-row">
+              <label class="field__label" for="e-description">Descripción</label>
+              <small class="counter">{{ descriptionLength }}/2000</small>
+            </div>
+            <textarea id="e-description" class="textarea" formControlName="description" rows="5" maxlength="2000" [class.is-invalid]="form.controls.description.invalid && form.controls.description.touched"></textarea>
+            @if (form.controls.description.invalid && form.controls.description.touched) {
+              <small class="field__error"><app-icon name="alert-circle"></app-icon>Describe el problema con al menos 10 caracteres.</small>
+            }
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card__title"><span class="step-num">2</span> Fotos o video</h2>
+          @if (existingMedia.length) {
+            <ul class="media-grid">
+              @for (item of existingMedia; track item.id; let first = $first) {
+                <li class="media-tile">
+                  <div class="media-tile__preview">
+                    @if (item.kind === 'video') {
+                      <video [src]="item.url" muted playsinline preload="metadata"></video>
+                      <span class="media-tile__badge"><app-icon name="video"></app-icon> Video</span>
+                    } @else {
+                      <img [src]="item.url" alt="Foto del reporte" loading="lazy" />
+                    }
+                    @if (first) { <span class="media-tile__cover">Portada</span> }
+                  </div>
+                  <div class="media-tile__tools">
+                    <button type="button" class="media-tile__remove" (click)="removeExisting(item)" [disabled]="removingId === item.id || saving" aria-label="Quitar este archivo">
+                      @if (removingId === item.id) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="x"></app-icon> }
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+            <p class="muted small">Quitar un archivo lo borra al momento.</p>
+          }
+          @if (freeSlots > 0) {
+            <app-media-picker [maxItems]="freeSlots" [disabled]="saving" (readyChange)="newMedia = $event" (processingChange)="mediaProcessing = $event"></app-media-picker>
+          } @else {
+            <p class="muted small">Ya tiene el máximo de 5 archivos. Quita alguno para añadir otro.</p>
+          }
+        </section>
+
+        <section class="card">
+          <h2 class="card__title"><span class="step-num">3</span> Lugar</h2>
+          <p class="note"><app-icon name="map-pin"></app-icon><span><strong>{{ place }}</strong>. La ubicación en el mapa no se puede cambiar; si está mal, elimina el reporte y créalo de nuevo.</span></p>
+          <div class="field-grid">
+            <div class="field">
+              <label class="field__label" for="e-sector">Sector</label>
+              <div class="field__control"><app-icon class="field__icon" name="map-pin"></app-icon><input id="e-sector" formControlName="sector" maxlength="80" /></div>
+            </div>
+            <div class="field">
+              <label class="field__label" for="e-address">Referencia <span class="optional">(opcional)</span></label>
+              <div class="field__control"><app-icon class="field__icon" name="map-pin"></app-icon><input id="e-address" formControlName="address" maxlength="200" placeholder="Ej. Frente al colmado" /></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card__title"><span class="step-num">4</span> ¿Cómo se publica?</h2>
+          <div class="choice-grid">
+            <button type="button" class="choice" [class.is-selected]="!form.controls.is_anonymous.value" (click)="setAnonymous(false)" [attr.aria-pressed]="!form.controls.is_anonymous.value">
+              <span class="choice__icon"><app-icon name="user"></app-icon></span>
+              <strong>Con mi nombre</strong>
+              <small>Aparece “{{ authorName }}” como autor.</small>
+            </button>
+            <button type="button" class="choice" [class.is-selected]="form.controls.is_anonymous.value" (click)="setAnonymous(true)" [attr.aria-pressed]="form.controls.is_anonymous.value">
+              <span class="choice__icon"><app-icon name="eye-off"></app-icon></span>
+              <strong>De forma anónima</strong>
+              <small>Se muestra “Vecino anónimo”.</small>
+            </button>
+          </div>
+          @if (!report.is_anonymous && form.controls.is_anonymous.value) {
+            <p class="note"><app-icon name="shield-check"></app-icon><span>Desde ahora se mostrará como anónimo. Ten en cuenta que quien ya lo vio con tu nombre pudo haberlo notado.</span></p>
+          }
+        </section>
+
+        @if (message) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ message }}</span></div> }
+
+        <div class="actions">
+          <a class="btn btn--ghost" routerLink="/reportes/mios">Cancelar</a>
+          <button class="btn btn--primary btn--lg" type="submit" [disabled]="saving || mediaProcessing || (form.pristine && !newMedia.length)">
+            @if (saving) { <span class="spinner spinner--sm"></span> Guardando… } @else { <app-icon name="check"></app-icon> Guardar cambios }
+          </button>
+        </div>
+      </form>
+    }
+  </main>
+  <app-bottom-nav></app-bottom-nav>
+</ion-content>

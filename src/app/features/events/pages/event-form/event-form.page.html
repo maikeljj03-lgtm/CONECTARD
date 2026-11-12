@@ -1,0 +1,139 @@
+<ion-content class="app-content">
+  <app-topbar></app-topbar>
+
+  <main class="page page--narrow">
+    <a class="back-link" [routerLink]="isEdit ? ['/jornadas', eventId] : '/jornadas'"><app-icon name="arrow-left"></app-icon> {{ isEdit ? 'Volver a la jornada' : 'Jornadas' }}</a>
+
+    @if (loading) {
+      <div class="page-state"><span class="spinner"></span><p>Cargando…</p></div>
+    } @else if (blocked) {
+      <div class="card result">
+        <span class="result__icon result__icon--wait"><app-icon name="lock"></app-icon></span>
+        <h1>No disponible</h1>
+        <p class="muted">{{ blocked }}</p>
+        <div class="actions actions--center"><a class="btn btn--primary" routerLink="/jornadas">Ver jornadas</a></div>
+      </div>
+    } @else {
+      <header class="page-head">
+        <p class="page-kicker">{{ isEdit ? 'Editar jornada' : 'Nueva jornada' }}</p>
+        <h1>{{ isEdit ? 'Actualiza los detalles' : 'Organiza una jornada comunitaria' }}</h1>
+        <p>Convoca a voluntarios para resolver uno o más reportes: limpiezas, siembras, pintura, reparaciones… El día de la jornada pasarás lista con un código QR.</p>
+      </header>
+
+      <form class="stack" [formGroup]="form" (ngSubmit)="save()" novalidate>
+        <section class="card">
+          <h2 class="card__title"><span class="step-num">1</span> ¿Qué se va a hacer?</h2>
+          <div class="field">
+            <label class="field__label" for="ev-title">Nombre de la jornada</label>
+            <div class="field__control" [class.is-invalid]="form.controls.title.invalid && form.controls.title.touched">
+              <app-icon class="field__icon" name="calendar"></app-icon>
+              <input id="ev-title" formControlName="title" maxlength="120" placeholder="Ej. Limpieza de la cañada de Capotillo" />
+            </div>
+            @if (form.controls.title.invalid && form.controls.title.touched) { <small class="field__error"><app-icon name="alert-circle"></app-icon>Escribe un nombre de al menos 5 caracteres.</small> }
+          </div>
+          <div class="field">
+            <label class="field__label" for="ev-description">Descripción</label>
+            <textarea id="ev-description" class="textarea" formControlName="description" rows="5" maxlength="2000" [class.is-invalid]="form.controls.description.invalid && form.controls.description.touched"
+              placeholder="Qué se hará, qué deben llevar los voluntarios (guantes, agua, gorra…), punto de encuentro y cualquier recomendación de seguridad."></textarea>
+            @if (form.controls.description.invalid && form.controls.description.touched) { <small class="field__error"><app-icon name="alert-circle"></app-icon>Describe la jornada con al menos 10 caracteres.</small> }
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card__title"><span class="step-num">2</span> ¿Cuándo?</h2>
+          <div class="field-grid field-grid--3">
+            <div class="field">
+              <label class="field__label" for="ev-date">Fecha</label>
+              <div class="field__control" [class.is-invalid]="form.controls.date.invalid && form.controls.date.touched"><input id="ev-date" type="date" formControlName="date" [min]="isEdit ? null : today" /></div>
+            </div>
+            <div class="field">
+              <label class="field__label" for="ev-start">Empieza</label>
+              <div class="field__control"><input id="ev-start" type="time" formControlName="start" /></div>
+            </div>
+            <div class="field">
+              <label class="field__label" for="ev-end">Termina</label>
+              <div class="field__control"><input id="ev-end" type="time" formControlName="end" /></div>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field__label" for="ev-capacity">Cupo de voluntarios <span class="optional">(opcional; vacío = sin límite)</span></label>
+            <div class="field__control"><app-icon class="field__icon" name="users"></app-icon><input id="ev-capacity" type="number" min="1" max="5000" step="1" inputmode="numeric" formControlName="capacity" placeholder="Ej. 30" /></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card__title"><span class="step-num">3</span> ¿Dónde?</h2>
+          <div class="field">
+            <label class="field__label" for="ev-place">Punto de encuentro</label>
+            <div class="field__control" [class.is-invalid]="form.controls.location_name.invalid && form.controls.location_name.touched">
+              <app-icon class="field__icon" name="map-pin"></app-icon>
+              <input id="ev-place" formControlName="location_name" maxlength="200" placeholder="Ej. Frente a la escuela básica, calle 5" />
+            </div>
+            @if (form.controls.location_name.invalid && form.controls.location_name.touched) { <small class="field__error"><app-icon name="alert-circle"></app-icon>Indica dónde se reunirán.</small> }
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label class="field__label" for="ev-province">Provincia</label>
+              <div class="field__control">
+                <app-icon class="field__icon" name="map"></app-icon>
+                <select id="ev-province" formControlName="province">
+                  <option value="">Selecciona…</option>
+                  @for (province of provinces; track province) { <option [value]="province">{{ province }}</option> }
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field__label" for="ev-municipality">Municipio</label>
+              <div class="field__control"><app-icon class="field__icon" name="landmark"></app-icon><input id="ev-municipality" formControlName="municipality" maxlength="80" /></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card__title"><span class="step-num">4</span> Reportes que atiende <span class="optional">(hasta 10)</span></h2>
+          <p class="muted small">Liga la jornada a los reportes que va a resolver: aparecerá en la página de cada uno. El primero se usa como punto en el mapa para “Cómo llegar”.</p>
+
+          @if (linked.length) {
+            <ul class="linked">
+              @for (report of linked; track report.id; let first = $first) {
+                <li>
+                  <span class="linked__body"><strong>{{ report.title }}</strong><small>{{ place(report) }} · {{ statusLabels[report.status] }}@if (first) { · punto del mapa }</small></span>
+                  <button type="button" (click)="unlink(report)" [attr.aria-label]="'Quitar ' + report.title"><app-icon name="x"></app-icon></button>
+                </li>
+              }
+            </ul>
+          }
+
+          <div class="field">
+            <label class="field__label" for="ev-search">Buscar reportes</label>
+            <div class="field__control"><app-icon class="field__icon" name="search"></app-icon><input id="ev-search" type="search" placeholder="Palabra, sector o dirección…" [value]="search" (input)="onSearch($any($event.target).value)" /></div>
+          </div>
+          @if (searching) { <p class="muted small"><span class="spinner spinner--sm"></span> Buscando…</p> }
+          @if (results.length) {
+            <ul class="results">
+              @for (report of results; track report.id) {
+                <li>
+                  <span class="linked__body"><strong>{{ report.title }}</strong><small>{{ place(report) }} · {{ statusLabels[report.status] }}</small></span>
+                  @if (isLinked(report)) { <span class="badge badge--teal"><app-icon name="check"></app-icon> Ligado</span> }
+                  @else { <button type="button" class="btn btn--ghost btn--sm" (click)="link(report)" [disabled]="linked.length >= 10"><app-icon name="plus"></app-icon> Ligar</button> }
+                </li>
+              }
+            </ul>
+          } @else if (search.trim() && !searching) {
+            <p class="muted small">No se encontraron reportes abiertos con esa búsqueda.</p>
+          }
+        </section>
+
+        @if (message) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ message }}</span></div> }
+
+        <div class="actions">
+          <a class="btn btn--ghost" [routerLink]="isEdit ? ['/jornadas', eventId] : '/jornadas'">Cancelar</a>
+          <button class="btn btn--primary btn--lg" type="submit" [disabled]="saving">
+            @if (saving) { <span class="spinner spinner--sm"></span> Guardando… } @else { <app-icon name="check"></app-icon> {{ isEdit ? 'Guardar cambios' : 'Publicar jornada' }} }
+          </button>
+        </div>
+      </form>
+    }
+  </main>
+  <app-bottom-nav></app-bottom-nav>
+</ion-content>
