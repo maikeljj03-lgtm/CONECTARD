@@ -33,7 +33,7 @@ export class ReportCardComponent {
   }
 
   get place(): string {
-    return [this.report.sector, this.report.municipality].filter(Boolean).join(', ') || this.report.province || 'Ubicación en el mapa';
+    return [...new Set([this.report.sector, this.report.municipality].filter(Boolean))].join(', ') || this.report.province || 'Ubicación en el mapa';
   }
 
   get age(): string {

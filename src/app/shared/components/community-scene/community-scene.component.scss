@@ -17,6 +17,9 @@ $tilt: 58deg;
   perspective: 1500px;
   perspective-origin: 50% 30%;
   user-select: none;
+  // El fundido de entrada va aquí, fuera de la parte 3D: una opacidad animada dentro
+  // de .stage/.board hace que el navegador aplane la maqueta.
+  animation: scene-in 1.1s cubic-bezier(.2, .7, .2, 1) both;
 
   // Halo suave bajo la maqueta.
   &::before {
@@ -42,7 +45,7 @@ $tilt: 58deg;
   position: relative;
   width: 100%;
   transform-style: preserve-3d;
-  animation: sway 18s ease-in-out infinite alternate, board-in 1.1s cubic-bezier(.2, .7, .2, 1) both;
+  animation: sway 18s ease-in-out infinite alternate;
 }
 
 // Capas de la isla: dan grosor de maqueta.
@@ -210,8 +213,8 @@ $tilt: 58deg;
   to { transform: rotateZ(-6deg); }
 }
 
-@keyframes board-in {
-  from { opacity: 0; translate: 0 40px; }
+@keyframes scene-in {
+  from { opacity: 0; translate: 0 30px; }
 }
 
 @keyframes rise {
@@ -231,7 +234,14 @@ $tilt: 58deg;
   to { opacity: 0; transform: scale(1.9); }
 }
 
+// En el teléfono la isla es más pequeña para que el vaivén no la saque de la pantalla.
+@media (max-width: 600px) {
+  .scene { height: 300px; }
+  .stage { width: 86%; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .scene { animation: none; }
   .board { animation: none; transform: rotateZ(-10deg); }
   .pin__column i, .pin__head, .pin__pulse, .beacon__ring { animation: none; }
   .stage { transition: none; }

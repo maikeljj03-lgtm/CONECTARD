@@ -48,7 +48,8 @@ export class ReportPreviewComponent implements OnChanges {
   get place(): string {
     const report = this.report;
     if (!report) return '';
-    return [report.sector, report.municipality, report.province].filter(Boolean).join(', ') || 'Ubicación marcada en el mapa';
+    // Sin repetir (p. ej. municipio y provincia "Distrito Nacional").
+    return [...new Set([report.sector, report.municipality, report.province].filter(Boolean))].join(', ') || 'Ubicación marcada en el mapa';
   }
 
   get age(): string {

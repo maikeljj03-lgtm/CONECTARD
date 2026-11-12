@@ -99,7 +99,9 @@ src/
 │   │   ├── validators/   validadores de formularios
 │   │   └── shared.module.ts
 │   └── features/                              Una carpeta por sección, con su módulo y sus rutas
-│       ├── landing/      página principal pública (+ landing.content.ts: textos y datos de ejemplo)
+│       ├── landing/      página pública para quien no tiene cuenta (+ landing.content.ts: textos)
+│       ├── home/         inicio con sesión (/inicio): maqueta 3D, cifras y reportes cercanos
+│       ├── explore/      Explorar (/explorar, pública): mapa y lista con filtros
 │       ├── auth/         login, registro, códigos y recuperación (+ auth.constants.ts)
 │       ├── profile/      Mi perfil (RF-05)
 │       ├── verification/ verificación de organizaciones (RF-06)

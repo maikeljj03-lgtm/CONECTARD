@@ -89,7 +89,7 @@ export class HomePage implements OnInit {
   get place(): string | null {
     const p = this.profile;
     if (!p) return null;
-    return [p.sector, p.municipality, p.province].filter(Boolean).join(', ') || null;
+    return [...new Set([p.sector, p.municipality, p.province].filter(Boolean))].join(', ') || null;
   }
 
   get scopeLabel(): string {

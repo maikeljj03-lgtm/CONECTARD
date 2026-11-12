@@ -31,7 +31,8 @@
     color: var(--crd-text-3);
     font-size: 14px;
     font-weight: 600;
-    text-transform: capitalize;
+    // Solo la primera letra en mayúscula: "Miércoles 11 de noviembre".
+    &::first-letter { text-transform: uppercase; }
   }
 
   .home-hero h1 {

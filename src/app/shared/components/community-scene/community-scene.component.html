@@ -31,15 +31,17 @@
 
       <!-- Columnas de luz: un reporte real cada una -->
       @for (pin of pins; track pin.report.id) {
-        <button type="button" class="pin" [class.pin--fresh]="pin.fresh"
+        <!-- div con rol de botón: <button> rompe el 3D (Chrome lo aplana). Se usa con Tab + Enter. -->
+        <div class="pin" role="button" tabindex="0" [class.pin--fresh]="pin.fresh"
           [style.left.%]="pin.x" [style.top.%]="pin.y"
-          [style.--pin-color]="pin.color" [style.--pin-height.px]="pin.height" [style.--pin-delay.ms]="pin.delay"
-          (click)="selectReport.emit(pin.report)" [attr.aria-label]="pin.label">
+          [style.--pin-color]="pin.color" [style.--pin-height]="pin.height + 'px'" [style.--pin-delay]="pin.delay + 'ms'"
+          (click)="selectReport.emit(pin.report)" (keydown.enter)="selectReport.emit(pin.report)" (keydown.space)="$event.preventDefault(); selectReport.emit(pin.report)"
+          [attr.aria-label]="pin.label">
           <span class="pin__shadow"></span>
           @if (pin.fresh) { <span class="pin__pulse"></span> }
           <span class="pin__column"><i></i><i></i></span>
           <span class="pin__head"><span class="pin__tip">{{ pin.label }}</span></span>
-        </button>
+        </div>
       }
     </div>
   </div>
