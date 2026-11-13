@@ -265,15 +265,10 @@ export class AuthPage implements OnInit, OnDestroy {
         this.notice = 'Ese correo ya tiene una cuenta. Inicia sesión con el método que usaste al crearla; si fue una red social, usa ese mismo botón.';
         return;
       }
-      // El registro no pide código: la cuenta queda creada y se pasa al login.
-      // El correo se confirma con el código del primer inicio de sesión en el dispositivo.
       this.registeredEmail = email;
       if (data.session) await this.auth.signOut('local');
-      await this.router.navigateByUrl('/auth/login', { replaceUrl: true });
-      this.loginForm.patchValue({ email, password: '' });
-      this.notice = value.requestedRole === 'organization' || value.requestedRole === 'institution'
-        ? 'Cuenta creada. Inicia sesión y luego sube los documentos de tu organización para verificarla.'
-        : 'Cuenta creada. Inicia sesión: la primera vez te enviaremos un código a tu correo.';
+      await this.resumeSignupVerification(email);
+      this.notice = `Te enviamos un código de verificación a ${email}. Escríbelo aquí para activar tu cuenta.`;
       this.refreshView();
     } catch (error) {
       this.message = this.friendlyError(error);

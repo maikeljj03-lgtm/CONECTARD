@@ -114,7 +114,7 @@
             @if (locating) { <span class="spinner spinner--sm"></span> Buscando… } @else { <app-icon name="locate"></app-icon> Usar mi ubicación }
           </button>
         </div>
-        <p class="muted small">Toca el mapa para marcar el lugar. Puedes arrastrar el marcador para ajustarlo.</p>
+        <p class="muted small">Toca el mapa para marcar el lugar. Consultaremos OpenStreetMap para sugerir provincia, municipio y sector; puedes editar esos campos y arrastrar el marcador para ajustar el punto.</p>
         <div class="picker" [class.is-invalid]="!hasLocation && form.controls.latitude.touched">
           <div #pickerMap class="picker__map" role="application" aria-label="Mapa para elegir la ubicación del reporte"></div>
           @if (hasLocation) {

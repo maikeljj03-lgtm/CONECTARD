@@ -1,12 +1,11 @@
 <div class="picker-media" [class.is-dragging]="dragging" (dragover)="onDragOver($event)" (dragleave)="dragging = false" (drop)="onDrop($event)">
   <div class="picker-media__actions">
-    <!-- RF-10: en el teléfono abre directamente la cámara -->
-    <label class="media-action" [class.is-disabled]="disabled || remaining <= 0">
-      <input type="file" [accept]="accept" capture="environment"
-        (change)="onFilesSelected($event)" [disabled]="disabled || remaining <= 0" />
+    <!-- RF-10: pide permiso y abre una vista de cámara para tomar foto o grabar. -->
+    <button class="media-action" type="button" [class.is-disabled]="disabled || remaining <= 0"
+      [disabled]="disabled || remaining <= 0" (click)="openCamera()">
       <app-icon name="camera"></app-icon>
       <span><strong>Cámara</strong><small>{{ allowVideo ? 'Toma una foto o un video' : 'Toma una foto' }}</small></span>
-    </label>
+    </button>
     <!-- RF-11: elegir archivos guardados (varios a la vez) -->
     <label class="media-action" [class.is-disabled]="disabled || remaining <= 0">
       <input type="file" [accept]="accept" multiple
@@ -63,4 +62,29 @@
     <p class="picker-media__saved"><app-icon name="check-circle"></app-icon> Ahorraste {{ formatBytes(savedBytes) }} de datos al comprimir las fotos.</p>
   }
   @if (notice) { <p class="picker-media__notice">{{ notice }}</p> }
+
+  @if (cameraOpen) {
+    <div class="camera-overlay" role="presentation" (click)="closeCamera()">
+      <section class="camera-dialog" role="dialog" aria-modal="true" aria-labelledby="camera-title" (click)="$event.stopPropagation()">
+        <header class="camera-dialog__header">
+          <div><h2 id="camera-title">Cámara</h2><p>Captura una foto o graba un video de hasta {{ maxVideoSeconds }} segundos.</p></div>
+          <button type="button" class="camera-dialog__close" aria-label="Cerrar cámara" (click)="closeCamera()"><app-icon name="x"></app-icon></button>
+        </header>
+        <div class="camera-preview">
+          <video #cameraPreview autoplay playsinline muted></video>
+          @if (recording) { <span class="camera-recording"><i></i> Grabando · {{ recordingSeconds }} s</span> }
+        </div>
+        <footer class="camera-dialog__actions">
+          <button type="button" class="camera-action camera-action--photo" [disabled]="recording" (click)="takePhoto()"><app-icon name="camera"></app-icon> Tomar foto</button>
+          @if (allowVideo) {
+            @if (recording) {
+              <button type="button" class="camera-action camera-action--recording" (click)="stopRecording()"><span></span> Detener video</button>
+            } @else {
+              <button type="button" class="camera-action camera-action--video" (click)="startRecording()"><app-icon name="video"></app-icon> Grabar video</button>
+            }
+          }
+        </footer>
+      </section>
+    </div>
+  }
 </div>

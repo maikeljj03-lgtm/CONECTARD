@@ -7,6 +7,7 @@ import type { MyReport, PublicReport } from '../../../../core/models/report.mode
 import { ProfileService } from '../../../../core/services/profile.service';
 import { ReportMediaService } from '../../../../core/services/report-media.service';
 import { ReportsService } from '../../../../core/services/reports.service';
+import { ReverseGeocodingService } from '../../../../core/services/reverse-geocoding.service';
 import type { ProcessedMedia } from '../../../../core/utils/media';
 import { MediaPickerComponent } from '../../../../shared/components/media-picker/media-picker.component';
 import { friendlyDataError } from '../../../../core/utils/data-errors';
@@ -19,6 +20,7 @@ import { friendlyDataError } from '../../../../core/utils/data-errors';
 export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly formBuilder = inject(FormBuilder);
   private readonly reports = inject(ReportsService);
+  private readonly reverseGeocoding = inject(ReverseGeocodingService);
   private readonly mediaService = inject(ReportMediaService);
   private readonly profiles = inject(ProfileService);
   private readonly zone = inject(NgZone);
@@ -38,6 +40,7 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
   private map?: L.Map;
   private marker?: L.Marker;
   private resizeObserver?: ResizeObserver;
+  private addressLookupVersion = 0;
 
   readonly categories = REPORT_CATEGORIES;
   readonly provinces = DR_PROVINCES;
@@ -112,8 +115,7 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
           this.locationHint = 'Tu ubicación está fuera de República Dominicana. Marca el lugar en el mapa.';
           return;
         }
-        this.setLocation(coords.latitude, coords.longitude, 16);
-        this.locationHint = `Ubicación obtenida con una precisión aproximada de ${Math.round(coords.accuracy)} m. Ajusta el punto si hace falta.`;
+        this.setLocation(coords.latitude, coords.longitude, 16, `Ubicación obtenida con una precisión aproximada de ${Math.round(coords.accuracy)} m.`);
       }),
       () => this.zone.run(() => {
         this.locating = false;
@@ -191,6 +193,8 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   startAnother(): void {
+    this.addressLookupVersion++;
+    this.locationHint = '';
     this.created = null;
     this.publicView = null;
     this.failedMedia = [];
@@ -233,15 +237,15 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
         return;
       }
       this.setLocation(event.latlng.lat, event.latlng.lng);
-      this.locationHint = '';
     }));
     this.resizeObserver = new ResizeObserver(frame);
     this.resizeObserver.observe(element);
     requestAnimationFrame(frame);
   }
 
-  private setLocation(lat: number, lng: number, zoom?: number): void {
+  private setLocation(lat: number, lng: number, zoom?: number, hintPrefix = ''): void {
     this.form.patchValue({ latitude: lat, longitude: lng });
+    void this.fillAdministrativeAddress(lat, lng, hintPrefix);
     if (!this.map) return;
     const icon = L.divIcon({ className: 'pick-marker', html: '<span></span>', iconSize: [30, 30], iconAnchor: [15, 28] });
     if (this.marker) {
@@ -251,11 +255,57 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
       this.marker.on('dragend', () => this.zone.run(() => {
         const position = this.marker!.getLatLng();
         if (isInsideDominicanRepublic(position.lat, position.lng)) {
-          this.form.patchValue({ latitude: position.lat, longitude: position.lng });
+          this.setLocation(position.lat, position.lng);
+        } else {
+          this.marker!.setLatLng([
+            this.form.controls.latitude.value ?? lat,
+            this.form.controls.longitude.value ?? lng,
+          ]);
         }
       }));
     }
     if (zoom) this.map.flyTo([lat, lng], zoom, { duration: .6 });
     this.changeDetector.markForCheck();
+  }
+
+  private async fillAdministrativeAddress(lat: number, lng: number, hintPrefix = ''): Promise<void> {
+    const lookupVersion = ++this.addressLookupVersion;
+    this.form.patchValue({ province: '', municipality: '', sector: '' });
+    this.locationHint = [hintPrefix, 'Buscando provincia, municipio y sector…'].filter(Boolean).join(' ');
+    this.changeDetector.markForCheck();
+
+    const address = await this.reverseGeocoding.reverse(lat, lng);
+    if (lookupVersion !== this.addressLookupVersion) return;
+    if (!address) {
+      this.locationHint = [hintPrefix, 'No pudimos identificar la zona automáticamente. Puedes completar los campos manualmente.'].filter(Boolean).join(' ');
+      this.changeDetector.markForCheck();
+      return;
+    }
+
+    const province = this.findProvince(address.province);
+    const municipality = address.municipality;
+    const sector = address.sector;
+    const current = this.form.getRawValue();
+    this.form.patchValue({
+      province: current.province || province,
+      municipality: current.municipality || municipality,
+      sector: current.sector || sector,
+    });
+
+    const found = [
+      this.form.controls.sector.value,
+      this.form.controls.municipality.value,
+      this.form.controls.province.value,
+    ].filter(Boolean).join(', ');
+    this.locationHint = found
+      ? [hintPrefix, `Zona detectada: ${found}. Puedes ajustar los campos si hace falta.`].filter(Boolean).join(' ')
+      : [hintPrefix, 'No encontramos datos administrativos para este punto. Completa los campos manualmente.'].filter(Boolean).join(' ');
+    this.changeDetector.markForCheck();
+  }
+
+  private findProvince(value: string): string {
+    const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const normalized = normalize(value).replace(/^provincia(?:\s+de)?\s+/, '').replace(/\s+province$/, '');
+    return this.provinces.find((province) => normalize(province) === normalized) ?? '';
   }
 }

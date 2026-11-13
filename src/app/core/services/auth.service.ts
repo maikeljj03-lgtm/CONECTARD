@@ -43,7 +43,14 @@ export class AuthService {
     const controller = new AbortController();
     const sourceSignal = init.signal;
     const relayAbort = () => controller.abort(sourceSignal?.reason);
-    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+    const requestUrl = input instanceof Request ? input.url : String(input);
+    // Videos/fotos pueden tardar más que las peticiones normales; no abortar
+    // una subida de 20 MB después del límite de 10 s usado para APIs pequeñas.
+    const isStorageUpload = /\/storage\/v1\/object\//i.test(requestUrl);
+    const timeoutId = setTimeout(() => controller.abort(new DOMException(
+      isStorageUpload ? 'La subida del archivo tardó demasiado.' : 'La solicitud tardó demasiado.',
+      'TimeoutError',
+    )), isStorageUpload ? 180_000 : 10_000);
 
     if (sourceSignal?.aborted) {
       relayAbort();

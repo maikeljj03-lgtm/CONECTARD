@@ -11,4 +11,4 @@ En Supabase, conserva **Confirm email** activado. Ve a **Authentication → Emai
 
 Un archivo guardado en el repositorio no cambia automáticamente las plantillas del proyecto alojado. Para publicarlas desde la terminal, configura `SUPABASE_ACCESS_TOKEN` en `.env` con permisos `auth_config_write` y `project_admin_write`, y ejecuta `npm run supabase:confirmation-template`. El script elige la plantilla de confirmación por OTP o por enlace según `NEXT_PUBLIC_SUPABASE_SIGNUP_OTP` y nunca imprime el token.
 
-La app valida los códigos con Supabase (`verifyOtp`, tipo `email`). Tras confirmar el registro, vuelve al login; el OTP de inicio de sesión se envía después de validar la contraseña.
+La app muestra el campo de código en el registro cuando `NEXT_PUBLIC_SUPABASE_SIGNUP_OTP=true` y valida el valor con Supabase (`verifyOtp`, tipo `email`). Para que Supabase envíe el código al registrarse, la plantilla alojada **Confirm signup** debe incluir `{{ .Token }}`. Tras confirmar el registro, la app inicia la sesión. El OTP de inicio de sesión se envía después de validar la contraseña.

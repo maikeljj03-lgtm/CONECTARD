@@ -5,7 +5,10 @@ export function friendlyDataError(error: unknown): string {
   const detail = String(candidate?.message ?? '');
   const lower = detail.toLowerCase();
 
-  if (candidate?.name === 'AbortError') return 'El servidor no respondió. Revisa tu conexión e inténtalo otra vez.';
+  if (candidate?.name === 'TimeoutError') return 'La subida tardó más de lo esperado y se canceló. Revisa tu conexión e inténtalo otra vez; el archivo sigue disponible para reintentar.';
+  if (candidate?.name === 'AbortError' || lower.includes('signal is aborted') || lower.includes('aborted without reason')) {
+    return 'La conexión se interrumpió durante la subida. Revisa tu conexión e inténtalo otra vez; el archivo sigue disponible para reintentar.';
+  }
   // Tabla, vista o función inexistente: falta aplicar una migración.
   if (code === 'PGRST205' || code === '42P01' || code === '42703' || code === '42883' || code === 'PGRST202' || lower.includes('could not find the table') || lower.includes('could not find the function')) {
     return 'Falta aplicar una migración en Supabase. Ejecuta los archivos de supabase/migrations en el SQL Editor.';
