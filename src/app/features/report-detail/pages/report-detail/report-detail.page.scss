@@ -229,6 +229,8 @@
     li > span:last-child { display: grid; strong { color: var(--crd-ink); font-size: 14px; } small { color: var(--crd-text-3); font-size: 12px; } }
   }
 
+  .people__avatar--anon { background: var(--crd-ink) !important; color: #fff !important; }
+
   .people__avatar {
     display: grid;
     flex: none;

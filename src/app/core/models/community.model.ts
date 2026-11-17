@@ -28,9 +28,12 @@ export interface CommentThread extends ReportComment {
 /** Persona u organización que se sumó a un reporte (RF-26). */
 export interface ReportVolunteer {
   report_id: string;
+  /** null si es el autor de un reporte anónimo (no se revela). */
   name: string | null;
   avatar_url: string | null;
-  role: UserRole;
+  role: UserRole | null;
+  /** Es quien hizo el reporte. */
+  is_report_author: boolean;
   is_mine: boolean | null;
   created_at: string;
 }
@@ -98,8 +101,9 @@ export interface ResourceRequest {
   unit: string;
   description: string | null;
   status: ResourceStatus;
+  /** null si quien pidió es el autor de un reporte anónimo (no se revela). */
   requester_name: string | null;
-  requester_role: UserRole;
+  requester_role: UserRole | null;
   received: number;
   used: number;
   is_mine: boolean | null;

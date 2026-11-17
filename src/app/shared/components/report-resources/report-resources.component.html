@@ -64,7 +64,7 @@
           @if (expandedId === request.id) {
             <div class="request__detail">
               @if (request.description) { <p class="request__desc">{{ request.description }}</p> }
-              <p class="request__by">Solicitado por <strong>{{ request.requester_name || 'Organización' }}</strong> ({{ roleLabels[request.requester_role] }}) · {{ request.created_at | date: 'd MMM y' }}</p>
+              <p class="request__by">Solicitado por <strong>{{ request.requester_name || (request.requester_role ? 'Organización' : 'Autor del reporte') }}</strong>@if (request.requester_role) { ({{ roleLabels[request.requester_role] }}) } · {{ request.created_at | date: 'd MMM y' }}</p>
 
               <div class="ledger">
                 <div>

@@ -89,7 +89,8 @@ export class ReverseGeocodingService {
     const sector = this.clean(address.suburb ?? address.neighbourhood ?? address.quarter ?? address.residential ?? address.hamlet ?? address.city_district);
 
     if (!province && !municipality && !sector) return null;
-    return { province, municipality, sector };
+    // Mismos límites que la tabla reports (CHECK de la base de datos).
+    return { province: province.slice(0, 60), municipality: municipality.slice(0, 80), sector: sector.slice(0, 80) };
   }
 
   private clean(value: string | undefined): string {

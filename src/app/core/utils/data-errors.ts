@@ -14,9 +14,13 @@ export function friendlyDataError(error: unknown): string {
     return 'Falta aplicar una migración en Supabase. Ejecuta los archivos de supabase/migrations en el SQL Editor.';
   }
   if (lower.includes('bucket not found')) return 'Falta crear el almacenamiento de archivos. Ejecuta las migraciones de supabase/migrations.';
-  if (code === '23505') return 'Ya tienes una solicitud pendiente de revisión.';
+  if (code === '23505') {
+    return lower.includes('verification_requests') ? 'Ya tienes una solicitud pendiente de revisión.' : 'Ese registro ya existe.';
+  }
   if (code === '23514') return 'Algún dato no cumple el formato permitido. Revisa los campos e inténtalo otra vez.';
-  if (code === '42501' || lower.includes('row-level security') || lower.includes('permission denied')) {
+  // Errores de permiso genéricos de Postgres/Storage. Los que lanzan nuestras funciones (42501 con un
+  // mensaje propio en español, p. ej. "Para sumarte necesitas ser voluntario…") se muestran tal cual.
+  if (lower.includes('row-level security') || lower.includes('permission denied') || (code === '42501' && !detail)) {
     return 'No tienes permiso para realizar esta acción.';
   }
   if (lower.includes('payload too large') || lower.includes('maximum allowed size')) return 'El archivo es demasiado grande.';

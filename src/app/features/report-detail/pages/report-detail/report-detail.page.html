@@ -114,10 +114,17 @@
             <h2 class="side-title"><app-icon name="hand"></app-icon> Voluntarios <small>{{ volunteers.length }}</small></h2>
             @if (volunteers.length) {
               <ul class="people">
-                @for (person of volunteers; track person.created_at + (person.name ?? '')) {
+                @for (person of volunteers; track $index) {
                   <li>
-                    <span class="people__avatar">@if (person.avatar_url) { <img [src]="person.avatar_url" alt="" loading="lazy" /> } @else { {{ initials(person.name) }} }</span>
-                    <span><strong>{{ person.name || 'Voluntario' }}@if (person.is_mine) { (tú) }</strong><small>{{ roleLabels[person.role] }}</small></span>
+                    <span class="people__avatar" [class.people__avatar--anon]="!person.name && person.is_report_author">
+                      @if (person.avatar_url) { <img [src]="person.avatar_url" alt="" loading="lazy" /> }
+                      @else if (!person.name && person.is_report_author) { <app-icon name="eye-off"></app-icon> }
+                      @else { {{ initials(person.name) }} }
+                    </span>
+                    <span>
+                      <strong>{{ person.name || (person.is_report_author ? 'Autor del reporte' : 'Voluntario') }}@if (person.is_mine) { (tú) }</strong>
+                      <small>{{ person.role ? roleLabels[person.role] : 'Identidad protegida' }}</small>
+                    </span>
                   </li>
                 }
               </ul>
