@@ -21,6 +21,10 @@ export interface Profile {
   /** Motivo de la última revisión de rol (por ejemplo, por qué se rechazó el voluntariado). */
   role_review_notes?: string | null;
   role_reviewed_at?: string | null;
+  /** Aparecer en el ranking público (RF-38). */
+  show_in_ranking?: boolean;
+  /** Recibir el resumen semanal por correo (RF-35). */
+  weekly_digest?: boolean;
   created_at: string;
   updated_at: string;
 }

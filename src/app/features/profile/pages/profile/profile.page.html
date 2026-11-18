@@ -90,6 +90,58 @@
         </aside>
 
         <div class="stack">
+          <!-- Progreso: puntos, nivel y medallas (RF-37) -->
+          @if (progress) {
+            <section class="card progress-card" id="progreso">
+              <div class="progress-card__top">
+                <div class="progress-card__level">
+                  <span class="progress-card__badge" aria-hidden="true">{{ progress.level }}</span>
+                  <div>
+                    <p class="progress-card__kicker">Nivel {{ progress.level }}</p>
+                    <h2>{{ progress.level_name }}</h2>
+                  </div>
+                </div>
+                <div class="progress-card__points">
+                  <strong>{{ progress.points }}</strong><small>puntos</small>
+                  <span>+{{ progress.month_points }} este mes</span>
+                </div>
+              </div>
+              <div class="progress-card__bar" role="progressbar" [attr.aria-valuenow]="levelPercent" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="'Avance al siguiente nivel: ' + levelPercent + '%'">
+                <span [style.width.%]="levelPercent"></span>
+              </div>
+              <p class="muted small">
+                @if (pointsToNext !== null) { Te faltan <strong>{{ pointsToNext }} puntos</strong> para el siguiente nivel. } @else { ¡Llegaste al nivel máximo! }
+                <a routerLink="/ranking">Ver el ranking</a>
+              </p>
+
+              <h3 class="progress-card__subtitle">Medallas <small>{{ progress.badges.length }}/{{ badges.length }}</small></h3>
+              <ul class="medals">
+                @for (badge of badges; track badge.id) {
+                  <li class="medal" [class.is-earned]="hasBadge(badge.id)" [title]="badge.description">
+                    <span class="medal__icon"><app-icon [name]="badge.icon"></app-icon></span>
+                    <strong>{{ badge.name }}</strong>
+                    <small>@if (hasBadge(badge.id)) { {{ badge.description }} } @else { {{ badgeCount(badge.action) > badge.needed ? badge.needed : badgeCount(badge.action) }}/{{ badge.needed }} }</small>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+
+          <!-- Preferencias (RF-35, RF-38) -->
+          <section class="card prefs">
+            <h2 class="card__title">Privacidad y avisos</h2>
+            <label class="pref">
+              <span><strong>Aparecer en el ranking</strong><small>Tu nombre y tus puntos se muestran en el ranking público.</small></span>
+              <span class="switch"><input type="checkbox" [checked]="profile.show_in_ranking !== false" (change)="setPreference('show_in_ranking', $any($event.target).checked)" [disabled]="savingPreference" /><span></span></span>
+            </label>
+            <label class="pref">
+              <span><strong>Resumen semanal por correo</strong><small>Lo que pasó en tu provincia y en tus reportes durante la semana.</small></span>
+              <span class="switch"><input type="checkbox" [checked]="profile.weekly_digest !== false" (change)="setPreference('weekly_digest', $any($event.target).checked)" [disabled]="savingPreference" /><span></span></span>
+            </label>
+            <a class="pref-link" routerLink="/notificaciones"><app-icon name="bell"></app-icon> Avisos en este dispositivo y notificaciones</a>
+            @if (preferenceMessage) { <p class="muted small" role="status">{{ preferenceMessage }}</p> }
+          </section>
+
           <!-- Datos (RF-05) -->
           <form class="card" [formGroup]="form" (ngSubmit)="save()" novalidate>
             <h2 class="card__title">Datos personales</h2>

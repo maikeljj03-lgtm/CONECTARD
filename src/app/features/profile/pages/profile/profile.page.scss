@@ -1,0 +1,126 @@
+// Progreso (RF-37) y preferencias (RF-35, RF-38). El resto usa _internal-pages.scss.
+
+.card.progress-card { display: grid; gap: 14px; background: linear-gradient(160deg, #fff 55%, var(--crd-teal-soft)); }
+
+.progress-card__top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+.progress-card__level { display: flex; align-items: center; gap: 14px; h2 { margin: 0; color: var(--crd-ink); font-family: var(--crd-font-display); font-size: 24px; } }
+
+.progress-card__badge {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--crd-ink);
+  color: #fff;
+  font-family: var(--crd-font-display);
+  font-size: 24px;
+  font-weight: 800;
+  transform: rotate(-6deg);
+}
+
+.progress-card__kicker { margin: 0; color: var(--crd-teal-text); font-size: 12.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+
+.progress-card__points {
+  display: grid;
+  justify-items: end;
+  strong { color: var(--crd-ink); font-family: var(--crd-font-display); font-size: 34px; line-height: 1; }
+  small { color: var(--crd-text-3); font-size: 12.5px; }
+  span { margin-top: 4px; color: var(--crd-teal-text); font-size: 12.5px; font-weight: 700; }
+}
+
+.progress-card__bar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--crd-surface-3);
+  span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--crd-teal), #3cc8bf); transition: width .8s cubic-bezier(.2, .7, .2, 1); }
+}
+
+.progress-card p a { margin-left: 6px; color: var(--crd-teal-text); font-weight: 700; }
+
+.progress-card__subtitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  color: var(--crd-ink);
+  font-size: 15px;
+  small { color: var(--crd-text-3); font-size: 12.5px; font-weight: 600; }
+}
+
+.medals {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.medal {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border: 1px dashed var(--crd-border-strong);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 70%);
+  text-align: center;
+  opacity: .6;
+
+  strong { color: var(--crd-ink); font-size: 12.5px; line-height: 1.25; }
+  small { color: var(--crd-text-3); font-size: 11.5px; line-height: 1.3; }
+
+  &.is-earned { border-style: solid; border-color: var(--crd-sun-line, #ecd29a); background: #fff; opacity: 1; }
+}
+
+.medal__icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--crd-surface-3);
+  color: var(--crd-text-3);
+  font-size: 17px;
+}
+
+.medal.is-earned .medal__icon { background: linear-gradient(145deg, #f6d27a, #d4a017); color: #fff; box-shadow: 0 4px 12px rgb(212 160 23 / 35%); }
+
+.prefs { display: grid; gap: 4px; }
+
+.pref {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 0;
+  border-top: 1px solid var(--crd-border);
+  cursor: pointer;
+
+  > span:first-child { display: grid; gap: 2px; strong { color: var(--crd-ink); font-size: 14.5px; } small { color: var(--crd-text-3); font-size: 13px; } }
+}
+
+.pref-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--crd-teal-text); font-size: 13.5px; font-weight: 700; text-decoration: none; }
+
+.switch {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 26px;
+
+  input { position: absolute; inset: 0; z-index: 1; margin: 0; opacity: 0; cursor: pointer; }
+  span {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: var(--crd-border-strong);
+    transition: background .2s;
+    pointer-events: none;
+    &::after { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 25%); transition: transform .2s; content: ''; }
+  }
+  input:checked + span { background: var(--crd-teal); &::after { transform: translateX(20px); } }
+  input:focus-visible + span { outline: 3px solid var(--crd-ink); outline-offset: 2px; }
+  input:disabled + span { opacity: .5; }
+}

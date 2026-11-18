@@ -105,6 +105,7 @@
               @if (canEdit) {
                 <a class="btn btn--ghost btn--sm" [routerLink]="['/reportes', report.id, 'editar']"><app-icon name="edit"></app-icon> Editar</a>
               }
+              @if (signedIn && !report.is_mine) { <app-flag-button kind="report" [targetId]="report.id"></app-flag-button> }
             </div>
             @if (actionError) { <p class="side-error" role="alert"><app-icon name="alert-circle"></app-icon> {{ actionError }}</p> }
           </div>

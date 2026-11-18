@@ -1,0 +1,31 @@
+@if (done) {
+  <span class="flag__done" [class.flag__done--compact]="compact"><app-icon name="check"></app-icon> Denunciado. Gracias.</span>
+} @else {
+  <button type="button" class="flag__trigger" [class.flag__trigger--compact]="compact" (click)="toggle()" [attr.aria-expanded]="open" aria-haspopup="dialog">
+    <app-icon name="flag"></app-icon> Denunciar
+  </button>
+}
+
+@if (open) {
+  <div class="flag__menu" role="dialog" [attr.aria-label]="'Denunciar ' + what">
+    <p class="flag__title">¿Qué pasa con {{ what }}?</p>
+    <div class="flag__reasons" role="radiogroup" aria-label="Motivo">
+      @for (item of reasons; track item.value) {
+        <label class="flag__reason" [class.is-selected]="reason === item.value">
+          <input type="radio" name="flag-reason" [value]="item.value" [checked]="reason === item.value" (change)="reason = item.value" />
+          <span><strong>{{ item.label }}</strong><small>{{ item.hint }}</small></span>
+        </label>
+      }
+    </div>
+    <label class="flag__details">
+      <span>Detalles <em>{{ reason === 'otro' ? '(obligatorio)' : '(opcional)' }}</em></span>
+      <textarea rows="2" maxlength="500" [value]="details" (input)="details = $any($event.target).value" placeholder="Ayuda a la moderación a entenderlo."></textarea>
+    </label>
+    @if (error) { <p class="flag__error" role="alert"><app-icon name="alert-circle"></app-icon> {{ error }}</p> }
+    <p class="flag__hint">Tu denuncia es privada: la persona denunciada no sabrá quién fuiste.</p>
+    <div class="flag__actions">
+      <button type="button" class="flag__cancel" (click)="open = false">Cancelar</button>
+      <button type="button" class="flag__send" (click)="send()" [disabled]="!reason || sending">{{ sending ? 'Enviando…' : 'Enviar denuncia' }}</button>
+    </div>
+  </div>
+}

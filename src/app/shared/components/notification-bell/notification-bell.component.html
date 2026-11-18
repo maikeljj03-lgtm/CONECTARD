@@ -1,0 +1,34 @@
+<button type="button" class="bell" [class.is-ringing]="ringing" (click)="toggle()" [attr.aria-expanded]="open" aria-haspopup="true"
+  [attr.aria-label]="unread ? 'Notificaciones: ' + unread + ' sin leer' : 'Notificaciones'">
+  <app-icon name="bell"></app-icon>
+  @if (unread) { <b class="bell__badge" aria-hidden="true">{{ badge }}</b> }
+</button>
+
+@if (open) {
+  <div class="panel" role="dialog" aria-label="Notificaciones">
+    <header class="panel__head">
+      <strong>Notificaciones</strong>
+      @if (unread) { <button type="button" class="link" (click)="markAll()">Marcar todas como leídas</button> }
+    </header>
+
+    <ul class="panel__list">
+      @for (item of items; track item.id) {
+        <li>
+          <button type="button" class="note" [class.is-unread]="!item.read_at" (click)="select(item)">
+            <span class="note__icon note__icon--{{ item.kind }}"><app-icon [name]="icons[item.kind]"></app-icon></span>
+            <span class="note__text">
+              <strong>{{ item.title }}</strong>
+              @if (item.body) { <small>{{ item.body }}</small> }
+              <em>{{ age(item) }}</em>
+            </span>
+            @if (!item.read_at) { <i class="note__dot" aria-label="Sin leer"></i> }
+          </button>
+        </li>
+      } @empty {
+        <li class="panel__empty"><app-icon name="bell"></app-icon><span>No tienes notificaciones todavía.</span></li>
+      }
+    </ul>
+
+    <a class="panel__all" routerLink="/notificaciones" (click)="open = false">Ver todas <app-icon name="arrow-right"></app-icon></a>
+  </div>
+}

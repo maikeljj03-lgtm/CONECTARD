@@ -1,0 +1,104 @@
+<ion-content class="app-content">
+  @if (signedIn) { <app-topbar></app-topbar> } @else {
+    <header class="guest-bar">
+      <a routerLink="/landing" aria-label="ConectaRD, inicio"><app-logo [size]="30"></app-logo></a>
+      <div class="guest-bar__actions">
+        <a class="btn btn--ghost btn--sm" routerLink="/auth/login">Iniciar sesión</a>
+        <a class="btn btn--primary btn--sm" routerLink="/auth/register">Únete</a>
+      </div>
+    </header>
+  }
+
+  <main class="page">
+    <header class="page-head">
+      <p class="page-kicker">Ranking comunitario</p>
+      <h1>Quienes más mejoran su comunidad</h1>
+      <p>Puntos por reportar, apoyar, comentar, sumarse y asistir a jornadas. Los reportes rechazados no cuentan.</p>
+    </header>
+
+    <div class="rank-toolbar">
+      <div class="tabs" role="tablist" aria-label="Quiénes">
+        <button type="button" role="tab" class="tab" [class.is-active]="audience === 'personas'" [attr.aria-selected]="audience === 'personas'" (click)="setAudience('personas')">Personas</button>
+        <button type="button" role="tab" class="tab" [class.is-active]="audience === 'organizaciones'" [attr.aria-selected]="audience === 'organizaciones'" (click)="setAudience('organizaciones')">ONG e instituciones</button>
+      </div>
+      <div class="rank-filters">
+        <div class="tabs" role="tablist" aria-label="Período">
+          @for (item of periods; track item.value) {
+            <button type="button" role="tab" class="tab" [class.is-active]="period === item.value" [attr.aria-selected]="period === item.value" (click)="setPeriod(item.value)">{{ item.label }}</button>
+          }
+        </div>
+        <label class="rank-province">
+          <app-icon name="map"></app-icon>
+          <select [value]="province" (change)="setProvince($any($event.target).value)" aria-label="Provincia">
+            <option value="">Todo el país</option>
+            @for (item of provinces; track item) { <option [value]="item">{{ item }}</option> }
+          </select>
+        </label>
+      </div>
+    </div>
+
+    @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+    <div class="rank-layout">
+      <section class="rank-main">
+        @if (loading) {
+          <div class="page-state"><span class="spinner"></span><p>Cargando ranking…</p></div>
+        } @else if (!rows.length) {
+          <div class="card result">
+            <span class="result__icon"><app-icon name="trophy"></app-icon></span>
+            <h2>Todavía no hay puntos en este período</h2>
+            <p class="muted">Reporta, apoya y participa en jornadas para aparecer aquí.</p>
+          </div>
+        } @else {
+          <!-- Podio -->
+          <ol class="podium">
+            @for (row of podium; track row.rank_position + row.name; let i = $index) {
+              <li class="podium__place podium__place--{{ i + 1 }}" [class.is-me]="row.is_me">
+                <span class="podium__avatar">
+                  @if (row.avatar_url) { <img [src]="row.avatar_url" alt="" /> } @else { {{ initials(row.name) }} }
+                  <b>{{ row.rank_position }}</b>
+                </span>
+                <strong>{{ row.name }}@if (row.is_me) { (tú) }</strong>
+                <small>{{ row.level_name }}</small>
+                <span class="podium__points">{{ row.points }} pts</span>
+                <span class="podium__step" aria-hidden="true"></span>
+              </li>
+            }
+          </ol>
+
+          @if (rest.length) {
+            <ol class="rank-list" [attr.start]="4">
+              @for (row of rest; track row.rank_position + row.name) {
+                <li [class.is-me]="row.is_me">
+                  <span class="rank-list__pos">{{ row.rank_position }}</span>
+                  <span class="rank-list__avatar">@if (row.avatar_url) { <img [src]="row.avatar_url" alt="" /> } @else { {{ initials(row.name) }} }</span>
+                  <span class="rank-list__name">
+                    <strong>{{ row.name }}@if (row.is_me) { (tú) }</strong>
+                    <small>{{ row.level_name }} · {{ roleLabels[row.role] }}@if (row.province) { · {{ row.province }} }</small>
+                  </span>
+                  <span class="rank-list__points">{{ row.points }} <small>pts</small></span>
+                </li>
+              }
+            </ol>
+          }
+        }
+      </section>
+
+      <aside class="rank-side">
+        <div class="card">
+          <h2 class="card__title"><app-icon name="sparkles"></app-icon> Cómo se ganan puntos</h2>
+          <ul class="rules">
+            @for (rule of rules; track rule.action) { <li><span>{{ rule.label }}</span><b>+{{ rule.points }}</b></li> }
+          </ul>
+          <p class="muted small">Cada cosa da puntos una sola vez: apoyar y quitar el apoyo no suma, y comentar varias veces en el mismo reporte cuenta una.</p>
+          @if (signedIn) {
+            <a class="btn btn--ghost btn--sm btn--block" routerLink="/perfil" fragment="progreso"><app-icon name="user"></app-icon> Ver mi progreso y medallas</a>
+          } @else {
+            <a class="btn btn--primary btn--sm btn--block" routerLink="/auth/register">Únete y empieza a sumar</a>
+          }
+        </div>
+      </aside>
+    </div>
+  </main>
+  @if (signedIn) { <app-bottom-nav></app-bottom-nav> }
+</ion-content>

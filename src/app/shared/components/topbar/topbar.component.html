@@ -1,13 +1,21 @@
 <div class="app-topbar__inner">
   <a class="app-topbar__brand" routerLink="/inicio" aria-label="ConectaRD, mi inicio"><app-logo [size]="30"></app-logo></a>
   <nav class="app-topbar__nav" aria-label="Navegación de la cuenta">
-    <a routerLink="/inicio" routerLinkActive="is-active"><app-icon name="home"></app-icon><span>Inicio</span></a>
-    <a routerLink="/explorar" routerLinkActive="is-active"><app-icon name="map"></app-icon><span>Explorar</span></a>
-    <a routerLink="/jornadas" routerLinkActive="is-active"><app-icon name="calendar"></app-icon><span>Jornadas</span></a>
-    <a routerLink="/reportes/nuevo" routerLinkActive="is-active"><app-icon name="camera"></app-icon><span>Reportar</span></a>
-    <a routerLink="/perfil" routerLinkActive="is-active"><app-icon name="user"></app-icon><span>Perfil</span></a>
-    <a *appCan="'report.manage_status'" routerLink="/gestion" routerLinkActive="is-active"><app-icon name="inbox"></app-icon><span>Gestión</span></a>
-    <a *appCan="'users.manage'" routerLink="/admin" routerLinkActive="is-active"><app-icon name="shield-check"></app-icon><span>Admin</span></a>
+    <a routerLink="/inicio" routerLinkActive="is-active" title="Inicio"><app-icon name="home"></app-icon><span>Inicio</span></a>
+    <a routerLink="/explorar" routerLinkActive="is-active" title="Explorar"><app-icon name="map"></app-icon><span>Explorar</span></a>
+    <a routerLink="/jornadas" routerLinkActive="is-active" title="Jornadas"><app-icon name="calendar"></app-icon><span>Jornadas</span></a>
+    <a routerLink="/reportes/nuevo" routerLinkActive="is-active" title="Reportar"><app-icon name="camera"></app-icon><span>Reportar</span></a>
+    <a routerLink="/ranking" routerLinkActive="is-active" title="Ranking"><app-icon name="trophy"></app-icon><span>Ranking</span></a>
+    <a routerLink="/perfil" routerLinkActive="is-active" title="Perfil"><app-icon name="user"></app-icon><span>Perfil</span></a>
+    <a *appCan="'report.manage_status'" routerLink="/gestion" routerLinkActive="is-active" title="Gestión"><app-icon name="inbox"></app-icon><span>Gestión</span></a>
+    <a *appCan="'users.manage'" routerLink="/admin" routerLinkActive="is-active" title="Admin"><app-icon name="shield-check"></app-icon><span>Admin</span></a>
   </nav>
+  <app-notification-bell></app-notification-bell>
   <button type="button" class="app-topbar__out" (click)="signOut()" aria-label="Cerrar sesión" title="Cerrar sesión"><app-icon name="log-out"></app-icon></button>
 </div>
+@if (blocked) {
+  <div class="app-topbar__blocked" role="alert">
+    <app-icon name="lock"></app-icon>
+    <span><strong>Tu cuenta está bloqueada por la moderación.</strong> Puedes ver la plataforma, pero no publicar, comentar ni participar. Si crees que es un error, escríbenos.</span>
+  </div>
+}

@@ -1,11 +1,18 @@
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
-import { ROLE_LABELS } from '../../../../core/constants/catalogs';
-import type { AdminUser, UserRole } from '../../../../core/models/profile.model';
+import { ActivatedRoute } from '@angular/router';
+import { REPORT_STATUS_LABELS, ROLE_LABELS } from '../../../../core/constants/catalogs';
+import type { AdminUserDetail, AdminUserRow, UserSort, UserStateFilter } from '../../../../core/models/admin.model';
+import type { UserRole } from '../../../../core/models/profile.model';
+import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { RolesService } from '../../../../core/services/roles.service';
+import { csvFilename, downloadCsv, toCsv } from '../../../../core/utils/csv';
 import { friendlyDataError } from '../../../../core/utils/data-errors';
+import { timeAgo } from '../../../../core/utils/geo';
+import { STATUS_COLORS } from '../../../../shared/components/community-scene/community-scene.component';
 
-/** Cuentas y roles (RF-03): el administrador busca cuentas y cambia su rol. */
+const PAGE_SIZE = 20;
+
+/** Usuarios (RF-39): tabla con filtros y ficha con cambio de rol y bloqueo. */
 @Component({
   selector: 'app-admin-users',
   templateUrl: './users.page.html',
@@ -13,81 +20,205 @@ import { friendlyDataError } from '../../../../core/utils/data-errors';
   standalone: false,
 })
 export class AdminUsersPage implements OnInit {
-  private readonly roles = inject(RolesService);
+  private readonly admin = inject(AdminService);
   private readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
   private readonly changeDetector = inject(ChangeDetectorRef);
 
   readonly roleLabels = ROLE_LABELS;
+  readonly statusLabels = REPORT_STATUS_LABELS;
+  readonly statusColors = STATUS_COLORS;
   readonly roleOptions: UserRole[] = ['citizen', 'volunteer', 'organization', 'institution', 'administrator'];
+  readonly pageSize = PAGE_SIZE;
 
-  users: AdminUser[] = [];
-  myId = '';
+  rows: AdminUserRow[] = [];
+  total = 0;
+  page = 0;
   search = '';
-  roleFilter: UserRole | '' = '';
-  /** Rol elegido en el selector de cada fila, antes de guardar. */
-  draft: Record<string, UserRole> = {};
-  /** Fila donde se pidió confirmar un cambio a administrador. */
-  confirmingAdmin = '';
+  role: UserRole | '' = '';
+  state: UserStateFilter = '';
+  sort: UserSort = 'recientes';
   loading = true;
-  busyId = '';
+  exporting = false;
   error = '';
   feedback = '';
+  myId = '';
   private searchTimer?: ReturnType<typeof setTimeout>;
 
+  // Ficha
+  detail: AdminUserDetail | null = null;
+  detailLoading = false;
+  newRole: UserRole | '' = '';
+  roleNote = '';
+  blockReason = '';
+  confirmAdmin = false;
+  busy = false;
+  drawerError = '';
+
   async ngOnInit(): Promise<void> {
+    const params = this.route.snapshot.queryParamMap;
+    const state = params.get('estado');
+    if (state === 'bloqueados' || state === 'pendientes' || state === 'activos') this.state = state;
     this.myId = (await this.auth.getCurrentUser())?.id ?? '';
     await this.load();
+  }
+
+  get pages(): number {
+    return Math.max(1, Math.ceil(this.total / PAGE_SIZE));
+  }
+
+  get rangeLabel(): string {
+    if (!this.total) return 'Sin resultados';
+    const from = this.page * PAGE_SIZE + 1;
+    return `${from}–${Math.min(this.total, from + this.rows.length - 1)} de ${this.total}`;
+  }
+
+  initials(name: string): string {
+    return (name || '?').split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('');
+  }
+
+  ago(iso: string | null): string {
+    return iso ? timeAgo(iso) : 'Nunca';
+  }
+
+  roleChip(role: UserRole): string {
+    return { citizen: '', volunteer: 'chip--teal', organization: 'chip--sun', institution: 'chip--blue', administrator: 'chip--ink' }[role];
   }
 
   onSearch(value: string): void {
     this.search = value;
     if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => void this.load(), 350);
+    this.searchTimer = setTimeout(() => void this.reload(), 300);
   }
 
-  async onFilter(value: string): Promise<void> {
-    this.roleFilter = value as UserRole | '';
+  async setFilter(kind: 'role' | 'state' | 'sort', value: string): Promise<void> {
+    if (kind === 'role') this.role = value as UserRole | '';
+    if (kind === 'state') this.state = value as UserStateFilter;
+    if (kind === 'sort') this.sort = value as UserSort;
+    await this.reload();
+  }
+
+  async goTo(page: number): Promise<void> {
+    this.page = Math.max(0, Math.min(this.pages - 1, page));
     await this.load();
   }
 
-  pendingLabel(user: AdminUser): string | null {
-    if (user.verification_status !== 'pending') return null;
-    return `Pidió ser ${this.roleLabels[user.requested_role].toLowerCase()}`;
+  async reload(): Promise<void> {
+    this.page = 0;
+    await this.load();
   }
 
-  hasChange(user: AdminUser): boolean {
-    return !!this.draft[user.id] && this.draft[user.id] !== user.role;
-  }
-
-  async save(user: AdminUser): Promise<void> {
-    const role = this.draft[user.id];
-    if (!role || role === user.role) return;
-    // Dar acceso de administrador pide una segunda confirmación.
-    if (role === 'administrator' && this.confirmingAdmin !== user.id) {
-      this.confirmingAdmin = user.id;
-      return;
-    }
-    this.confirmingAdmin = '';
-    this.busyId = user.id;
-    this.error = '';
-    this.feedback = '';
+  /** Exporta TODAS las cuentas que cumplen los filtros (RF-41). */
+  async exportCsv(): Promise<void> {
+    this.exporting = true;
     try {
-      await this.roles.setUserRole(user.id, role);
-      user.role = role;
-      user.verification_status = role === 'citizen' ? 'not_required' : 'approved';
-      delete this.draft[user.id];
-      this.feedback = `${user.full_name || user.email} ahora es ${this.roleLabels[role].toLowerCase()}.`;
+      const all = await this.admin.users({ search: this.search, role: this.role, state: this.state, sort: this.sort, limit: 200, offset: 0 });
+      let rows = all;
+      // admin_users_page devuelve hasta 200 por página: se piden las siguientes si hay más.
+      for (let offset = 200; offset < (all[0]?.total_count ?? 0); offset += 200) {
+        rows = rows.concat(await this.admin.users({ search: this.search, role: this.role, state: this.state, sort: this.sort, limit: 200, offset }));
+      }
+      const csv = toCsv(rows, [
+        { header: 'Nombre', value: (r) => r.full_name },
+        { header: 'Correo', value: (r) => r.email },
+        { header: 'Rol', value: (r) => this.roleLabels[r.role] },
+        { header: 'Provincia', value: (r) => r.province },
+        { header: 'Reportes', value: (r) => r.reports_count },
+        { header: 'Puntos', value: (r) => r.points },
+        { header: 'Bloqueada', value: (r) => (r.is_blocked ? 'Sí' : 'No') },
+        { header: 'Registro', value: (r) => new Date(r.created_at).toLocaleString('es-DO') },
+        { header: 'Último acceso', value: (r) => (r.last_sign_in_at ? new Date(r.last_sign_in_at).toLocaleString('es-DO') : '') },
+      ]);
+      downloadCsv(csvFilename('usuarios'), csv);
     } catch (error) {
       this.error = friendlyDataError(error);
     } finally {
-      this.busyId = '';
+      this.exporting = false;
       this.changeDetector.markForCheck();
     }
   }
 
-  cancel(user: AdminUser): void {
-    delete this.draft[user.id];
-    if (this.confirmingAdmin === user.id) this.confirmingAdmin = '';
+  // ---------- Ficha ----------
+
+  async openDetail(row: AdminUserRow): Promise<void> {
+    this.detail = null;
+    this.detailLoading = true;
+    this.drawerError = '';
+    this.newRole = '';
+    this.roleNote = '';
+    this.blockReason = '';
+    this.confirmAdmin = false;
+    this.changeDetector.markForCheck();
+    try {
+      this.detail = await this.admin.userDetail(row.id);
+      this.newRole = this.detail.role;
+    } catch (error) {
+      this.drawerError = friendlyDataError(error);
+    } finally {
+      this.detailLoading = false;
+      this.changeDetector.markForCheck();
+    }
+  }
+
+  closeDetail(): void {
+    this.detail = null;
+    this.detailLoading = false;
+  }
+
+  zone(d: AdminUserDetail): string {
+    return [...new Set([d.sector, d.municipality, d.province].filter(Boolean))].join(', ') || '—';
+  }
+
+  get isMe(): boolean {
+    return !!this.detail && this.detail.id === this.myId;
+  }
+
+  async saveRole(): Promise<void> {
+    const d = this.detail;
+    if (!d || !this.newRole || this.newRole === d.role) return;
+    if (this.newRole === 'administrator' && !this.confirmAdmin) {
+      this.confirmAdmin = true;
+      return;
+    }
+    await this.act(async () => {
+      await this.admin.setRole(d.id, this.newRole as UserRole, this.roleNote);
+      this.feedback = `${d.full_name || 'La cuenta'} ahora es ${this.roleLabels[this.newRole].toLowerCase()}.`;
+    });
+  }
+
+  async toggleBlock(): Promise<void> {
+    const d = this.detail;
+    if (!d) return;
+    if (!d.is_blocked && !this.blockReason.trim()) {
+      this.drawerError = 'Escribe el motivo del bloqueo: se le mostrará a la persona.';
+      return;
+    }
+    await this.act(async () => {
+      await this.admin.setBlocked(d.id, !d.is_blocked, this.blockReason);
+      this.feedback = d.is_blocked ? `Desbloqueaste a ${d.full_name || 'la cuenta'}.` : `Bloqueaste a ${d.full_name || 'la cuenta'}: ya no puede publicar ni iniciar sesión.`;
+    });
+  }
+
+  private async act(action: () => Promise<void>): Promise<void> {
+    const d = this.detail;
+    if (!d) return;
+    this.busy = true;
+    this.drawerError = '';
+    this.feedback = '';
+    try {
+      await action();
+      this.confirmAdmin = false;
+      this.blockReason = '';
+      this.roleNote = '';
+      this.detail = await this.admin.userDetail(d.id);
+      this.newRole = this.detail.role;
+      await this.load();
+    } catch (error) {
+      this.drawerError = friendlyDataError(error);
+    } finally {
+      this.busy = false;
+      this.changeDetector.markForCheck();
+    }
   }
 
   private async load(): Promise<void> {
@@ -95,9 +226,12 @@ export class AdminUsersPage implements OnInit {
     this.error = '';
     this.changeDetector.markForCheck();
     try {
-      this.users = await this.roles.listUsers(this.search, this.roleFilter);
+      this.rows = await this.admin.users({ search: this.search, role: this.role, state: this.state, sort: this.sort, limit: PAGE_SIZE, offset: this.page * PAGE_SIZE });
+      this.total = this.rows[0]?.total_count ?? 0;
     } catch (error) {
       this.error = friendlyDataError(error);
+      this.rows = [];
+      this.total = 0;
     } finally {
       this.loading = false;
       this.changeDetector.markForCheck();

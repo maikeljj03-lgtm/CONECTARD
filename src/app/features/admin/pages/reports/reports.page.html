@@ -1,0 +1,88 @@
+<div class="toolbar">
+  <label class="search">
+    <app-icon name="search"></app-icon>
+    <input type="search" placeholder="Título, descripción, sector o autor" [value]="search" (input)="onSearch($any($event.target).value)" aria-label="Buscar reportes" />
+  </label>
+  <select class="select" [value]="status" (change)="setFilter('status', $any($event.target).value)" aria-label="Estado">
+    <option value="">Todos los estados</option>
+    @for (item of statuses; track item) { <option [value]="item" [selected]="status === item">{{ statusLabels[item] }}</option> }
+  </select>
+  <select class="select" [value]="category" (change)="setFilter('category', $any($event.target).value)" aria-label="Categoría">
+    <option value="">Todas las categorías</option>
+    @for (item of categories; track item.value) { <option [value]="item.value">{{ item.label }}</option> }
+  </select>
+  <select class="select" [value]="province" (change)="setFilter('province', $any($event.target).value)" aria-label="Provincia">
+    <option value="">Todas las provincias</option>
+    @for (item of provinces; track item) { <option [value]="item">{{ item }}</option> }
+  </select>
+  <label class="check"><input type="checkbox" [checked]="flaggedOnly" (change)="setFilter('flagged', $any($event.target).checked)" /> Solo denunciados</label>
+  <button type="button" class="btn btn--ghost btn--sm" (click)="exportCsv()" [disabled]="exporting || !total">
+    @if (exporting) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="arrow-up-right"></app-icon> } Exportar CSV
+  </button>
+</div>
+
+<!-- Acciones en lote -->
+@if (selected.size) {
+  <div class="bulk">
+    <strong>{{ selected.size }} {{ selected.size === 1 ? 'seleccionado' : 'seleccionados' }}</strong>
+    <input class="bulk__reason" type="text" maxlength="500" placeholder="Motivo del rechazo (se muestra en el historial)" [value]="bulkReason" (input)="bulkReason = $any($event.target).value" />
+    <button type="button" class="btn btn--danger btn--sm" (click)="bulk('rechazar')" [disabled]="bulkBusy"><app-icon name="x"></app-icon> Rechazar</button>
+    <button type="button" class="btn btn--ghost btn--sm" (click)="bulk('restaurar')" [disabled]="bulkBusy"><app-icon name="refresh"></app-icon> Restaurar</button>
+    <button type="button" class="link" (click)="selected.clear()">Quitar selección</button>
+  </div>
+}
+
+@if (feedback) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ feedback }}</span></div> }
+@if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th><input type="checkbox" [checked]="allSelected" (change)="toggleAll()" aria-label="Seleccionar todos" /></th>
+        <th>Reporte</th><th>Estado</th><th>Autor</th><th>Zona</th><th>Participación</th><th>Creado</th>
+      </tr>
+    </thead>
+    <tbody>
+      @if (loading && !rows.length) {
+        <tr><td colspan="7"><span class="spinner spinner--sm"></span> Cargando…</td></tr>
+      }
+      @for (row of rows; track row.id) {
+        <tr [class.is-selected]="selected.has(row.id)" [class.is-flagged]="row.pending_flags">
+          <td><input type="checkbox" [checked]="selected.has(row.id)" (change)="toggle(row, $event)" [attr.aria-label]="'Seleccionar ' + row.title" /></td>
+          <td class="cell-title">
+            <a [routerLink]="['/reporte', row.id]" target="_blank"><strong>{{ row.title }}</strong></a>
+            <small><app-icon [name]="categoryIcon(row.category)"></app-icon> {{ categoryLabel(row.category) }}
+              @if (row.pending_flags) { <span class="chip chip--danger"><app-icon name="flag"></app-icon> {{ row.pending_flags }}</span> }
+            </small>
+          </td>
+          <td>
+            <span class="status-dot"><i [style.background]="statusColors[row.status]"></i>{{ statusLabels[row.status] }}</span>
+            <small>{{ ago(row.status_updated_at) }}</small>
+          </td>
+          <td>
+            <strong>{{ row.author_name || 'Sin nombre' }}</strong>
+            <small>{{ row.author_email }}</small>
+            @if (row.is_anonymous) { <span class="chip chip--ink" title="Publicado como anónimo: solo la administración ve quién es"><app-icon name="eye-off"></app-icon> Anónimo</span> }
+          </td>
+          <td>{{ place(row) }}</td>
+          <td class="cell-social"><span title="Me afecta"><app-icon name="thumbs-up"></app-icon> {{ row.support_count }}</span><span title="Comentarios"><app-icon name="message"></app-icon> {{ row.comment_count }}</span></td>
+          <td>
+            {{ row.created_at | date: 'd MMM y' }}
+            @if (row.status === 'reportado' && daysOpen(row) >= 7) { <small class="stale">{{ daysOpen(row) }} días sin atender</small> }
+          </td>
+        </tr>
+      } @empty {
+        @if (!loading) { <tr><td colspan="7" class="muted">Ningún reporte coincide con los filtros.</td></tr> }
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="pager">
+  <span>{{ rangeLabel }}</span>
+  <div>
+    <button type="button" (click)="goTo(page - 1)" [disabled]="page === 0 || loading"><app-icon name="arrow-left"></app-icon> Anterior</button>
+    <button type="button" (click)="goTo(page + 1)" [disabled]="page >= pages - 1 || loading">Siguiente <app-icon name="arrow-right"></app-icon></button>
+  </div>
+</div>

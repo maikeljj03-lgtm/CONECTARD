@@ -57,6 +57,17 @@
   &:hover { border-color: var(--crd-ink); color: var(--crd-ink); }
 }
 
+// Con muchas opciones (administrador, institución) la barra se compacta antes de llenarse.
+@media (max-width: 1240px) {
+  .app-topbar__inner { gap: 10px; }
+  .app-topbar__nav a { padding: 9px 11px; font-size: 14px; }
+}
+
+@media (max-width: 1080px) {
+  .app-topbar__nav a { padding: 10px; span { display: none; } }
+  .app-topbar__nav a.is-active span { display: inline; }
+}
+
 @media (max-width: 640px) {
   .app-topbar__inner { gap: 6px; width: calc(100% - 24px); }
   .app-topbar__nav a { padding: 9px 11px; span { display: none; } }
@@ -65,4 +76,17 @@
 // En el teléfono la navegación va en la barra inferior (app-bottom-nav).
 @media (max-width: 760px) {
   .app-topbar__nav { display: none; }
+}
+
+.app-topbar__blocked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--crd-danger);
+  color: #fff;
+  font-size: 13.5px;
+  line-height: 1.4;
+  app-icon { flex: none; }
 }

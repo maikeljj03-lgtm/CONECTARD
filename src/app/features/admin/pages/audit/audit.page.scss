@@ -1,0 +1,68 @@
+@use '../../admin-shared';
+
+.audit-note {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--crd-border);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--crd-text-2);
+  font-size: 13.5px;
+  line-height: 1.5;
+  app-icon { flex: none; margin-top: 2px; color: var(--crd-teal-text); }
+  strong { color: var(--crd-ink); }
+}
+
+.total { margin-left: auto; }
+.filter-chip { border: 0; cursor: pointer; font: inherit; font-size: 12px; }
+
+.timeline {
+  position: relative;
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--crd-border);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.timeline__item {
+  --tone: var(--crd-teal);
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--crd-border);
+  &:last-child { border-bottom: 0; }
+}
+
+.timeline__item--bloquear, .timeline__item--eliminar_comentario, .timeline__item--cancelar_jornada { --tone: var(--crd-danger); }
+.timeline__item--estado_reporte, .timeline__item--resolver_denuncias { --tone: #e9a13b; }
+.timeline__item--cambiar_rol, .timeline__item--revisar_verificacion, .timeline__item--revisar_voluntario { --tone: #4d7fb8; }
+
+.timeline__icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tone) 14%, #fff);
+  color: var(--tone);
+  font-size: 16px;
+}
+
+.timeline__body { min-width: 0; }
+.timeline__title { margin: 0; color: var(--crd-text-2); font-size: 14px; line-height: 1.45; strong { color: var(--crd-ink); } a, em { color: var(--crd-ink); font-style: normal; font-weight: 650; } a { text-decoration: none; &:hover { color: var(--crd-teal-text); } } }
+.timeline__detail { margin: 4px 0 0; color: var(--crd-text-3); font-size: 13px; overflow-wrap: anywhere; }
+
+time { display: grid; justify-items: end; color: var(--crd-text-2); font-size: 12.5px; font-weight: 650; white-space: nowrap; small { color: var(--crd-text-3); font-weight: 500; } }
+
+@media (max-width: 640px) {
+  .timeline__item { grid-template-columns: 34px minmax(0, 1fr); }
+  time { grid-column: 2; justify-items: start; }
+}

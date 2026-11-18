@@ -11,17 +11,21 @@ import { ReportCommentsComponent } from './components/report-comments/report-com
 import { ReportProgressComponent } from './components/report-progress/report-progress.component';
 import { ReportResourcesComponent } from './components/report-resources/report-resources.component';
 import { ShareButtonComponent } from './components/share-button/share-button.component';
+import { FlagButtonComponent } from './components/flag-button/flag-button.component';
+import { NotificationBellComponent } from './components/notification-bell/notification-bell.component';
 import { LogoComponent } from './components/logo/logo.component';
 import { ReportCardComponent } from './components/report-card/report-card.component';
 import { ReportPreviewComponent } from './components/report-preview/report-preview.component';
 import { SkylineComponent } from './components/skyline/skyline.component';
 import { TopbarComponent } from './components/topbar/topbar.component';
 import { CanDirective } from './directives/can.directive';
+import { CountUpDirective } from './directives/count-up.directive';
 
 const COMPONENTS = [
   IconComponent, LogoComponent, SkylineComponent, TopbarComponent, BottomNavComponent,
   CommunitySceneComponent, ReportCardComponent, ReportPreviewComponent, MediaPickerComponent, CanDirective,
   ReportProgressComponent, ShareButtonComponent, ReportCommentsComponent, ReportResourcesComponent,
+  FlagButtonComponent, NotificationBellComponent, CountUpDirective,
 ];
 
 /**

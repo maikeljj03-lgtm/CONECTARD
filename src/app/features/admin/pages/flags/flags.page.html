@@ -1,0 +1,53 @@
+<div class="tabs" role="tablist">
+  <button type="button" role="tab" class="tab" [class.is-active]="status === 'pendiente'" (click)="setStatus('pendiente')">Pendientes</button>
+  <button type="button" role="tab" class="tab" [class.is-active]="status === 'atendida'" (click)="setStatus('atendida')">Atendidas</button>
+  <button type="button" role="tab" class="tab" [class.is-active]="status === 'descartada'" (click)="setStatus('descartada')">Descartadas</button>
+</div>
+
+@if (feedback) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ feedback }}</span></div> }
+@if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+@if (loading) {
+  <div class="page-state"><span class="spinner"></span><p>Cargando…</p></div>
+} @else {
+  <div class="stack">
+    @for (item of items; track item.target_type + item.target_id) {
+      <article class="card flag-item" [class.flag-item--hot]="item.flags >= 3">
+        <div class="flag-item__head">
+          <span class="badge" [class.badge--danger]="item.flags >= 3"><app-icon name="flag"></app-icon> {{ item.flags }} {{ item.flags === 1 ? 'denuncia' : 'denuncias' }}</span>
+          <span class="badge">{{ kindLabel(item) }}</span>
+          @for (reason of item.reasons; track reason) { <span class="badge badge--sun">{{ reasonLabel(reason) }}</span> }
+          <small class="muted">Última {{ age(item.last_at) }}</small>
+        </div>
+
+        <blockquote class="flag-item__preview">{{ item.preview || 'El contenido ya no existe.' }}</blockquote>
+
+        @if (item.details.length) {
+          <ul class="flag-item__details">
+            @for (detail of item.details; track $index) { <li>“{{ detail }}”</li> }
+          </ul>
+        }
+
+        @if (link(item); as target) {
+          <a class="flag-item__link" [routerLink]="target" target="_blank"><app-icon name="arrow-up-right"></app-icon> Ver en contexto</a>
+        }
+
+        @if (status === 'pendiente') {
+          <label class="field__label" [attr.for]="'flag-note-' + item.target_id">Motivo para quien lo publicó <span class="optional">(obligatorio si lo retiras)</span></label>
+          <textarea class="textarea" [id]="'flag-note-' + item.target_id" rows="2" maxlength="500" [value]="notes[item.target_id] ?? ''" (input)="notes[item.target_id] = $any($event.target).value" placeholder="Ej. Publicidad no permitida en ConectaRD."></textarea>
+          <div class="actions">
+            <button type="button" class="btn btn--ghost" (click)="resolve(item, false)" [disabled]="busyId === item.target_id"><app-icon name="check"></app-icon> Descartar (está bien)</button>
+            <button type="button" class="btn btn--danger" (click)="resolve(item, true)" [disabled]="busyId === item.target_id">
+              @if (busyId === item.target_id) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="x"></app-icon> } {{ actionLabel(item) }}
+            </button>
+          </div>
+        }
+      </article>
+    } @empty {
+      <div class="card result">
+        <span class="result__icon result__icon--ok"><app-icon name="check-circle"></app-icon></span>
+        <h2>{{ status === 'pendiente' ? 'No hay denuncias pendientes' : 'Nada por aquí' }}</h2>
+      </div>
+    }
+  </div>
+}

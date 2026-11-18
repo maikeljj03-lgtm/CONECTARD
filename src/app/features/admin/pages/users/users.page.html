@@ -1,71 +1,172 @@
-<ion-content class="app-content">
-  <app-topbar></app-topbar>
+<div class="toolbar">
+  <label class="search">
+    <app-icon name="search"></app-icon>
+    <input type="search" placeholder="Buscar por nombre o correo" [value]="search" (input)="onSearch($any($event.target).value)" aria-label="Buscar usuarios" />
+  </label>
+  <select class="select" [value]="role" (change)="setFilter('role', $any($event.target).value)" aria-label="Rol">
+    <option value="">Todos los roles</option>
+    @for (option of roleOptions; track option) { <option [value]="option">{{ roleLabels[option] }}</option> }
+  </select>
+  <select class="select" [value]="state" (change)="setFilter('state', $any($event.target).value)" aria-label="Estado">
+    <option value="" [selected]="!state">Todos los estados</option>
+    <option value="activos" [selected]="state === 'activos'">Activos</option>
+    <option value="bloqueados" [selected]="state === 'bloqueados'">Bloqueados</option>
+    <option value="pendientes" [selected]="state === 'pendientes'">Con solicitud pendiente</option>
+  </select>
+  <select class="select" [value]="sort" (change)="setFilter('sort', $any($event.target).value)" aria-label="Ordenar">
+    <option value="recientes">Más recientes</option>
+    <option value="actividad">Última actividad</option>
+    <option value="puntos">Más puntos</option>
+    <option value="reportes">Más reportes</option>
+    <option value="nombre">Nombre (A–Z)</option>
+  </select>
+  <button type="button" class="btn btn--ghost btn--sm" (click)="exportCsv()" [disabled]="exporting || !total">
+    @if (exporting) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="arrow-up-right"></app-icon> } Exportar CSV
+  </button>
+</div>
 
-  <main class="page">
-    <header class="page-head">
-      <p class="page-kicker">Administración</p>
-      <h1>Usuarios y roles</h1>
-      <p>Busca una cuenta y cambia su rol. Cada cambio queda registrado con fecha y responsable. No puedes cambiar tu propio rol.</p>
+@if (feedback) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ feedback }}</span></div> }
+@if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr><th>Usuario</th><th>Rol</th><th>Provincia</th><th>Reportes</th><th>Puntos</th><th>Último acceso</th><th>Registro</th><th>Estado</th></tr>
+    </thead>
+    <tbody>
+      @if (loading && !rows.length) {
+        <tr><td colspan="8"><span class="spinner spinner--sm"></span> Cargando…</td></tr>
+      }
+      @for (row of rows; track row.id) {
+        <tr class="is-clickable" [class.is-blocked]="row.is_blocked" [class.is-selected]="detail?.id === row.id" (click)="openDetail(row)" tabindex="0" (keydown.enter)="openDetail(row)">
+          <td>
+            <div class="cell-user">
+              <span class="mini-avatar">@if (row.avatar_url) { <img [src]="row.avatar_url" alt="" /> } @else { {{ initials(row.full_name) }} }</span>
+              <span><strong>{{ row.full_name || 'Sin nombre' }}@if (row.id === myId) { (tú) }</strong><small>{{ row.email }}</small></span>
+            </div>
+          </td>
+          <td><span class="chip {{ roleChip(row.role) }}">{{ roleLabels[row.role] }}</span></td>
+          <td>{{ row.province || '—' }}</td>
+          <td>{{ row.reports_count }}</td>
+          <td>{{ row.points }}</td>
+          <td>{{ ago(row.last_sign_in_at) }}</td>
+          <td>{{ row.created_at | date: 'd MMM y' }}</td>
+          <td>
+            @if (row.is_blocked) { <span class="chip chip--danger"><app-icon name="lock"></app-icon> Bloqueado</span> }
+            @else if (row.verification_status === 'pending') { <span class="chip chip--sun">Pidió ser {{ roleLabels[row.requested_role].toLowerCase() }}</span> }
+            @else { <span class="chip chip--teal">Activo</span> }
+          </td>
+        </tr>
+      } @empty {
+        @if (!loading) { <tr><td colspan="8" class="muted">Ninguna cuenta coincide con los filtros.</td></tr> }
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="pager">
+  <span>{{ rangeLabel }}</span>
+  <div>
+    <button type="button" (click)="goTo(page - 1)" [disabled]="page === 0 || loading"><app-icon name="arrow-left"></app-icon> Anterior</button>
+    <button type="button" (click)="goTo(page + 1)" [disabled]="page >= pages - 1 || loading">Siguiente <app-icon name="arrow-right"></app-icon></button>
+  </div>
+</div>
+
+<!-- ================= Ficha del usuario ================= -->
+@if (detail || detailLoading) {
+  <div class="drawer-backdrop" (click)="closeDetail()"></div>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-label="Ficha del usuario">
+    <header class="drawer__head">
+      @if (detail) {
+        <span class="mini-avatar mini-avatar--lg">@if (detail.avatar_url) { <img [src]="detail.avatar_url" alt="" /> } @else { {{ initials(detail.full_name) }} }</span>
+        <div><h2>{{ detail.full_name || 'Sin nombre' }}</h2><small>{{ detail.email }}</small></div>
+      } @else { <h2>Cargando…</h2> }
+      <button type="button" class="drawer__close" (click)="closeDetail()" aria-label="Cerrar"><app-icon name="x"></app-icon></button>
     </header>
 
-    <app-admin-nav></app-admin-nav>
+    <div class="drawer__body">
+      @if (detailLoading) { <p><span class="spinner spinner--sm"></span> Cargando ficha…</p> }
+      @if (drawerError) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ drawerError }}</span></div> }
 
-    <div class="users-toolbar">
-      <div class="field__control">
-        <app-icon class="field__icon" name="search"></app-icon>
-        <input type="search" placeholder="Buscar por nombre o correo…" [value]="search" (input)="onSearch($any($event.target).value)" aria-label="Buscar cuentas" />
-      </div>
-      <div class="field__control users-toolbar__filter">
-        <app-icon class="field__icon" name="users"></app-icon>
-        <select [value]="roleFilter" (change)="onFilter($any($event.target).value)" aria-label="Filtrar por rol">
-          <option value="">Todos los roles</option>
-          @for (role of roleOptions; track role) { <option [value]="role">{{ roleLabels[role] }}</option> }
-        </select>
-      </div>
-    </div>
-
-    @if (feedback) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ feedback }}</span></div> }
-    @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
-
-    @if (loading) {
-      <div class="page-state"><span class="spinner"></span></div>
-    } @else if (!error || users.length) {
-      <div class="card users">
-        @for (user of users; track user.id) {
-          <article class="user-row">
-            <div class="avatar avatar--sm">
-              @if (user.avatar_url; as avatar) { <img [src]="avatar" alt="" /> } @else { <app-icon name="user"></app-icon> }
-            </div>
-            <div class="user-row__who">
-              <strong>{{ user.full_name || 'Sin nombre' }} @if (user.id === myId) { <span class="badge">Tú</span> }</strong>
-              <small>{{ user.email }}</small>
-              @if (pendingLabel(user); as pending) { <span class="badge badge--sun"><app-icon name="clock"></app-icon> {{ pending }}</span> }
-            </div>
-            <div class="user-row__role">
-              @if (user.id === myId) {
-                <span class="badge badge--teal">{{ roleLabels[user.role] }}</span>
-              } @else {
-                <select class="user-row__select" [value]="draft[user.id] ?? user.role" (change)="draft[user.id] = $any($event.target).value; confirmingAdmin = ''" [attr.aria-label]="'Rol de ' + (user.full_name || user.email)">
-                  @for (role of roleOptions; track role) { <option [value]="role">{{ roleLabels[role] }}</option> }
-                </select>
-                @if (hasChange(user)) {
-                  <button type="button" class="btn btn--ghost btn--sm" (click)="cancel(user)">Cancelar</button>
-                  <button type="button" class="btn btn--primary btn--sm" (click)="save(user)" [disabled]="busyId === user.id">
-                    @if (busyId === user.id) { <span class="spinner spinner--sm"></span> }
-                    {{ confirmingAdmin === user.id ? 'Sí, hacer administrador' : 'Guardar' }}
-                  </button>
-                }
-              }
-            </div>
-            @if (confirmingAdmin === user.id) {
-              <p class="user-row__warn"><app-icon name="alert"></app-icon> Un administrador puede ver todas las cuentas, documentos y reportes anónimos. Pulsa de nuevo para confirmar.</p>
-            }
-          </article>
-        } @empty {
-          <p class="muted">No se encontraron cuentas.</p>
+      @if (detail) {
+        @if (detail.is_blocked) {
+          <div class="blocked-banner">
+            <app-icon name="lock"></app-icon>
+            <span><strong>Cuenta bloqueada</strong> {{ detail.blocked_at | date: "d MMM y, h:mm a" }}<br />Motivo: {{ detail.blocked_reason }}</span>
+          </div>
         }
-      </div>
-    }
-  </main>
-  <app-bottom-nav></app-bottom-nav>
-</ion-content>
+
+        <section class="drawer__section">
+          <h3>Actividad</h3>
+          <div class="mini-stats">
+            <div><b>{{ detail.stats.reports }}</b><small>reportes</small></div>
+            <div><b>{{ detail.stats.resolved }}</b><small>resueltos</small></div>
+            <div><b>{{ detail.stats.points }}</b><small>puntos</small></div>
+            <div><b>{{ detail.stats.comments }}</b><small>comentarios</small></div>
+            <div><b>{{ detail.stats.events_attended }}</b><small>jornadas</small></div>
+            <div [class.warn]="detail.stats.flags_received"><b>{{ detail.stats.flags_received }}</b><small>denuncias recibidas</small></div>
+          </div>
+          @if (detail.stats.rejected) { <p class="muted small">{{ detail.stats.rejected }} de sus reportes fueron rechazados.</p> }
+        </section>
+
+        <section class="drawer__section">
+          <h3>Datos</h3>
+          <dl class="kv">
+            <dt>Rol</dt><dd>{{ roleLabels[detail.role] }}</dd>
+            <dt>Zona</dt><dd>{{ zone(detail) }}</dd>
+            <dt>Correo confirmado</dt><dd>{{ detail.email_confirmed ? 'Sí' : 'No' }}</dd>
+            <dt>Registro</dt><dd>{{ detail.created_at | date: "d MMM y, h:mm a" }}</dd>
+            <dt>Último acceso</dt><dd>{{ detail.last_sign_in_at ? (detail.last_sign_in_at | date: "d MMM y, h:mm a") : 'Nunca' }}</dd>
+            @if (detail.bio) { <dt>Presentación</dt><dd>{{ detail.bio }}</dd> }
+          </dl>
+        </section>
+
+        @if (detail.recent_reports.length) {
+          <section class="drawer__section">
+            <h3>Reportes recientes</h3>
+            <ul class="recent">
+              @for (report of detail.recent_reports; track report.id) {
+                <li>
+                  <a [routerLink]="['/reporte', report.id]" target="_blank">{{ report.title }}</a>
+                  <span class="status-dot"><i [style.background]="statusColors[report.status]"></i>{{ statusLabels[report.status] }}@if (report.is_anonymous) { · anónimo }</span>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+
+        @if (!isMe) {
+          <section class="drawer__section">
+            <h3>Cambiar rol</h3>
+            <select class="select" [value]="newRole" (change)="newRole = $any($event.target).value; confirmAdmin = false">
+              @for (option of roleOptions; track option) { <option [value]="option" [selected]="newRole === option">{{ roleLabels[option] }}</option> }
+            </select>
+            <textarea class="textarea" rows="2" maxlength="500" placeholder="Nota para la persona (opcional)" [value]="roleNote" (input)="roleNote = $any($event.target).value"></textarea>
+            @if (confirmAdmin) { <p class="warn-text"><app-icon name="alert-circle"></app-icon> Un administrador puede ver datos privados y cambiar roles. Vuelve a tocar para confirmar.</p> }
+            <button type="button" class="btn btn--primary btn--sm" (click)="saveRole()" [disabled]="busy || newRole === detail.role">
+              {{ confirmAdmin ? 'Sí, hacerlo administrador' : 'Guardar rol' }}
+            </button>
+          </section>
+
+          @if (detail.role !== 'administrator') {
+            <section class="drawer__section" [class.danger-zone]="!detail.is_blocked">
+              <h3>{{ detail.is_blocked ? 'Desbloquear cuenta' : 'Bloquear cuenta' }}</h3>
+              @if (!detail.is_blocked) {
+                <p class="muted small">La persona no podrá iniciar sesión, publicar, comentar, apoyar ni editar nada. Su contenido sigue visible; usa Denuncias o Reportes para retirarlo.</p>
+                <textarea class="textarea" rows="2" maxlength="500" placeholder="Motivo (obligatorio, se le mostrará)" [value]="blockReason" (input)="blockReason = $any($event.target).value"></textarea>
+              } @else {
+                <p class="muted small">Recuperará el acceso y podrá volver a participar.</p>
+              }
+              <button type="button" class="btn btn--sm" [class.btn--danger]="!detail.is_blocked" [class.btn--primary]="detail.is_blocked" (click)="toggleBlock()" [disabled]="busy">
+                <app-icon [name]="detail.is_blocked ? 'shield-check' : 'lock'"></app-icon> {{ detail.is_blocked ? 'Desbloquear' : 'Bloquear cuenta' }}
+              </button>
+            </section>
+          }
+          <a class="link-more" [routerLink]="['/admin/auditoria']" [queryParams]="{ persona: detail.id }"><app-icon name="history"></app-icon> Ver su historial en la auditoría</a>
+        } @else {
+          <p class="muted small">Es tu cuenta: no puedes cambiar tu propio rol ni bloquearte.</p>
+        }
+      }
+    </div>
+  </aside>
+}

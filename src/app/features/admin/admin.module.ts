@@ -1,14 +1,27 @@
 import { NgModule } from '@angular/core';
 import { SharedModule } from '../../shared/shared.module';
 import { AdminRoutingModule } from './admin-routing.module';
-import { AdminNavComponent } from './components/admin-nav/admin-nav.component';
+import { AdminShellComponent } from './components/admin-shell/admin-shell.component';
+import { AreaChartComponent } from './components/area-chart/area-chart.component';
+import { DonutChartComponent } from './components/donut-chart/donut-chart.component';
+import { AdminAuditPage } from './pages/audit/audit.page';
+import { AdminDashboardPage } from './pages/dashboard/dashboard.page';
+import { AdminFlagsPage } from './pages/flags/flags.page';
+import { AdminReportsPage } from './pages/reports/reports.page';
 import { AdminUsersPage } from './pages/users/users.page';
 import { AdminVerificationsPage } from './pages/verifications/verifications.page';
 import { AdminVolunteersPage } from './pages/volunteers/volunteers.page';
 
-/** Administración: verificaciones, voluntarios y roles (RF-03, RF-06). Solo administradores. */
+/**
+ * Consola de administración (RF-39 a RF-43, RF-52): resumen con métricas, usuarios (roles y bloqueo),
+ * reportes, denuncias, verificaciones, voluntarios y auditoría. Solo administradores.
+ */
 @NgModule({
-  declarations: [AdminVerificationsPage, AdminVolunteersPage, AdminUsersPage, AdminNavComponent],
+  declarations: [
+    AdminShellComponent, AreaChartComponent, DonutChartComponent,
+    AdminDashboardPage, AdminUsersPage, AdminReportsPage, AdminFlagsPage,
+    AdminVerificationsPage, AdminVolunteersPage, AdminAuditPage,
+  ],
   imports: [SharedModule, AdminRoutingModule],
 })
 export class AdminModule {}

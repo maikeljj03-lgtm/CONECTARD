@@ -1,0 +1,46 @@
+<div class="chart">
+  <svg [attr.viewBox]="'0 0 ' + width + ' ' + height" preserveAspectRatio="none" role="img"
+    [attr.aria-label]="'Gráfica: ' + (series[0]?.label ?? '')" (mousemove)="onMove($event)" (mouseleave)="hover = null">
+    <defs>
+      @for (serie of series; track serie.label; let i = $index) {
+        <linearGradient [attr.id]="'area-' + i" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" [attr.stop-color]="serie.color" stop-opacity=".28"></stop>
+          <stop offset="100%" [attr.stop-color]="serie.color" stop-opacity="0"></stop>
+        </linearGradient>
+      }
+    </defs>
+
+    @for (tick of ticks; track $index) {
+      <line class="grid" [attr.x1]="pad.left" [attr.x2]="width - pad.right" [attr.y1]="y(tick)" [attr.y2]="y(tick)"></line>
+      <text class="axis axis--y" [attr.x]="pad.left - 8" [attr.y]="y(tick) + 4">{{ tick }}</text>
+    }
+    @for (label of labels; track $index; let i = $index) {
+      @if (showLabel(i)) { <text class="axis axis--x" [attr.x]="x(i)" [attr.y]="height - 6">{{ label }}</text> }
+    }
+
+    @for (serie of series; track serie.label; let i = $index) {
+      <path class="area" [attr.d]="area(serie.values)" [attr.fill]="'url(#area-' + i + ')'"></path>
+      <path class="line" [attr.d]="line(serie.values)" [attr.stroke]="serie.color"></path>
+    }
+
+    @if (hover !== null) {
+      <line class="cursor" [attr.x1]="x(hover)" [attr.x2]="x(hover)" [attr.y1]="pad.top" [attr.y2]="height - pad.bottom"></line>
+      @for (serie of series; track serie.label) {
+        <circle class="dot" [attr.cx]="x(hover)" [attr.cy]="y(serie.values[hover] ?? 0)" r="4.5" [attr.stroke]="serie.color"></circle>
+      }
+    }
+  </svg>
+
+  @if (hover !== null) {
+    <div class="tip" [style.left.%]="tooltipLeft()" [class.tip--right]="tooltipLeft() > 70">
+      <strong>{{ labels[hover] }}</strong>
+      @for (serie of series; track serie.label) {
+        <span><i [style.background]="serie.color"></i>{{ serie.label }}: <b>{{ serie.values[hover] ?? 0 }}</b></span>
+      }
+    </div>
+  }
+
+  <div class="legend">
+    @for (serie of series; track serie.label) { <span><i [style.background]="serie.color"></i>{{ serie.label }}</span> }
+  </div>
+</div>

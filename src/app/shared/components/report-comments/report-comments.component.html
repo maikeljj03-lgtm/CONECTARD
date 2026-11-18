@@ -84,6 +84,8 @@
               <button type="submit" class="composer__send" [disabled]="!editDraft.trim() || busyId === comment.id">Guardar</button>
             </div>
           </form>
+        } @else if (comment.is_hidden) {
+          <p class="comment__deleted"><app-icon name="flag"></app-icon> Comentario oculto mientras la moderación lo revisa.</p>
         } @else {
           <p class="comment__text">{{ comment.body }}</p>
         }
@@ -93,6 +95,7 @@
             @if (!isReply && signedIn && !closed) { <button type="button" class="link" (click)="startReply(comment)"><app-icon name="message"></app-icon> Responder</button> }
             @if (comment.is_mine) { <button type="button" class="link" (click)="startEdit(comment)">Editar</button> }
             @if (canModify(comment)) { <button type="button" class="link link--danger" (click)="remove(comment)" [disabled]="busyId === comment.id">Eliminar</button> }
+            @if (signedIn && !comment.is_mine && !comment.is_hidden) { <app-flag-button kind="comment" [targetId]="comment.id" [compact]="true"></app-flag-button> }
           </div>
         }
       }

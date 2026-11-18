@@ -1,0 +1,169 @@
+@if (loading) {
+  <div class="page-state"><span class="spinner"></span><p>Calculando métricas…</p></div>
+} @else if (error) {
+  <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div>
+} @else if (data) {
+  <div class="dash">
+    <!-- ================= Pendientes de atención ================= -->
+    <section class="queues" aria-label="Pendientes">
+      <a class="queue" [class.is-hot]="data.queues.flags" routerLink="/admin/denuncias">
+        <span class="queue__icon"><app-icon name="flag"></app-icon></span>
+        <strong [appCountUp]="data.queues.flags"></strong><small>Contenidos denunciados</small>
+      </a>
+      <a class="queue" [class.is-hot]="data.queues.verifications" routerLink="/admin/verificaciones">
+        <span class="queue__icon"><app-icon name="shield-check"></app-icon></span>
+        <strong [appCountUp]="data.queues.verifications"></strong><small>Verificaciones de ONG e instituciones</small>
+      </a>
+      <a class="queue" [class.is-hot]="data.queues.volunteers" routerLink="/admin/voluntarios">
+        <span class="queue__icon"><app-icon name="heart"></app-icon></span>
+        <strong [appCountUp]="data.queues.volunteers"></strong><small>Solicitudes de voluntariado</small>
+      </a>
+      <a class="queue queue--warn" [class.is-hot]="data.queues.stale_reports" routerLink="/admin/reportes" [queryParams]="{ estado: 'reportado' }">
+        <span class="queue__icon"><app-icon name="clock"></app-icon></span>
+        <strong [appCountUp]="data.queues.stale_reports"></strong><small>Reportes sin atender hace +7 días</small>
+      </a>
+    </section>
+
+    <!-- ================= Cifras principales ================= -->
+    <section class="stats">
+      <article class="stat">
+        <span class="stat__label"><app-icon name="users"></app-icon> Usuarios</span>
+        <strong [appCountUp]="data.users.total"></strong>
+        <small><b class="up">+{{ data.users.new_7d }}</b> esta semana · {{ data.users.new_30d }} en 30 días</small>
+      </article>
+      <article class="stat">
+        <span class="stat__label"><app-icon name="file-text"></app-icon> Reportes</span>
+        <strong [appCountUp]="data.reports.total"></strong>
+        <small><b class="up">+{{ data.reports.new_7d }}</b> esta semana · {{ data.reports.anonymous_share }} % anónimos</small>
+      </article>
+      <article class="stat">
+        <span class="stat__label"><app-icon name="check-circle"></app-icon> Tasa de resolución</span>
+        <strong><span [appCountUp]="resolvedRate"></span><em>%</em></strong>
+        <small>{{ data.reports.by_status.resuelto ?? 0 }} resueltos (sin contar rechazados)</small>
+      </article>
+      <article class="stat">
+        <span class="stat__label"><app-icon name="clock"></app-icon> Tiempo de resolución</span>
+        <strong class="stat__text">{{ formatHours(data.reports.median_resolution_hours) }}</strong>
+        <small>Mediana · promedio {{ formatHours(data.reports.avg_resolution_hours) }}</small>
+      </article>
+      <article class="stat">
+        <span class="stat__label"><app-icon name="hand"></app-icon> Voluntarios activos</span>
+        <strong [appCountUp]="data.users.active_volunteers_30d"></strong>
+        <small>{{ data.community.attendances_30d }} asistencias a jornadas en 30 días</small>
+      </article>
+      <article class="stat" [class.stat--alert]="data.users.blocked">
+        <span class="stat__label"><app-icon name="lock"></app-icon> Cuentas bloqueadas</span>
+        <strong [appCountUp]="data.users.blocked"></strong>
+        <small><a routerLink="/admin/usuarios" [queryParams]="{ estado: 'bloqueados' }">Ver cuentas bloqueadas</a></small>
+      </article>
+    </section>
+
+    <!-- ================= Actividad 30 días ================= -->
+    <section class="card dash-card dash-card--wide">
+      <header class="dash-card__head">
+        <div>
+          <h2>Actividad de los últimos 30 días</h2>
+          <p>{{ created30 }} reportes nuevos · {{ resolved30 }} resueltos · {{ data.community.comments_7d }} comentarios y {{ data.community.supports_7d }} apoyos esta semana</p>
+        </div>
+        <button type="button" class="btn btn--ghost btn--sm" (click)="load()"><app-icon name="refresh"></app-icon> Actualizar</button>
+      </header>
+      <app-area-chart [series]="dailySeries" [labels]="dailyLabels"></app-area-chart>
+    </section>
+
+    <div class="dash-grid">
+      <section class="card dash-card">
+        <header class="dash-card__head"><h2>Reportes por estado</h2></header>
+        <app-donut-chart [segments]="statusSegments" centerLabel="reportes"></app-donut-chart>
+      </section>
+
+      <section class="card dash-card">
+        <header class="dash-card__head"><h2>Usuarios por rol</h2></header>
+        <app-donut-chart [segments]="roleSegments" centerLabel="usuarios"></app-donut-chart>
+      </section>
+
+      <section class="card dash-card">
+        <header class="dash-card__head"><h2>Problemas por categoría</h2></header>
+        <ul class="bars">
+          @for (item of data.reports.by_category; track item.category) {
+            <li>
+              <span class="bars__label"><app-icon [name]="categoryIcon(item.category)"></app-icon>{{ categoryLabel(item.category) }}</span>
+              <span class="bars__track"><i [style.width.%]="barWidth(item.n, data.reports.by_category)"></i></span>
+              <b>{{ item.n }}</b>
+            </li>
+          } @empty { <li class="muted small">Sin reportes todavía.</li> }
+        </ul>
+      </section>
+
+      <section class="card dash-card">
+        <header class="dash-card__head"><h2>Provincias con más reportes</h2></header>
+        <ul class="bars">
+          @for (item of data.reports.top_provinces; track item.province) {
+            <li>
+              <span class="bars__label">{{ item.province }}</span>
+              <span class="bars__track bars__track--split" [title]="item.resolved + ' resueltos de ' + item.n">
+                <i [style.width.%]="barWidth(item.n, data.reports.top_provinces)"></i>
+                <i class="bars__resolved" [style.width.%]="barWidth(item.resolved, data.reports.top_provinces)"></i>
+              </span>
+              <b>{{ item.n }}</b>
+            </li>
+          } @empty { <li class="muted small">Sin reportes todavía.</li> }
+        </ul>
+        <p class="muted small bars__note"><i class="dot dot--teal"></i> reportes · <i class="dot dot--sun"></i> resueltos</p>
+      </section>
+    </div>
+
+    <div class="dash-grid dash-grid--60">
+      <!-- ================= SLA por institución (RF-43) ================= -->
+      <section class="card dash-card">
+        <header class="dash-card__head">
+          <div>
+            <h2>Tiempo de respuesta por institución</h2>
+            <p>Desde que se crea el reporte hasta la primera acción de la institución y hasta que lo resuelve.</p>
+          </div>
+        </header>
+        @if (data.sla.length) {
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Institución</th><th>Reportes</th><th>Resueltos</th><th>Primera respuesta</th><th>Resolución</th></tr></thead>
+              <tbody>
+                @for (row of data.sla; track row.institution) {
+                  <tr>
+                    <td><strong>{{ row.institution }}</strong>@if (row.province) { <small>{{ row.province }}</small> }</td>
+                    <td>{{ row.reports }}</td>
+                    <td>{{ row.resolved }} <small>({{ row.reports ? (row.resolved / row.reports * 100 | number: '1.0-0') : 0 }} %)</small></td>
+                    <td><span class="sla" [class.sla--good]="(row.first_response_hours ?? 999) <= 48" [class.sla--bad]="(row.first_response_hours ?? 0) > 168">{{ formatHours(row.first_response_hours) }}</span></td>
+                    <td>{{ formatHours(row.resolution_hours) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="muted small">Todavía ninguna institución ha cambiado el estado de un reporte.</p>
+        }
+      </section>
+
+      <!-- ================= Actividad reciente de la moderación ================= -->
+      <section class="card dash-card">
+        <header class="dash-card__head">
+          <h2>Últimas acciones de administración</h2>
+          <a class="link-more" routerLink="/admin/auditoria">Ver todo <app-icon name="arrow-right"></app-icon></a>
+        </header>
+        <ol class="feed">
+          @for (entry of data.recent_audit; track $index) {
+            <li>
+              <span class="feed__icon"><app-icon [name]="auditIcon(entry.action)"></app-icon></span>
+              <span class="feed__text">
+                <strong>{{ entry.actor_name }}</strong> {{ auditLabel(entry.action).toLowerCase() }}
+                @if (entry.target_label) { <em>“{{ entry.target_label }}”</em> }
+                <small>{{ ago(entry.created_at) }}</small>
+              </span>
+            </li>
+          } @empty { <li class="muted small">Sin acciones registradas todavía.</li> }
+        </ol>
+      </section>
+    </div>
+
+    @if (updatedAt) { <p class="muted small dash-updated">Actualizado {{ updatedAt | date: 'h:mm a' }}</p> }
+  </div>
+}

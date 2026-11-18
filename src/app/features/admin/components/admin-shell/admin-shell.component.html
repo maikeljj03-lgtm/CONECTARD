@@ -1,0 +1,52 @@
+<ion-content class="app-content admin-shell" [scrollY]="false">
+  <div class="console">
+    <!-- ================= Menú lateral ================= -->
+    <aside class="console-side" aria-label="Menú de administración">
+      <a class="console-brand" routerLink="/admin/resumen">
+        <app-logo [size]="28"></app-logo>
+        <span class="console-brand__tag">Consola</span>
+      </a>
+
+      <nav class="console-nav">
+        @for (group of groups; track group.title) {
+          <p class="console-nav__group">{{ group.title }}</p>
+          @for (item of group.items; track item.path) {
+            <a [routerLink]="['/admin', item.path]" routerLinkActive="is-active" [attr.aria-label]="item.label + (badge(item) ? ': ' + badge(item) + ' pendientes' : '')">
+              <app-icon [name]="item.icon"></app-icon>
+              <span>{{ item.label }}</span>
+              @if (badge(item)) { <b [class.is-warn]="item.badge === 'stale_reports'">{{ badge(item) }}</b> }
+            </a>
+          }
+        }
+      </nav>
+
+      <div class="console-side__foot">
+        <a class="console-back" routerLink="/inicio"><app-icon name="arrow-left"></app-icon> Volver a la app</a>
+        <div class="console-me">
+          <span class="console-me__avatar"><app-icon name="shield-check"></app-icon></span>
+          <span class="console-me__text"><strong>{{ myName || 'Administrador' }}</strong><small>Administrador</small></span>
+          <button type="button" (click)="signOut()" title="Cerrar sesión" aria-label="Cerrar sesión"><app-icon name="log-out"></app-icon></button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ================= Contenido ================= -->
+    <section class="console-main">
+      <header class="console-head">
+        <div>
+          <p class="console-head__crumb">Administración <app-icon name="arrow-right"></app-icon> {{ title }}</p>
+          <h1>{{ title }}</h1>
+          @if (subtitle) { <p class="console-head__sub">{{ subtitle }}</p> }
+        </div>
+        <div class="console-head__right">
+          <span class="console-head__date">{{ today | date: "EEEE d 'de' MMMM" }}</span>
+          <app-notification-bell></app-notification-bell>
+        </div>
+      </header>
+
+      <div class="console-body">
+        <router-outlet></router-outlet>
+      </div>
+    </section>
+  </div>
+</ion-content>

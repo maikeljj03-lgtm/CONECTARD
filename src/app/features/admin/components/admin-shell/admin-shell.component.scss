@@ -1,0 +1,193 @@
+// Consola de administración: menú lateral oscuro (tinta) y área de trabajo clara.
+
+.console {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  height: 100dvh;
+}
+
+// ---------- Menú lateral ----------
+.console-side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  padding: 22px 16px 16px;
+  background:
+    radial-gradient(120% 50% at 0% 0%, rgb(0 178 169 / 18%), transparent 60%),
+    var(--crd-ink);
+  color: rgb(255 255 255 / 82%);
+}
+
+.console-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  text-decoration: none;
+  // El logo trae texto oscuro: en el menú oscuro se aclara.
+  ::ng-deep app-logo { filter: brightness(0) invert(1); }
+}
+
+.console-brand__tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+
+.console-nav {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: 2px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+
+  a {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    color: rgb(255 255 255 / 72%);
+    font-size: 14.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .15s, color .15s;
+
+    app-icon { font-size: 17px; opacity: .85; }
+    span { flex: 1; }
+    &:hover { background: rgb(255 255 255 / 7%); color: #fff; }
+
+    &.is-active {
+      background: #fff;
+      color: var(--crd-ink);
+      box-shadow: 0 8px 20px rgb(0 0 0 / 25%);
+      app-icon { color: var(--crd-teal-text); opacity: 1; }
+    }
+
+    b {
+      min-width: 22px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: var(--crd-danger);
+      color: #fff;
+      font-size: 11.5px;
+      text-align: center;
+      &.is-warn { background: #e9a13b; }
+    }
+  }
+}
+
+.console-nav__group {
+  margin: 14px 12px 6px;
+  color: rgb(255 255 255 / 42%);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  &:first-child { margin-top: 0; }
+}
+
+.console-side__foot { display: grid; gap: 10px; }
+
+.console-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  color: rgb(255 255 255 / 70%);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  &:hover { background: rgb(255 255 255 / 7%); color: #fff; }
+}
+
+.console-me {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 5%);
+
+  button {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 8%);
+    color: #fff;
+    cursor: pointer;
+    &:hover { background: rgb(255 255 255 / 16%); }
+  }
+}
+
+.console-me__avatar { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: var(--crd-teal); color: #fff; }
+.console-me__text { display: grid; flex: 1; min-width: 0; strong { overflow: hidden; color: #fff; font-size: 13.5px; text-overflow: ellipsis; white-space: nowrap; } small { color: rgb(255 255 255 / 55%); font-size: 12px; } }
+
+// ---------- Área de trabajo ----------
+.console-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--crd-bg);
+}
+
+.console-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px clamp(18px, 3vw, 36px) 16px;
+  border-bottom: 1px solid var(--crd-border);
+  background: rgb(251 250 247 / 90%);
+  backdrop-filter: blur(10px);
+
+  h1 { margin: 2px 0 0; color: var(--crd-ink); font-family: var(--crd-font-display); font-size: clamp(24px, 2.4vw, 30px); font-weight: 750; letter-spacing: -.6px; }
+}
+
+.console-head__crumb { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--crd-text-3); font-size: 12.5px; font-weight: 600; app-icon { font-size: 11px; } }
+.console-head__sub { margin: 4px 0 0; color: var(--crd-text-2); font-size: 14px; }
+.console-head__right { display: flex; align-items: center; gap: 12px; }
+.console-head__date { color: var(--crd-text-3); font-size: 13px; font-weight: 600; &::first-letter { text-transform: uppercase; } }
+
+.console-body {
+  flex: 1;
+  min-height: 0;
+  padding: 22px clamp(18px, 3vw, 36px) 48px;
+  overflow-y: auto;
+}
+
+// ---------- Tableta y teléfono: el menú pasa arriba ----------
+@media (max-width: 960px) {
+  .console { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+
+  .console-side {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    overflow-x: auto;
+  }
+
+  .console-brand { flex: none; padding: 0; }
+  .console-brand__tag { display: none; }
+  .console-nav { display: flex; flex: 1; gap: 4px; overflow: visible; a { flex: none; padding: 8px 11px; span { display: none; } &.is-active span { display: inline; } } }
+  .console-nav__group { display: none; }
+  .console-side__foot { display: flex; flex: none; }
+  .console-back { span { display: none; } }
+  .console-me { padding: 4px; border: 0; background: none; .console-me__text, .console-me__avatar { display: none; } }
+  .console-head__date { display: none; }
+}

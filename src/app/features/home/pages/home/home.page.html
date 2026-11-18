@@ -5,12 +5,26 @@
     @if (loading) {
       <div class="page-state"><span class="spinner"></span><p>Preparando tu comunidad…</p></div>
     } @else {
-      <!-- ================= Portada: saludo + maqueta 3D ================= -->
+      <!-- ================= Portada: saludo, pulso del día, tu impacto y maqueta 3D ================= -->
       <section class="home-hero" aria-labelledby="home-title">
+        <div class="home-hero__glow" aria-hidden="true"></div>
+
         <div class="home-hero__copy">
-          <p class="home-hero__date">{{ today | date: "EEEE d 'de' MMMM" }}</p>
+          <p class="home-hero__meta">
+            <span class="live"><i></i>En vivo</span>
+            <span class="home-hero__date">{{ today | date: "EEEE d 'de' MMMM" }}</span>
+          </p>
           <h1 id="home-title">{{ greeting }}, <span>{{ firstName }}.</span></h1>
-          <p class="home-hero__question">¿Qué está pasando en tu comunidad?</p>
+
+          <!-- Pulso del día: cifras reales de tu provincia -->
+          <p class="pulse">
+            @if (newToday) {
+              Hoy {{ scopeLabel }}: <b>{{ newToday }}</b> {{ newToday === 1 ? 'reporte nuevo' : 'reportes nuevos' }}
+            } @else {
+              Hoy {{ scopeLabel }} no hay reportes nuevos todavía
+            }
+            @if (resolvedThisWeek) { <span class="pulse__part"><span class="pulse__sep">·</span><b>{{ resolvedThisWeek }}</b> {{ resolvedThisWeek === 1 ? 'resuelto' : 'resueltos' }} esta semana</span> }
+          </p>
 
           @if (place) {
             <a class="home-hero__place" routerLink="/perfil"><app-icon name="map-pin"></app-icon>{{ place }}</a>
@@ -19,13 +33,53 @@
           }
 
           <div class="home-hero__actions">
-            <a class="btn btn--primary btn--lg" routerLink="/reportes/nuevo"><app-icon name="camera"></app-icon> Reportar un problema</a>
+            <a class="btn btn--primary btn--lg cta" routerLink="/reportes/nuevo"><app-icon name="camera"></app-icon> Reportar un problema</a>
             <a class="btn btn--ghost btn--lg" routerLink="/explorar"><app-icon name="map"></app-icon> Explorar el mapa</a>
           </div>
+
+          <!-- Tu impacto (RF-37) -->
+          @if (progress) {
+            <a class="impact" routerLink="/perfil" fragment="progreso" aria-label="Ver mi progreso y medallas">
+              <span class="impact__ring">
+                <svg viewBox="0 0 72 72" aria-hidden="true">
+                  <circle class="impact__track" cx="36" cy="36" r="30"></circle>
+                  <circle class="impact__value" cx="36" cy="36" r="30" [attr.stroke-dasharray]="levelDash"></circle>
+                </svg>
+                <b>{{ progress.level }}</b>
+              </span>
+              <span class="impact__text">
+                <small>Tu impacto · {{ progress.level_name }}</small>
+                <strong><span [appCountUp]="progress.points"></span> puntos</strong>
+                <em>
+                  @if (progress.next_level_points !== null) { {{ progress.next_level_points - progress.points }} para el siguiente nivel } @else { Nivel máximo }
+                  · {{ progress.badges.length }} {{ progress.badges.length === 1 ? 'medalla' : 'medallas' }}
+                </em>
+              </span>
+              @if (unread) {
+                <span class="impact__notes" title="Notificaciones sin leer"><app-icon name="bell"></app-icon>{{ unread }}</span>
+              }
+              <app-icon class="impact__go" name="arrow-right"></app-icon>
+            </a>
+          }
         </div>
 
         <div class="home-hero__scene">
           <app-community-scene [reports]="sceneReports" [userLocation]="location" (selectReport)="open($event)"></app-community-scene>
+
+          <!-- Etiquetas flotantes sobre la maqueta (datos reales) -->
+          @if (latestScene; as latest) {
+            <button type="button" class="float-chip float-chip--latest" (click)="open(latest)">
+              <i [style.background]="statusColors[latest.status]"></i>
+              <span><small>Último reporte · {{ ago(latest.created_at) }}</small><strong>{{ latest.title }}</strong></span>
+            </button>
+          }
+          @if (counts) {
+            <div class="float-chip float-chip--stats" aria-label="Estado de los reportes">
+              <span><b>{{ counts.en_proceso }}</b><small>en proceso</small></span>
+              <span><b>{{ counts.resuelto }}</b><small>resueltos</small></span>
+            </div>
+          }
+
           <div class="scene-legend">
             @for (status of statusOrder; track status) {
               <span><i [style.background]="statusColors[status]"></i>{{ statusLabels[status] }}</span>
@@ -42,25 +96,38 @@
 
       <!-- ================= Cifras reales ================= -->
       <section class="kpis" aria-label="Tu comunidad en cifras">
-        <article class="kpi">
-          <span class="kpi__icon"><app-icon name="file-text"></app-icon></span>
-          <strong>{{ counts?.total ?? 0 }}</strong>
-          <small>Reportes {{ scopeLabel }}</small>
+        <article class="kpi kpi--trend">
+          <div class="kpi__row">
+            <span class="kpi__icon"><app-icon name="file-text"></app-icon></span>
+            <svg class="spark" viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true">
+              <path class="spark__area" [attr.d]="sparkline.area"></path>
+              <path class="spark__line" [attr.d]="sparkline.line"></path>
+            </svg>
+          </div>
+          <strong [appCountUp]="counts?.total ?? 0"></strong>
+          <small>Reportes {{ scopeLabel }} · {{ lastTwoWeeks }} en 14 días</small>
         </article>
         <article class="kpi">
           <span class="kpi__icon kpi__icon--sun"><app-icon name="clock"></app-icon></span>
-          <strong>{{ (counts?.en_revision ?? 0) + (counts?.en_proceso ?? 0) }}</strong>
+          <strong [appCountUp]="(counts?.en_revision ?? 0) + (counts?.en_proceso ?? 0)"></strong>
           <small>En revisión o en proceso</small>
         </article>
-        <article class="kpi">
-          <span class="kpi__icon kpi__icon--teal"><app-icon name="check-circle"></app-icon></span>
-          <strong>{{ counts?.resuelto ?? 0 }}</strong>
-          <small>Resueltos · {{ resolvedRate }} % del total</small>
+        <article class="kpi kpi--ring">
+          <span class="ring" [attr.aria-label]="resolvedRate + '% resuelto'">
+            <svg viewBox="0 0 64 64" aria-hidden="true">
+              <circle class="ring__track" cx="32" cy="32" r="26"></circle>
+              <circle class="ring__value" cx="32" cy="32" r="26" [attr.stroke-dasharray]="resolvedDash"></circle>
+            </svg>
+            <b>{{ resolvedRate }}<small>%</small></b>
+          </span>
+          <strong [appCountUp]="counts?.resuelto ?? 0"></strong>
+          <small>Problemas resueltos</small>
         </article>
         <a class="kpi kpi--mine" routerLink="/reportes/mios" aria-label="Ver y gestionar mis reportes">
           <span class="kpi__icon kpi__icon--ink"><app-icon name="user"></app-icon></span>
-          <strong>{{ myReports.length }}</strong>
+          <strong [appCountUp]="myReports.length"></strong>
           <small>Tus reportes · {{ myOpenReports }} abiertos, {{ myResolvedReports }} resueltos</small>
+          <app-icon class="kpi__go" name="arrow-up-right"></app-icon>
         </a>
       </section>
 
@@ -124,6 +191,47 @@
             </article>
           }
 
+          <!-- Próximas jornadas (RF-27) -->
+          <article class="panel events-card">
+            <header class="side-head">
+              <h3><app-icon name="calendar"></app-icon> Próximas jornadas</h3>
+              <a class="panel__link" routerLink="/jornadas">Ver todas <app-icon name="arrow-right"></app-icon></a>
+            </header>
+            @for (event of events; track event.id) {
+              <a class="mini-event" [routerLink]="['/jornadas', event.id]">
+                <span class="mini-event__date"><small>{{ event.starts_at | date: 'MMM' }}</small><b>{{ event.starts_at | date: 'd' }}</b></span>
+                <span class="mini-event__body">
+                  <strong>{{ event.title }}</strong>
+                  <small>{{ event.starts_at | date: 'EEE h:mm a' }} · {{ event.attendee_count }}{{ event.capacity ? '/' + event.capacity : '' }} inscritos</small>
+                </span>
+              </a>
+            } @empty {
+              <p class="muted small">No hay jornadas programadas {{ scopeLabel }}. Cuando una ONG o institución organice una, aparecerá aquí.</p>
+            }
+          </article>
+
+          <!-- Top del mes (RF-38) -->
+          <article class="panel top-card">
+            <header class="side-head">
+              <h3><app-icon name="trophy"></app-icon> Top del mes</h3>
+              <a class="panel__link" routerLink="/ranking">Ranking <app-icon name="arrow-right"></app-icon></a>
+            </header>
+            @if (top.length) {
+              <ol class="top-list">
+                @for (row of top; track row.rank_position + row.name; let i = $index) {
+                  <li [class.is-me]="row.is_me">
+                    <span class="top-list__medal top-list__medal--{{ i + 1 }}">{{ row.rank_position }}</span>
+                    <span class="top-list__avatar">@if (row.avatar_url) { <img [src]="row.avatar_url" alt="" /> } @else { {{ initialsOf(row.name) }} }</span>
+                    <span class="top-list__name"><strong>{{ row.name }}@if (row.is_me) { (tú) }</strong><small>{{ row.level_name }}</small></span>
+                    <b>{{ row.points }}</b>
+                  </li>
+                }
+              </ol>
+            } @else {
+              <p class="muted small">Todavía nadie suma puntos este mes {{ scopeLabel }}. ¡Puedes ser la primera persona!</p>
+            }
+          </article>
+
           <article class="panel health">
             <h3>Cómo va tu comunidad</h3>
             <p class="health__scope">Reportes {{ scopeLabel }}</p>
@@ -141,21 +249,10 @@
             } @else {
               <p class="muted small">Aún no hay datos suficientes para mostrar el avance.</p>
             }
+            @if (profile?.role === 'citizen') {
+              <a class="panel__link health__cta" routerLink="/perfil">Quiero ser voluntario <app-icon name="arrow-right"></app-icon></a>
+            }
           </article>
-
-          @if (profile) {
-            <article class="panel role-card">
-              <p class="role-card__kicker">Tu rol</p>
-              <h3>{{ roleLabels[profile.role] }}</h3>
-              <ul class="perm-list">
-                @for (permission of rolePermissions.slice(0, 4); track permission) { <li><app-icon name="check"></app-icon>{{ permission }}</li> }
-              </ul>
-              @if (profile.role === 'citizen') {
-                <a class="panel__link" routerLink="/perfil">Quiero ser voluntario <app-icon name="arrow-right"></app-icon></a>
-              }
-              <a *appCan="'users.manage'" class="panel__link" routerLink="/admin">Ir a administración <app-icon name="arrow-right"></app-icon></a>
-            </article>
-          }
         </aside>
       </div>
     }

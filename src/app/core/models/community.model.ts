@@ -10,6 +10,8 @@ export interface ReportComment {
   /** null si fue eliminado. */
   body: string | null;
   is_deleted: boolean;
+  /** Oculto mientras la moderación revisa (3 o más denuncias, RF-32). */
+  is_hidden?: boolean;
   /** Lo escribió quien hizo el reporte. */
   is_report_author: boolean;
   author_name: string | null;

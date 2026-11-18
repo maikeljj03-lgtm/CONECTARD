@@ -12,10 +12,13 @@ import { ReportsService } from '../../../../core/services/reports.service';
 import { RolesService } from '../../../../core/services/roles.service';
 import { VerificationService } from '../../../../core/services/verification.service';
 import { friendlyDataError } from '../../../../core/utils/data-errors';
+import { BADGES, levelProgress, type Progress } from '../../../../core/models/engagement.model';
+import { EngagementService } from '../../../../core/services/engagement.service';
 
 @Component({
   selector: 'app-profile',
   templateUrl: './profile.page.html',
+  styleUrls: ['./profile.page.scss'],
   standalone: false,
 })
 export class ProfilePage implements OnInit {
@@ -26,6 +29,7 @@ export class ProfilePage implements OnInit {
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly roles = inject(RolesService);
   private readonly route = inject(ActivatedRoute);
+  private readonly engagement = inject(EngagementService);
 
   /** Llegó aquí porque intentó entrar a una sección sin permiso. */
   readonly noPermission = this.route.snapshot.queryParamMap.has('sinPermiso');
@@ -44,6 +48,11 @@ export class ProfilePage implements OnInit {
   uploading = false;
   message = '';
   notice = '';
+  /** Puntos, nivel y medallas (RF-37). */
+  progress: Progress | null = null;
+  readonly badges = BADGES;
+  savingPreference = false;
+  preferenceMessage = '';
 
   readonly form = this.formBuilder.nonNullable.group({
     full_name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(80)]],
@@ -58,13 +67,53 @@ export class ProfilePage implements OnInit {
       this.profile = await this.profiles.getMyProfile();
       this.fillForm(this.profile);
       // Lo demás no bloquea la página si aún no se aplicaron sus migraciones.
-      const [reports, requests] = await Promise.allSettled([this.reports.getMyReports(), this.verification.getMyRequests()]);
+      const [reports, requests, progress] = await Promise.allSettled([
+        this.reports.getMyReports(), this.verification.getMyRequests(), this.engagement.myProgress(),
+      ]);
       if (reports.status === 'fulfilled') this.myReports = reports.value;
       if (requests.status === 'fulfilled') this.lastRequest = requests.value[0] ?? null;
+      if (progress.status === 'fulfilled') this.progress = progress.value;
     } catch (error) {
       this.loadError = friendlyDataError(error);
     } finally {
       this.loading = false;
+      this.changeDetector.markForCheck();
+    }
+  }
+
+  get levelPercent(): number {
+    return this.progress ? levelProgress(this.progress) : 0;
+  }
+
+  get pointsToNext(): number | null {
+    const p = this.progress;
+    return p && p.next_level_points !== null ? Math.max(0, p.next_level_points - p.points) : null;
+  }
+
+  hasBadge(id: string): boolean {
+    return !!this.progress?.badges.some((badge) => badge.badge === id);
+  }
+
+  /** Cuántas acciones lleva hacia una medalla (para mostrar "3/10"). */
+  badgeCount(action: string): number {
+    return (this.progress?.actions as Record<string, number> | undefined)?.[action] ?? 0;
+  }
+
+  /** Preferencias de privacidad y correo (RF-35, RF-38). */
+  async setPreference(key: 'show_in_ranking' | 'weekly_digest', value: boolean): Promise<void> {
+    if (!this.profile) return;
+    this.savingPreference = true;
+    this.preferenceMessage = '';
+    const previous = this.profile[key];
+    this.profile = { ...this.profile, [key]: value };
+    try {
+      await this.engagement.updatePreferences({ [key]: value });
+      this.preferenceMessage = 'Preferencia guardada.';
+    } catch (error) {
+      this.profile = { ...this.profile, [key]: previous };
+      this.preferenceMessage = friendlyDataError(error);
+    } finally {
+      this.savingPreference = false;
       this.changeDetector.markForCheck();
     }
   }

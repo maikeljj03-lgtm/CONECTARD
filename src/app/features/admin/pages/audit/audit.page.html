@@ -1,0 +1,47 @@
+<div class="audit-note">
+  <app-icon name="lock"></app-icon>
+  <span>Este registro <strong>no se puede editar ni borrar</strong>, ni siquiera por un administrador: lo escribe la base de datos sola cada vez que alguien de la administración cambia un rol, bloquea una cuenta, revisa una solicitud, cambia el estado de un reporte o retira contenido.</span>
+</div>
+
+<div class="toolbar">
+  <select class="select" [value]="action" (change)="setAction($any($event.target).value)" aria-label="Tipo de acción">
+    <option value="">Todas las acciones</option>
+    @for (item of actions; track item) { <option [value]="item">{{ labels[item] }}</option> }
+  </select>
+  @if (target) { <button type="button" class="chip chip--teal filter-chip" (click)="clearTarget()">Filtrado por una persona <app-icon name="x"></app-icon></button> }
+  <span class="muted small total">{{ total }} {{ total === 1 ? 'registro' : 'registros' }}</span>
+  <button type="button" class="btn btn--ghost btn--sm" (click)="exportCsv()" [disabled]="!total"><app-icon name="arrow-up-right"></app-icon> Exportar CSV</button>
+</div>
+
+@if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+@if (loading && !entries.length) {
+  <div class="page-state"><span class="spinner"></span><p>Cargando…</p></div>
+} @else {
+  <ol class="timeline">
+    @for (entry of entries; track entry.id) {
+      <li class="timeline__item timeline__item--{{ entry.action }}">
+        <span class="timeline__icon"><app-icon [name]="icons[entry.action]"></app-icon></span>
+        <div class="timeline__body">
+          <p class="timeline__title">
+            <strong>{{ entry.actor_name }}</strong> {{ labels[entry.action].toLowerCase() }}
+            @if (link(entry); as target) { <a [routerLink]="target" target="_blank">“{{ entry.target_label }}”</a> }
+            @else if (entry.target_label) { <em>“{{ entry.target_label }}”</em> }
+          </p>
+          @if (describe(entry)) { <p class="timeline__detail">{{ describe(entry) }}</p> }
+        </div>
+        <time [attr.datetime]="entry.created_at" [title]="entry.created_at | date: 'd MMM y, h:mm:ss a'">{{ ago(entry.created_at) }}<small>{{ entry.created_at | date: 'd MMM, h:mm a' }}</small></time>
+      </li>
+    } @empty {
+      <li class="card result"><span class="result__icon"><app-icon name="history"></app-icon></span><h2>Sin registros</h2></li>
+    }
+  </ol>
+
+  <div class="pager">
+    <span>Página {{ page + 1 }} de {{ pages }}</span>
+    <div>
+      <button type="button" (click)="goTo(page - 1)" [disabled]="page === 0 || loading"><app-icon name="arrow-left"></app-icon> Más recientes</button>
+      <button type="button" (click)="goTo(page + 1)" [disabled]="page >= pages - 1 || loading">Más antiguos <app-icon name="arrow-right"></app-icon></button>
+    </div>
+  </div>
+}

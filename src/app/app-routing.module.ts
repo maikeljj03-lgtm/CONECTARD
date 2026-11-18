@@ -17,6 +17,8 @@ const routes: Routes = [
   // Públicas: la página de cada reporte y las jornadas comunitarias (se comparten por enlace).
   { path: 'reporte', loadChildren: () => import('./features/report-detail/report-detail.module').then((m) => m.ReportDetailModule) },
   { path: 'jornadas', loadChildren: () => import('./features/events/events.module').then((m) => m.EventsModule) },
+  { path: 'ranking', loadChildren: () => import('./features/ranking/ranking.module').then((m) => m.RankingModule) },
+  { path: 'notificaciones', canActivate: [authGuard], loadChildren: () => import('./features/notifications/notifications.module').then((m) => m.NotificationsModule) },
   // Inicio de la persona con sesión (homepage).
   { path: 'inicio', canActivate: [authGuard], loadChildren: () => import('./features/home/home.module').then((m) => m.HomeModule) },
   { path: 'perfil', canActivate: [authGuard], loadChildren: () => import('./features/profile/profile.module').then((m) => m.ProfileModule) },
