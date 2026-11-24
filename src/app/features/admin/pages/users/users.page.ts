@@ -1,7 +1,8 @@
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { REPORT_STATUS_LABELS, ROLE_LABELS } from '../../../../core/constants/catalogs';
-import type { AdminUserDetail, AdminUserRow, UserSort, UserStateFilter } from '../../../../core/models/admin.model';
+import { REPORT_CATEGORIES, REPORT_STATUS_LABELS, ROLE_LABELS } from '../../../../core/constants/catalogs';
+import { DR_PROVINCES } from '../../../../core/constants/geography';
+import type { AdminInstitution, AdminUserDetail, AdminUserRow, UserSort, UserStateFilter } from '../../../../core/models/admin.model';
 import type { UserRole } from '../../../../core/models/profile.model';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -30,6 +31,8 @@ export class AdminUsersPage implements OnInit {
   readonly statusColors = STATUS_COLORS;
   readonly roleOptions: UserRole[] = ['citizen', 'volunteer', 'organization', 'institution', 'administrator'];
   readonly pageSize = PAGE_SIZE;
+  readonly categories = REPORT_CATEGORIES;
+  readonly provinces = DR_PROVINCES;
 
   rows: AdminUserRow[] = [];
   total = 0;
@@ -53,6 +56,11 @@ export class AdminUsersPage implements OnInit {
   blockReason = '';
   confirmAdmin = false;
   busy = false;
+  /** RF-42: zona y categorías de una institución (para que le lleguen sus reportes). */
+  scope: AdminInstitution | null = null;
+  scopeProvince = '';
+  scopeMunicipality = '';
+  scopeCategories = new Set<string>();
   drawerError = '';
 
   async ngOnInit(): Promise<void> {
@@ -152,12 +160,47 @@ export class AdminUsersPage implements OnInit {
     try {
       this.detail = await this.admin.userDetail(row.id);
       this.newRole = this.detail.role;
+      await this.loadScope();
     } catch (error) {
       this.drawerError = friendlyDataError(error);
     } finally {
       this.detailLoading = false;
       this.changeDetector.markForCheck();
     }
+  }
+
+  toggleScopeCategory(value: string): void {
+    if (this.scopeCategories.has(value)) this.scopeCategories.delete(value);
+    else this.scopeCategories.add(value);
+  }
+
+  /** Guarda la zona y las categorías: sus reportes abiertos se reasignan solos. */
+  async saveScope(): Promise<void> {
+    const d = this.detail;
+    if (!d) return;
+    if (!this.scopeProvince) {
+      this.drawerError = 'Elige la provincia que atiende la institución.';
+      return;
+    }
+    await this.act(async () => {
+      const open = await this.admin.setInstitutionScope(d.id, this.scopeProvince, this.scopeMunicipality, [...this.scopeCategories]);
+      this.feedback = `Zona guardada. ${d.full_name || 'La institución'} tiene ahora ${open} ${open === 1 ? 'reporte abierto asignado' : 'reportes abiertos asignados'}.`;
+    });
+  }
+
+  /** Carga la zona y categorías actuales si la cuenta es una institución. */
+  private async loadScope(): Promise<void> {
+    const d = this.detail;
+    this.scope = null;
+    if (!d || d.role !== 'institution') return;
+    try {
+      this.scope = (await this.admin.institutions()).find((item) => item.id === d.id) ?? null;
+    } catch {
+      this.scope = null;
+    }
+    this.scopeProvince = this.scope?.province ?? d.province ?? '';
+    this.scopeMunicipality = this.scope?.municipality ?? d.municipality ?? '';
+    this.scopeCategories = new Set(this.scope?.service_categories ?? []);
   }
 
   closeDetail(): void {
@@ -212,6 +255,7 @@ export class AdminUsersPage implements OnInit {
       this.roleNote = '';
       this.detail = await this.admin.userDetail(d.id);
       this.newRole = this.detail.role;
+      await this.loadScope();
       await this.load();
     } catch (error) {
       this.drawerError = friendlyDataError(error);

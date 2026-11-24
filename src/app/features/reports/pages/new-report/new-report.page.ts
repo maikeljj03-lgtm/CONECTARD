@@ -1,9 +1,12 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import * as L from 'leaflet';
+import { Subscription, debounceTime } from 'rxjs';
 import { REPORT_CATEGORIES, REPORT_STATUS_LABELS, type ReportCategoryValue } from '../../../../core/constants/catalogs';
 import { DR_MAP_VIEW, DR_PROVINCES, isInsideDominicanRepublic } from '../../../../core/constants/geography';
-import type { MyReport, PublicReport } from '../../../../core/models/report.model';
+import type { MyReport, PublicReport, SimilarReport } from '../../../../core/models/report.model';
+import { AiError, AiService, type PhotoSuggestion } from '../../../../core/services/ai.service';
+import { CommunityService } from '../../../../core/services/community.service';
 import { ProfileService } from '../../../../core/services/profile.service';
 import { ReportMediaService } from '../../../../core/services/report-media.service';
 import { ReportsService } from '../../../../core/services/reports.service';
@@ -11,6 +14,7 @@ import { ReverseGeocodingService } from '../../../../core/services/reverse-geoco
 import type { ProcessedMedia } from '../../../../core/utils/media';
 import { MediaPickerComponent } from '../../../../shared/components/media-picker/media-picker.component';
 import { friendlyDataError } from '../../../../core/utils/data-errors';
+import { normalizeText } from '../../../../core/utils/report-filters';
 
 @Component({
   selector: 'app-new-report',
@@ -23,6 +27,8 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
   private readonly reverseGeocoding = inject(ReverseGeocodingService);
   private readonly mediaService = inject(ReportMediaService);
   private readonly profiles = inject(ProfileService);
+  private readonly ai = inject(AiService);
+  private readonly community = inject(CommunityService);
   private readonly zone = inject(NgZone);
   private readonly changeDetector = inject(ChangeDetectorRef);
 
@@ -41,6 +47,21 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
   private marker?: L.Marker;
   private resizeObserver?: ResizeObserver;
   private addressLookupVersion = 0;
+  private formSubscription?: Subscription;
+
+  /** RF-45: reportes parecidos y abiertos a menos de 150 m (para apoyarlos en vez de repetirlos). */
+  similar: SimilarReport[] = [];
+  similarLoading = false;
+  similarError = '';
+  private similarKey = '';
+  private similarVersion = 0;
+
+  /** RF-44: categoría y título sugeridos a partir de la primera foto. */
+  suggestion: PhotoSuggestion | null = null;
+  suggesting = false;
+  suggestionNote = '';
+  suggestionApplied = false;
+  private suggestedBlob: Blob | null = null;
 
   readonly categories = REPORT_CATEGORIES;
   readonly provinces = DR_PROVINCES;
@@ -68,6 +89,8 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
   });
 
   async ngOnInit(): Promise<void> {
+    // Al cambiar el lugar, la categoría o el título, se buscan reportes parecidos cerca (RF-45).
+    this.formSubscription = this.form.valueChanges.pipe(debounceTime(700)).subscribe(() => void this.checkSimilar());
     try {
       const profile = await this.profiles.getMyProfile();
       this.authorName = profile.full_name || 'Tu nombre';
@@ -84,6 +107,7 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.formSubscription?.unsubscribe();
     this.resizeObserver?.disconnect();
     this.map?.remove();
   }
@@ -151,6 +175,8 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
         sector: value.sector,
         is_anonymous: value.is_anonymous,
       });
+      this.similarVersion++;
+      this.similar = [];
       // Las fotos se suben después de crear el reporte: se guardan en la carpeta de ese reporte.
       if (this.media.length) await this.uploadMedia(this.media, 0);
       // Se lee desde la vista pública para mostrar exactamente lo que verán los demás.
@@ -200,12 +226,134 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
     this.failedMedia = [];
     this.uploadedMediaUrls = [];
     this.mediaError = '';
+    this.similarVersion++;
+    this.similar = [];
+    this.similarKey = '';
     this.mediaPicker?.clear();
     this.form.reset({ ...this.form.getRawValue(), title: '', description: '', category: '', latitude: null, longitude: null, address: '', is_anonymous: false });
     this.marker?.remove();
     this.marker = undefined;
     this.changeDetector.markForCheck();
     setTimeout(() => this.map?.invalidateSize(), 0);
+  }
+
+  /** Fotos listas: se guardan y, si cambió la primera foto, se pide la sugerencia de categoría (RF-44). */
+  onMediaReady(items: ProcessedMedia[]): void {
+    this.media = items;
+    void this.suggestFromFirstPhoto();
+  }
+
+  /** Usa la categoría sugerida y, si se pide, el título sugerido (solo si el título está vacío). */
+  applySuggestion(withTitle: boolean): void {
+    if (!this.suggestion) return;
+    this.selectCategory(this.suggestion.category);
+    if (withTitle && this.suggestion.title && !this.form.controls.title.value.trim()) {
+      this.form.controls.title.setValue(this.suggestion.title);
+      this.form.controls.title.markAsTouched();
+    }
+    this.suggestionApplied = true;
+  }
+
+  dismissSuggestion(): void {
+    this.suggestion = null;
+    this.suggestionNote = '';
+  }
+
+  /** Apoyar un reporte parecido ("Me afecta") en vez de crear uno nuevo (RF-45 + RF-24). */
+  async supportSimilar(report: SimilarReport): Promise<void> {
+    if (report.is_mine) return;
+    this.similarError = '';
+    try {
+      const supported = await this.community.toggleSupport(report.id);
+      report.supported_by_me = supported;
+      report.support_count = Math.max(0, report.support_count + (supported ? 1 : -1));
+      this.similar = [...this.similar];
+    } catch (error) {
+      this.similarError = friendlyDataError(error);
+    }
+    this.changeDetector.markForCheck();
+  }
+
+  distanceLabel(meters: number): string {
+    return meters < 15 ? 'en el mismo punto' : `a ${Math.round(meters / 5) * 5} m`;
+  }
+
+  coverUrl(path: string | null): string | null {
+    return this.mediaService.coverUrl(path);
+  }
+
+  private async checkSimilar(): Promise<void> {
+    const value = this.form.getRawValue();
+    if (this.created || value.latitude === null || value.longitude === null || !value.category) {
+      this.similarVersion++;
+      this.similarKey = '';
+      if (this.similar.length || this.similarLoading) {
+        this.similar = [];
+        this.similarLoading = false;
+        this.changeDetector.markForCheck();
+      }
+      return;
+    }
+    const key = [value.latitude.toFixed(5), value.longitude.toFixed(5), value.category, normalizeText(value.title), normalizeText(value.description).slice(0, 200)].join('|');
+    if (key === this.similarKey) return;
+    this.similarKey = key;
+    const version = ++this.similarVersion;
+    this.similarLoading = true;
+    this.changeDetector.markForCheck();
+    try {
+      const list = await this.reports.nearbySimilar({
+        latitude: value.latitude,
+        longitude: value.longitude,
+        category: value.category,
+        title: value.title,
+        description: value.description,
+      });
+      if (version !== this.similarVersion) return;
+      this.similar = list;
+    } catch {
+      // Es solo una ayuda: si falla, el formulario sigue funcionando igual.
+      if (version !== this.similarVersion) return;
+      this.similar = [];
+      this.similarKey = '';
+    } finally {
+      if (version === this.similarVersion) {
+        this.similarLoading = false;
+        this.changeDetector.markForCheck();
+      }
+    }
+  }
+
+  private async suggestFromFirstPhoto(): Promise<void> {
+    const first = this.media.find((item) => item.kind === 'image');
+    if (!first) {
+      this.suggestedBlob = null;
+      this.suggestion = null;
+      this.suggesting = false;
+      this.suggestionNote = '';
+      return;
+    }
+    if (first.blob === this.suggestedBlob || !this.ai.photoSuggestionsEnabled) return;
+    const blob = first.blob;
+    this.suggestedBlob = blob;
+    this.suggestion = null;
+    this.suggestionNote = '';
+    this.suggestionApplied = false;
+    this.suggesting = true;
+    this.changeDetector.markForCheck();
+    try {
+      const suggestion = await this.ai.suggestFromPhoto(blob);
+      if (this.suggestedBlob !== blob) return;
+      this.suggestion = suggestion;
+    } catch (error) {
+      if (this.suggestedBlob !== blob) return;
+      // Si la función no está activada no se muestra nada; otros errores se explican sin bloquear.
+      this.suggestionNote = error instanceof AiError && !error.unavailable ? error.message : '';
+    } finally {
+      if (this.suggestedBlob === blob) {
+        this.suggesting = false;
+        this.changeDetector.markForCheck();
+      }
+    }
   }
 
   categoryLabel(value: string): string {

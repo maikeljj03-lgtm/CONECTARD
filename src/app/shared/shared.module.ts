@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular/lazy';
+import { AssistantChatComponent } from './components/assistant-chat/assistant-chat.component';
 import { BottomNavComponent } from './components/bottom-nav/bottom-nav.component';
 import { CommunitySceneComponent } from './components/community-scene/community-scene.component';
 import { IconComponent } from './components/icon/icon.component';
@@ -25,7 +26,7 @@ const COMPONENTS = [
   IconComponent, LogoComponent, SkylineComponent, TopbarComponent, BottomNavComponent,
   CommunitySceneComponent, ReportCardComponent, ReportPreviewComponent, MediaPickerComponent, CanDirective,
   ReportProgressComponent, ShareButtonComponent, ReportCommentsComponent, ReportResourcesComponent,
-  FlagButtonComponent, NotificationBellComponent, CountUpDirective,
+  FlagButtonComponent, NotificationBellComponent, CountUpDirective, AssistantChatComponent,
 ];
 
 /**

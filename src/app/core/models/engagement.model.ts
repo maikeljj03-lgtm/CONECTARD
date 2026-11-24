@@ -4,7 +4,7 @@ import type { UserRole } from './profile.model';
 
 export type NotificationKind =
   | 'estado' | 'comentario' | 'respuesta' | 'voluntario' | 'jornada' | 'jornada_cancelada'
-  | 'verificacion' | 'rol' | 'medalla' | 'denuncia' | 'moderacion';
+  | 'verificacion' | 'rol' | 'medalla' | 'denuncia' | 'moderacion' | 'asignacion';
 
 /** Fila de public.notifications (cada quien solo ve las suyas). */
 export interface AppNotification {
@@ -31,6 +31,7 @@ export const NOTIFICATION_ICONS: Record<NotificationKind, string> = {
   medalla: 'sparkles',
   denuncia: 'alert',
   moderacion: 'shield',
+  asignacion: 'inbox',
 };
 
 export type PointAction =

@@ -22,6 +22,18 @@
         <span class="queue__icon"><app-icon name="clock"></app-icon></span>
         <strong [appCountUp]="data.queues.stale_reports"></strong><small>Reportes sin atender hace +7 días</small>
       </a>
+      <a class="queue queue--warn" [class.is-hot]="data.queues.unassigned" routerLink="/admin/reportes" [queryParams]="{ responsable: 'sin_asignar' }">
+        <span class="queue__icon"><app-icon name="landmark"></app-icon></span>
+        <strong [appCountUp]="data.queues.unassigned ?? 0"></strong><small>Reportes abiertos sin institución</small>
+      </a>
+      <a class="queue" [class.is-hot]="data.queues.duplicates" routerLink="/admin/reportes" [queryParams]="{ duplicados: '1' }">
+        <span class="queue__icon"><app-icon name="link"></app-icon></span>
+        <strong [appCountUp]="data.queues.duplicates ?? 0"></strong><small>Posibles reportes duplicados</small>
+      </a>
+      <a class="queue" [class.is-hot]="data.queues.suspicious_media" routerLink="/admin/reportes" [queryParams]="{ fotos: '1' }">
+        <span class="queue__icon"><app-icon name="image"></app-icon></span>
+        <strong [appCountUp]="data.queues.suspicious_media ?? 0"></strong><small>Reportes con fotos sospechosas</small>
+      </a>
     </section>
 
     <!-- ================= Cifras principales ================= -->

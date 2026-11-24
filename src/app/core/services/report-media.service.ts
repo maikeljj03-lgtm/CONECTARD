@@ -54,6 +54,9 @@ export class ReportMediaService {
             height: item.height,
             duration_seconds: item.durationSeconds,
             position,
+            // RF-46: huella y datos de cámara, para que la moderación detecte fotos repetidas.
+            fingerprint: item.kind === 'image' ? item.fingerprint : null,
+            camera_data: item.kind === 'image' ? item.cameraData : null,
           })
           .select('*')
           .single();

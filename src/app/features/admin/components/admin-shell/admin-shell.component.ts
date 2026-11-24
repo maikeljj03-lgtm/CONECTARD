@@ -78,7 +78,7 @@ export class AdminShellComponent implements OnInit, OnDestroy {
   }
 
   badge(item: NavItem): number {
-    return item.badge && this.queues ? this.queues[item.badge] : 0;
+    return item.badge && this.queues ? this.queues[item.badge] ?? 0 : 0;
   }
 
   async signOut(): Promise<void> {

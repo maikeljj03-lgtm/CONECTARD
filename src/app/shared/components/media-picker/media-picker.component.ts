@@ -132,7 +132,8 @@ export class MediaPickerComponent implements OnDestroy {
     }
     const file = new File([blob], `conectard-foto-${Date.now()}.jpg`, { type: 'image/jpeg' });
     this.stopCamera();
-    void this.addFiles([file]);
+    // Tomada en vivo con la cámara: es una foto real aunque el lienzo no guarde EXIF (RF-46).
+    void this.addFiles([file], true);
   }
 
   async startRecording(): Promise<void> {
@@ -276,7 +277,7 @@ export class MediaPickerComponent implements OnDestroy {
     return 'No se pudo abrir la cámara. Revisa los permisos del navegador e inténtalo de nuevo.';
   }
 
-  private async addFiles(files: File[]): Promise<void> {
+  private async addFiles(files: File[], capturedInApp = false): Promise<void> {
     this.notice = '';
     if (!files.length) return;
     const allowed = this.allowVideo ? files : files.filter((file) => !file.type.startsWith('video/'));
@@ -300,7 +301,7 @@ export class MediaPickerComponent implements OnDestroy {
     for (const [index, file] of accepted.entries()) {
       const item = added[index];
       try {
-        const processed = await processMediaFile(file);
+        const processed = await processMediaFile(file, { capturedInApp });
         item.processed = processed;
         item.previewUrl = URL.createObjectURL(processed.blob);
         item.status = 'ready';

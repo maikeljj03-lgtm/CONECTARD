@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { isInsideDominicanRepublic } from '../constants/geography';
 import type {
-  MyReport, NewReport, PublicReport, PublicReportFilters, ReportEdit, ReportStatus, ReportStatusChange,
+  MyReport, NewReport, PublicReport, PublicReportFilters, ReportEdit, ReportStatus, ReportStatusChange, SimilarReport,
 } from '../models/report.model';
 import { normalizeText } from '../utils/report-filters';
 import { AuthService } from './auth.service';
@@ -11,7 +11,7 @@ export const PUBLIC_REPORT_COLUMNS = [
   'id', 'title', 'description', 'category', 'latitude', 'longitude', 'address', 'province', 'municipality', 'sector',
   'status', 'is_anonymous', 'author_name', 'author_avatar_url', 'cover_path', 'media_count', 'evidence_count',
   'status_updated_at', 'support_count', 'comment_count', 'volunteer_count', 'supported_by_me', 'joined_by_me', 'is_mine',
-  'created_at',
+  'created_at', 'assigned_institution_name', 'assigned_to_me', 'merged_into',
 ].join(',');
 
 @Injectable({ providedIn: 'root' })
@@ -102,7 +102,7 @@ export class ReportsService {
     return (data ?? []) as ReportStatusChange[];
   }
 
-  /** RF-16: cambiar el estado (institución de la jurisdicción o, para moderar, el administrador). */
+  /** RF-16: cambiar el estado (la institución asignada al reporte o, para moderar, el administrador). */
   async setStatus(id: string, status: ReportStatus, note: string | null): Promise<void> {
     const client = await this.auth.supabase();
     const { error } = await client.rpc('set_report_status', {
@@ -114,19 +114,13 @@ export class ReportsService {
   }
 
   /**
-   * Reportes que puede gestionar una cuenta: los de la jurisdicción de la institución
-   * (su provincia y, si la indicó, su municipio) o todos para el administrador.
+   * Reportes para la pantalla de gestión: todos (administración) o solo los asignados a la
+   * institución que consulta (RF-42: la base de datos los asigna según zona y categoría).
    */
-  async listManaged(scope: { province: string | null; municipality: string | null } | 'all', status?: ReportStatus | null): Promise<PublicReport[]> {
+  async listManaged(scope: 'all' | 'assigned', status?: ReportStatus | null): Promise<PublicReport[]> {
     const client = await this.auth.supabase();
     let query = client.from('public_reports').select(PUBLIC_REPORT_COLUMNS);
-    if (scope !== 'all') {
-      if (!scope.province) return [];
-      query = query.eq('province', scope.province);
-      const municipality = scope.municipality?.trim();
-      // Igualdad sin distinguir mayúsculas, como hace la base de datos (can_manage_report).
-      if (municipality) query = query.ilike('municipality', escapeLike(municipality));
-    }
+    if (scope === 'assigned') query = query.eq('assigned_to_me', true);
     if (status) query = query.eq('status', status);
     const { data, error } = await query.order('created_at', { ascending: false }).limit(300);
     if (error) throw error;
@@ -153,6 +147,23 @@ export class ReportsService {
     const { data, error } = await client.from('public_reports').select(PUBLIC_REPORT_COLUMNS).in('id', ids);
     if (error) throw error;
     return (data ?? []) as unknown as PublicReport[];
+  }
+
+  /**
+   * Reportes abiertos de la misma categoría a menos de 150 m, del más parecido al menos (RF-45).
+   * Se muestran antes de enviar uno nuevo para que la persona apoye el existente en vez de repetirlo.
+   */
+  async nearbySimilar(input: { latitude: number; longitude: number; category: string; title: string; description: string }): Promise<SimilarReport[]> {
+    const client = await this.auth.supabase();
+    const { data, error } = await client.rpc('nearby_similar_reports', {
+      lat: input.latitude,
+      lon: input.longitude,
+      report_category: input.category,
+      report_title: input.title.trim().slice(0, 120) || null,
+      report_description: input.description.trim().slice(0, 2000) || null,
+    });
+    if (error) throw error;
+    return ((data ?? []) as SimilarReport[]).map((row) => ({ ...row, similarity: Number(row.similarity) }));
   }
 
   /** Cómo ve el público un reporte (sirve para comprobar el anonimato). */

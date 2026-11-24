@@ -3,7 +3,10 @@
 .dash { display: grid; gap: 18px; }
 
 // ---------- Pendientes ----------
-.queues { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.queues { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; }
+// 4 tarjetas arriba (cuentas y moderación) y 3 abajo (reportes: sin institución, duplicados y fotos).
+.queues > .queue { grid-column: span 3; }
+.queues > .queue:nth-child(n + 5) { grid-column: span 4; }
 
 .queue {
   display: grid;
@@ -128,11 +131,12 @@
 }
 
 @media (max-width: 1000px) {
-  .queues { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .queues > .queue, .queues > .queue:nth-child(n + 5) { grid-column: span 6; }
+  .queues > .queue:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .dash-grid, .dash-grid--60 { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
-  .queues, .stats { grid-template-columns: 1fr 1fr; }
+  .stats { grid-template-columns: 1fr 1fr; }
   .bars li { grid-template-columns: minmax(0, 110px) 1fr 32px; }
 }

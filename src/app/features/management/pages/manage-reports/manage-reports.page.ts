@@ -19,7 +19,7 @@ const STATUS_ORDER: ReportStatus[] = ['reportado', 'en_revision', 'en_proceso', 
 
 /**
  * Gestión de reportes (RF-16, RF-17).
- * - Institución: los reportes de su jurisdicción; cambia el estado y sube la evidencia del "Después".
+ * - Institución: los reportes que tiene asignados (RF-42); cambia el estado y sube la evidencia del "Después".
  * - Administrador: todos los reportes, pero solo modera (rechazar o restaurar).
  */
 @Component({
@@ -89,6 +89,13 @@ export class ManageReportsPage implements OnInit {
     if (!p) return '';
     if (this.isAdmin) return 'todo el país';
     return [...new Set([p.municipality?.trim(), p.province].filter(Boolean))].join(', ');
+  }
+
+  /** Categorías que atiende la institución (RF-42); vacío = todas. */
+  get serviceCategories(): string {
+    const values = this.profile?.service_categories;
+    if (!values?.length) return '';
+    return values.map((value) => REPORT_CATEGORIES.find((category) => category.value === value)?.label ?? value).join(', ');
   }
 
   count(filter: Filter): number {
@@ -235,9 +242,7 @@ export class ManageReportsPage implements OnInit {
       } else if (this.isOrganization) {
         this.reports = await this.reportsService.listJoined();
       } else {
-        this.reports = await this.reportsService.listManaged(
-          this.isAdmin ? 'all' : { province: profile.province, municipality: profile.municipality },
-        );
+        this.reports = await this.reportsService.listManaged(this.isAdmin ? 'all' : 'assigned');
       }
     } catch (error) {
       this.error = friendlyDataError(error);

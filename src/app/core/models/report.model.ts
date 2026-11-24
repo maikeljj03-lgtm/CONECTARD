@@ -48,6 +48,29 @@ export interface PublicReport extends Omit<NewReport, 'is_anonymous'> {
   joined_by_me?: boolean | null;
   is_mine?: boolean | null;
   created_at: string;
+  /** Institución responsable, asignada sola según zona y categoría (RF-42). */
+  assigned_institution_name?: string | null;
+  /** Solo para la institución asignada. */
+  assigned_to_me?: boolean | null;
+  /** Si la moderación lo unió a otro reporte igual, el id de ese reporte (RF-45). */
+  merged_into?: string | null;
+}
+
+/** Reporte parecido y cercano, sugerido antes de crear uno nuevo (RF-45). */
+export interface SimilarReport {
+  id: string;
+  title: string;
+  status: ReportStatus;
+  category: string;
+  sector: string | null;
+  municipality: string | null;
+  distance_m: number;
+  similarity: number;
+  support_count: number;
+  cover_path: string | null;
+  supported_by_me: boolean;
+  is_mine: boolean;
+  created_at: string;
 }
 
 /** Cambios que el autor puede hacer en su reporte (RF-15). */
@@ -97,6 +120,9 @@ export interface ReportMedia {
   duration_seconds: number | null;
   position: number;
   created_at: string;
+  /** RF-46: huella de la foto y si traía datos de cámara (los calcula el teléfono). */
+  fingerprint?: string | null;
+  camera_data?: boolean | null;
 }
 
 /** Filtros del listado y del mapa (RF-20, RF-22). */

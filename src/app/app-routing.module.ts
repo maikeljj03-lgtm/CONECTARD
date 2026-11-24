@@ -24,7 +24,7 @@ const routes: Routes = [
   { path: 'perfil', canActivate: [authGuard], loadChildren: () => import('./features/profile/profile.module').then((m) => m.ProfileModule) },
   { path: 'verificacion', canActivate: [authGuard], loadChildren: () => import('./features/verification/verification.module').then((m) => m.VerificationModule) },
   { path: 'reportes', canActivate: [authGuard], loadChildren: () => import('./features/reports/reports.module').then((m) => m.ReportsModule) },
-  // Gestión de reportes: la institución de la jurisdicción y, para moderar, el administrador.
+  // Gestión de reportes: la institución asignada (RF-42), la ONG participante y, para moderar, el administrador.
   { path: 'gestion', canActivate: [authGuard, roleGuard('institution', 'organization', 'administrator')], loadChildren: () => import('./features/management/management.module').then((m) => m.ManagementModule) },
   { path: 'admin', canActivate: [authGuard, roleGuard('administrator')], loadChildren: () => import('./features/admin/admin.module').then((m) => m.AdminModule) },
   { path: 'home', redirectTo: 'inicio', pathMatch: 'full' },

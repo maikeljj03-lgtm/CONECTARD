@@ -21,7 +21,7 @@ describe('Módulo 5: reglas de la app', () => {
   });
 
   it('cada tipo de notificación tiene ícono y cada denuncia un motivo válido', () => {
-    expect(Object.keys(NOTIFICATION_ICONS).length).toBe(11);
+    expect(Object.keys(NOTIFICATION_ICONS).length).toBe(12);
     expect(FLAG_REASONS.map((reason) => reason.value)).toEqual(['spam', 'ofensivo', 'falso', 'datos_personales', 'otro']);
   });
 });

@@ -1,0 +1,54 @@
+@if (visible) {
+  @if (open) {
+    <section class="chat" role="dialog" aria-label="Asistente de ConectaRD">
+      <header class="chat__head">
+        <span class="chat__avatar"><app-icon name="sparkles"></app-icon></span>
+        <div>
+          <h2>Asistente de ConectaRD</h2>
+          <small>Responde con inteligencia artificial y puede equivocarse.</small>
+        </div>
+        @if (messages.length) {
+          <button type="button" class="chat__icon-btn" (click)="clear()" title="Empezar de nuevo" aria-label="Borrar la conversación"><app-icon name="refresh"></app-icon></button>
+        }
+        <button type="button" class="chat__icon-btn" (click)="close()" aria-label="Cerrar el asistente"><app-icon name="x"></app-icon></button>
+      </header>
+
+      <div class="chat__log" #log aria-live="polite">
+        <div class="chat__bubble chat__bubble--assistant">¡Hola! Te ayudo a reportar, a entender en qué va tu reporte y a participar en tu comunidad. ¿Qué necesitas?</div>
+        @if (!messages.length && !unavailable) {
+          <div class="chat__suggestions">
+            @for (question of suggestions; track question) {
+              <button type="button" (click)="ask(question)" [disabled]="sending">{{ question }}</button>
+            }
+          </div>
+        }
+        @for (turn of messages; track $index) {
+          <div class="chat__bubble" [class.chat__bubble--user]="turn.role === 'user'" [class.chat__bubble--assistant]="turn.role === 'assistant'">@for (part of parts(turn); track $index) {@if (part.route) {<a [routerLink]="part.route" (click)="close()">{{ part.text }}</a>} @else {<span>{{ part.text }}</span>}}</div>
+        }
+        @if (sending) {
+          <div class="chat__bubble chat__bubble--assistant chat__typing" aria-label="Escribiendo"><i></i><i></i><i></i></div>
+        }
+        @if (error) {
+          <div class="chat__error" role="alert">
+            <app-icon name="alert-circle"></app-icon>
+            <span>{{ error }}</span>
+            @if (!unavailable && messages.at(-1)?.role === 'user') { <button type="button" (click)="retry()">Reintentar</button> }
+          </div>
+        }
+      </div>
+
+      <form class="chat__form" (submit)="$event.preventDefault(); send()">
+        <textarea #input rows="1" maxlength="1500" placeholder="Escribe tu pregunta…" [value]="draft" (input)="draft = $any($event.target).value" (keydown)="onKeydown($event)" [disabled]="unavailable" aria-label="Tu pregunta"></textarea>
+        <button type="submit" class="chat__send" [disabled]="sending || unavailable || !draft.trim()" aria-label="Enviar"><app-icon name="send"></app-icon></button>
+      </form>
+      @if (remaining !== null && remaining < 10) {
+        <p class="chat__quota">Te {{ remaining === 1 ? 'queda 1 mensaje' : 'quedan ' + remaining + ' mensajes' }} hoy.</p>
+      }
+    </section>
+  }
+
+  <button type="button" class="chat-fab" [class.is-open]="open" (click)="toggle()" [attr.aria-expanded]="open" [attr.aria-label]="open ? 'Cerrar el asistente' : 'Abrir el asistente'">
+    <app-icon [name]="open ? 'x' : 'sparkles'"></app-icon>
+    @if (!open) { <span>Asistente</span> }
+  </button>
+}

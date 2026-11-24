@@ -121,6 +121,27 @@
           </dl>
         </section>
 
+        @if (detail.role === 'institution') {
+          <section class="drawer__section">
+            <h3>Zona de atención</h3>
+            <p class="muted small">Los reportes nuevos de esta zona y estas categorías se le asignan solos (si hay otra institución más específica, por municipio o categoría, se le asignan a esa). Si no marcas ninguna categoría, atiende todas.</p>
+            @if (scope) { <p class="small">Ahora tiene <strong>{{ scope.open_reports }}</strong> {{ scope.open_reports === 1 ? 'reporte abierto' : 'reportes abiertos' }} y {{ scope.resolved_reports }} resueltos.</p> }
+            <select class="select" [value]="scopeProvince" (change)="scopeProvince = $any($event.target).value" aria-label="Provincia que atiende">
+              <option value="">Provincia…</option>
+              @for (item of provinces; track item) { <option [value]="item" [selected]="scopeProvince === item">{{ item }}</option> }
+            </select>
+            <input class="select" type="text" maxlength="80" placeholder="Municipio (vacío = toda la provincia)" [value]="scopeMunicipality" (input)="scopeMunicipality = $any($event.target).value" aria-label="Municipio que atiende" />
+            <div class="scope-cats" role="group" aria-label="Categorías que atiende">
+              @for (item of categories; track item.value) {
+                <label class="check"><input type="checkbox" [checked]="scopeCategories.has(item.value)" (change)="toggleScopeCategory(item.value)" /> {{ item.label }}</label>
+              }
+            </div>
+            <button type="button" class="btn btn--primary btn--sm" (click)="saveScope()" [disabled]="busy">
+              @if (busy) { <span class="spinner spinner--sm"></span> } Guardar zona
+            </button>
+          </section>
+        }
+
         @if (detail.recent_reports.length) {
           <section class="drawer__section">
             <h3>Reportes recientes</h3>

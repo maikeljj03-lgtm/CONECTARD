@@ -60,8 +60,19 @@
                 @if (report.is_anonymous) { <app-icon name="eye-off"></app-icon> Vecino anónimo }
                 @else { <app-icon name="user"></app-icon> {{ report.author_name || 'Vecino' }} }
               </span>
+              <!-- RF-42: institución responsable, asignada sola según la zona y la categoría -->
+              <span class="report-head__owner" [title]="report.assigned_institution_name ? 'Institución responsable, asignada según la zona y la categoría' : 'Todavía no hay una institución registrada para esta zona'">
+                <app-icon name="landmark"></app-icon>{{ report.assigned_institution_name || 'Sin institución asignada' }}
+              </span>
             </p>
           </header>
+
+          @if (report.merged_into) {
+            <div class="alert alert--info" role="note">
+              <app-icon name="link"></app-icon>
+              <span>Este reporte era igual a otro que ya existía, así que se unió a ese: los apoyos y el seguimiento siguen allí. <a [routerLink]="['/reporte', report.merged_into]">Ver el reporte original</a></span>
+            </div>
+          }
 
           <p class="report-description">{{ report.description }}</p>
           @if (report.address) { <p class="report-address"><strong>Referencia:</strong> {{ report.address }}</p> }

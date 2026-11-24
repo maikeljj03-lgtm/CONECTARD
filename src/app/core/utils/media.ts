@@ -1,4 +1,5 @@
 // Procesamiento de fotos y videos en el dispositivo, antes de subirlos (RF-10, RF-11, RF-12).
+import { FINGERPRINT_HEIGHT, FINGERPRINT_WIDTH, differenceHash, hasCameraData } from './image-fingerprint';
 
 export const MEDIA_LIMITS = {
   maxItems: 5,
@@ -25,6 +26,15 @@ export interface ProcessedMedia {
   width: number | null;
   height: number | null;
   durationSeconds: number | null;
+  /** Huella de la foto para detectar fotos repetidas (RF-46); null en videos o si no se pudo calcular. */
+  fingerprint: string | null;
+  /** Si la foto original traía datos de la cámara (RF-46); null si no se sabe. */
+  cameraData: boolean | null;
+}
+
+export interface ProcessOptions {
+  /** La foto se tomó con la cámara dentro de la app (no trae EXIF, pero es una toma real). */
+  capturedInApp?: boolean;
 }
 
 /** Tipo de archivo según su MIME, o null si no se admite. */
@@ -59,10 +69,10 @@ export function validateMediaFile(file: { name: string; type: string; size: numb
 }
 
 /** Procesa una foto o video según su tipo. Lanza un Error con mensaje en español si no se puede. */
-export async function processMediaFile(file: File): Promise<ProcessedMedia> {
+export async function processMediaFile(file: File, options: ProcessOptions = {}): Promise<ProcessedMedia> {
   const problem = validateMediaFile(file);
   if (problem) throw new Error(problem);
-  return mediaKindOf(file) === 'video' ? processVideo(file) : compressImage(file);
+  return mediaKindOf(file) === 'video' ? processVideo(file) : compressImage(file, options);
 }
 
 /**
@@ -70,7 +80,9 @@ export async function processMediaFile(file: File): Promise<ProcessedMedia> {
  * cámara y la vuelve a codificar. Al recodificarla se pierden los metadatos EXIF,
  * incluida la ubicación GPS de la cámara, lo que protege la privacidad.
  */
-export async function compressImage(file: File): Promise<ProcessedMedia> {
+export async function compressImage(file: File, options: ProcessOptions = {}): Promise<ProcessedMedia> {
+  // Los datos de cámara se leen del archivo original, antes de que la recompresión los borre.
+  const cameraData = options.capturedInApp ? true : await readCameraData(file);
   const source = await decodeImage(file);
   try {
     const { width, height } = fitWithin(source.width, source.height, MEDIA_LIMITS.imageMaxDimension);
@@ -98,9 +110,63 @@ export async function compressImage(file: File): Promise<ProcessedMedia> {
       width,
       height,
       durationSeconds: null,
+      fingerprint: fingerprintOf(source.image),
+      cameraData,
     };
   } finally {
     source.release();
+  }
+}
+
+/** Huella dHash de la imagen (RF-46). null si el navegador no deja leer los píxeles. */
+function fingerprintOf(image: CanvasImageSource): string | null {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = FINGERPRINT_WIDTH;
+    canvas.height = FINGERPRINT_HEIGHT;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return null;
+    context.drawImage(image, 0, 0, FINGERPRINT_WIDTH, FINGERPRINT_HEIGHT);
+    return differenceHash(context.getImageData(0, 0, FINGERPRINT_WIDTH, FINGERPRINT_HEIGHT).data);
+  } catch {
+    return null;
+  }
+}
+
+/** Lee si la foto trae datos de cámara (EXIF). En JPEG basta el inicio del archivo. */
+async function readCameraData(file: File): Promise<boolean | null> {
+  try {
+    const part = file.type === 'image/jpeg' ? file.slice(0, 256 * 1024) : file;
+    return hasCameraData(new Uint8Array(await part.arrayBuffer()));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Copia pequeña en JPEG (lado mayor de 768 px) para que la inteligencia artificial sugiera la
+ * categoría (RF-44): pesa poco y se envía rápido. Devuelve el contenido en base64.
+ */
+export async function analysisCopy(blob: Blob): Promise<{ data: string; mediaType: 'image/jpeg' }> {
+  const bitmap = await createImageBitmap(blob);
+  try {
+    const { width, height } = fitWithin(bitmap.width, bitmap.height, 768);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Tu navegador no permite procesar imágenes.');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, width, height);
+    context.drawImage(bitmap, 0, 0, width, height);
+    const jpeg = await canvasToBlob(canvas, 'image/jpeg', 0.8);
+    if (!jpeg) throw new Error('No se pudo preparar la foto.');
+    const bytes = new Uint8Array(await jpeg.arrayBuffer());
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return { data: btoa(binary), mediaType: 'image/jpeg' };
+  } finally {
+    bitmap.close();
   }
 }
 
@@ -120,6 +186,8 @@ export async function processVideo(file: File): Promise<ProcessedMedia> {
     width: metadata.width || null,
     height: metadata.height || null,
     durationSeconds: Math.round(metadata.duration * 10) / 10,
+    fingerprint: null,
+    cameraData: null,
   };
 }
 

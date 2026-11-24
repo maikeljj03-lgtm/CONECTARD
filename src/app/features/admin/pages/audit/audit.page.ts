@@ -59,6 +59,9 @@ export class AdminAuditPage implements OnInit {
       case 'revisar_voluntario': return `Rechazada${d['nota'] ? ` · “${d['nota']}”` : ''}`;
       case 'estado_reporte': return `De ${status(d['de'])} a ${status(d['a'])}${d['nota'] ? ` · “${d['nota']}”` : ''}`;
       case 'resolver_denuncias': return `${d['resultado'] === 'retirado' ? 'Contenido retirado' : 'Denuncias descartadas'} (${d['denuncias']})${d['nota'] ? ` · “${d['nota']}”` : ''}`;
+      case 'asignar_reporte': return `Asignación ${d['modo']}: ${d['antes'] ?? 'sin institución'} → ${d['ahora'] ?? 'sin institución'}`;
+      case 'zona_institucion': return `${d['provincia']} · ${d['municipio']} · Categorías: ${d['categorias']}`;
+      case 'unir_duplicado': return `Unido a «${d['original']}»`;
       default: return '';
     }
   }

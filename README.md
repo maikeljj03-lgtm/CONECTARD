@@ -59,6 +59,7 @@ npm.cmd run build
    - [20261117000000_hardening.sql](supabase/migrations/20261117000000_hardening.sql): depuración completa (160 pruebas de flujos por rol). Arregla que **ninguna subida de archivos funcionaba** (una política de storage leía una columna sin permiso y bloqueaba todas), que ONG e instituciones no podían pedir insumos, ligar reportes a jornadas ni subir evidencia, que el autor de un reporte anónimo quedaba expuesto al sumarse o pedir insumos, y que cualquiera sin sesión podía enviar avisos falsos al mapa en vivo (Supabase concede EXECUTE a `anon` aunque se haga `revoke ... from public`).
    - [20261118000000_engagement.sql](supabase/migrations/20261118000000_engagement.sql): módulo 5 (RF-32 a RF-38): filtro de lenguaje ofensivo aplicado por la base de datos (`blocked_terms`), centro de notificaciones en tiempo real (`notifications`, creadas por disparadores), puntos y medallas con protección contra trampas (`point_events`, `user_badges`, `my_progress`), ranking público (`leaderboard`), denuncias y bandeja de moderación (`flag_content`, `admin_flag_queue`, `resolve_flags`) y datos del resumen semanal (`weekly_digest_rows`, solo `service_role`). El envío del correo semanal está en `supabase/functions/weekly-digest` (ver instrucciones dentro del archivo).
    - [20261119000000_admin_console.sql](supabase/migrations/20261119000000_admin_console.sql): consola de administración (RF-39 a RF-43, RF-52): bloqueo de cuentas que impide publicar y también iniciar sesión (`admin_set_user_block`, `banned_until`), registro de auditoría inalterable escrito por disparadores (`admin_audit_log`, `admin_audit_entries`), listas paginadas de usuarios y reportes con el autor real de los anónimos (`admin_users_page`, `admin_reports_page`, `admin_user_detail`) y resumen con series diarias, categorías, provincias y tiempo de respuesta por institución (`admin_dashboard`).
+   - [20261120000000_assignment_ai.sql](supabase/migrations/20261120000000_assignment_ai.sql): módulos 6 y 7. RF-42: cada reporte se asigna solo a la institución responsable según provincia, municipio y categoría (gana la más específica; si empatan, la de menos carga), con aviso a la institución, reasignación manual (`admin_assign_report`) y zona de atención editable por la administración (`admin_set_institution_scope`, `admin_institutions`); solo la institución asignada gestiona el reporte. RF-45: reportes parecidos a menos de 150 m (`nearby_similar_reports`, que la app muestra antes de enviar), marca automática de posible duplicado y unión con el original que traslada apoyos y voluntarios (`admin_resolve_duplicate`). RF-46: huella de cada foto y datos de cámara calculados en el teléfono; las fotos repetidas de otra persona o sin datos de cámara quedan marcadas para la moderación (`media_flags`). RF-44 y RF-47: límite diario de uso de la inteligencia artificial (`consume_ai_quota`).
 8. Para tener un administrador que revise verificaciones, ejecuta en el SQL Editor (cambiando el correo):
 
    ```sql
@@ -67,6 +68,18 @@ npm.cmd run build
    ```
 
    Ese usuario verá **Administración** en la barra superior (`/admin`). Desde ahí, en **Usuarios y roles**, puede nombrar a otros administradores sin volver a usar SQL.
+
+### Inteligencia artificial (RF-44 y RF-47)
+
+La sugerencia de categoría a partir de la foto (`supabase/functions/classify-report-photo`) y el asistente (`supabase/functions/assistant-chat`) usan Claude (modelo `claude-opus-5-5`) desde funciones de Supabase. La clave nunca llega a la app: se guarda como secreto del servidor. Para activarlas, con la [CLI de Supabase](https://supabase.com/docs/guides/cli) enlazada al proyecto:
+
+```bash
+supabase secrets set ANTHROPIC_API_KEY=<tu clave de console.anthropic.com>
+supabase functions deploy classify-report-photo
+supabase functions deploy assistant-chat
+```
+
+Mientras no estén desplegadas, la app no muestra la sugerencia y el asistente avisa que todavía no está activado; el resto de la app funciona igual. Cada persona tiene un límite diario de 30 fotos analizadas y 40 mensajes. El modelo se cambia en `AI_MODEL` de `supabase/functions/_shared/conectard-ai.ts`.
 
 La confirmación del correo se activa en el panel de Supabase, no con SQL. El SQL de perfiles enlaza cada perfil con una cuenta de `auth.users`; no crea una forma alternativa de iniciar sesión. El correo integrado de Supabase usa el enlace predeterminado mientras el panel no permita editar la plantilla.
 

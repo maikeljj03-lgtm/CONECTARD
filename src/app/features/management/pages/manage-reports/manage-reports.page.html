@@ -4,13 +4,13 @@
   <main class="page manage">
     <header class="page-head">
       <p class="page-kicker">{{ isAdmin ? 'Moderación' : 'Gestión de reportes' }}</p>
-      <h1>{{ isAdmin ? 'Todos los reportes' : isOrganization ? 'Reportes en los que participas' : 'Reportes de tu jurisdicción' }}</h1>
+      <h1>{{ isAdmin ? 'Todos los reportes' : isOrganization ? 'Reportes en los que participas' : 'Reportes asignados a tu institución' }}</h1>
       @if (isAdmin) {
         <p>Como administrador moderas: puedes <strong>rechazar</strong> un reporte falso, duplicado o inapropiado, o restaurar uno rechazado por error. El avance (en revisión, en proceso, resuelto) lo marca la institución responsable.</p>
       } @else if (isOrganization) {
         <p>Los reportes a los que tu organización se sumó. Puedes marcarlos <strong>En proceso</strong> o <strong>Resuelto</strong> (con foto del después); el resto del seguimiento lo hace la institución responsable.</p>
       } @else if (profile) {
-        <p>Reportes en <strong>{{ jurisdiction }}</strong>. Cada cambio de estado queda en el historial público con el nombre de tu institución, y para marcar uno como resuelto debes subir una foto de cómo quedó.</p>
+        <p>ConectaRD te asigna sola los reportes de <strong>{{ jurisdiction }}</strong>{{ serviceCategories ? ' en ' + serviceCategories : '' }}, y te avisa cuando llega uno nuevo. Cada cambio de estado queda en el historial público con el nombre de tu institución, y para marcar uno como resuelto debes subir una foto de cómo quedó.</p>
       }
     </header>
 
@@ -134,7 +134,7 @@
                   <p class="muted">Súmate a un reporte desde su página (“Sumarme”) para gestionarlo aquí.</p>
                   <div class="actions actions--center"><a class="btn btn--primary" routerLink="/explorar"><app-icon name="map"></app-icon> Buscar reportes</a></div>
                 } @else {
-                  <p class="muted">Cuando alguien reporte un problema en {{ jurisdiction }}, aparecerá aquí.</p>
+                  <p class="muted">Cuando alguien reporte un problema que te corresponda en {{ jurisdiction }}, aparecerá aquí y recibirás un aviso.</p>
                 }
               }
             </div>

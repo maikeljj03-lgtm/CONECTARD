@@ -15,7 +15,14 @@
     <option value="">Todas las provincias</option>
     @for (item of provinces; track item) { <option [value]="item">{{ item }}</option> }
   </select>
+  <select class="select" [value]="assignment" (change)="setFilter('assignment', $any($event.target).value)" aria-label="Institución responsable">
+    <option value="">Todos los responsables</option>
+    <option value="sin_asignar" [selected]="assignment === 'sin_asignar'">Sin institución asignada</option>
+    @for (item of institutions; track item.id) { <option [value]="item.id" [selected]="assignment === item.id">{{ item.full_name || 'Institución' }}</option> }
+  </select>
   <label class="check"><input type="checkbox" [checked]="flaggedOnly" (change)="setFilter('flagged', $any($event.target).checked)" /> Solo denunciados</label>
+  <label class="check"><input type="checkbox" [checked]="duplicatesOnly" (change)="setFilter('duplicates', $any($event.target).checked)" /> Posibles duplicados</label>
+  <label class="check"><input type="checkbox" [checked]="suspiciousOnly" (change)="setFilter('suspicious', $any($event.target).checked)" /> Fotos sospechosas</label>
   <button type="button" class="btn btn--ghost btn--sm" (click)="exportCsv()" [disabled]="exporting || !total">
     @if (exporting) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="arrow-up-right"></app-icon> } Exportar CSV
   </button>
@@ -40,12 +47,12 @@
     <thead>
       <tr>
         <th><input type="checkbox" [checked]="allSelected" (change)="toggleAll()" aria-label="Seleccionar todos" /></th>
-        <th>Reporte</th><th>Estado</th><th>Autor</th><th>Zona</th><th>Participación</th><th>Creado</th>
+        <th>Reporte</th><th>Estado</th><th>Autor</th><th>Zona</th><th>Responsable</th><th>Participación</th><th>Creado</th>
       </tr>
     </thead>
     <tbody>
       @if (loading && !rows.length) {
-        <tr><td colspan="7"><span class="spinner spinner--sm"></span> Cargando…</td></tr>
+        <tr><td colspan="8"><span class="spinner spinner--sm"></span> Cargando…</td></tr>
       }
       @for (row of rows; track row.id) {
         <tr [class.is-selected]="selected.has(row.id)" [class.is-flagged]="row.pending_flags">
@@ -55,6 +62,14 @@
             <small><app-icon [name]="categoryIcon(row.category)"></app-icon> {{ categoryLabel(row.category) }}
               @if (row.pending_flags) { <span class="chip chip--danger"><app-icon name="flag"></app-icon> {{ row.pending_flags }}</span> }
             </small>
+            @if (row.possible_duplicate_of && !row.duplicate_review) {
+              <button type="button" class="chip chip--sun chip--button" (click)="openReview(row)" [title]="'Parecido a: ' + (row.duplicate_title || 'otro reporte') + '. Toca para revisarlo.'"><app-icon name="link"></app-icon> Posible duplicado</button>
+            } @else if (row.duplicate_review === 'unido') {
+              <button type="button" class="chip chip--ink chip--button" (click)="openReview(row)"><app-icon name="link"></app-icon> Unido a otro</button>
+            }
+            @if (row.suspicious_media) {
+              <button type="button" class="chip chip--blue chip--button" (click)="openReview(row)" title="Toca para ver las fotos"><app-icon name="image"></app-icon> {{ row.suspicious_media }} {{ row.suspicious_media === 1 ? 'foto sospechosa' : 'fotos sospechosas' }}</button>
+            }
           </td>
           <td>
             <span class="status-dot"><i [style.background]="statusColors[row.status]"></i>{{ statusLabels[row.status] }}</span>
@@ -65,15 +80,24 @@
             <small>{{ row.author_email }}</small>
             @if (row.is_anonymous) { <span class="chip chip--ink" title="Publicado como anónimo: solo la administración ve quién es"><app-icon name="eye-off"></app-icon> Anónimo</span> }
           </td>
-          <td>{{ place(row) }}</td>
+          <td class="cell-zone">{{ place(row) }}</td>
+          <td class="cell-owner">
+            @if (row.assigned_institution_name) {
+              <strong>{{ row.assigned_institution_name }}</strong>
+              <small>{{ row.assignment_mode === 'manual' ? 'Asignado a mano' : 'Automático' }}</small>
+            } @else {
+              <span class="chip chip--sun">Sin asignar</span>
+            }
+            <button type="button" class="link link--small" (click)="openReview(row)">{{ row.assigned_institution_name ? 'Cambiar' : 'Asignar' }}</button>
+          </td>
           <td class="cell-social"><span title="Me afecta"><app-icon name="thumbs-up"></app-icon> {{ row.support_count }}</span><span title="Comentarios"><app-icon name="message"></app-icon> {{ row.comment_count }}</span></td>
-          <td>
+          <td class="cell-date">
             {{ row.created_at | date: 'd MMM y' }}
             @if (row.status === 'reportado' && daysOpen(row) >= 7) { <small class="stale">{{ daysOpen(row) }} días sin atender</small> }
           </td>
         </tr>
       } @empty {
-        @if (!loading) { <tr><td colspan="7" class="muted">Ningún reporte coincide con los filtros.</td></tr> }
+        @if (!loading) { <tr><td colspan="8" class="muted">Ningún reporte coincide con los filtros.</td></tr> }
       }
     </tbody>
   </table>
@@ -86,3 +110,86 @@
     <button type="button" (click)="goTo(page + 1)" [disabled]="page >= pages - 1 || loading">Siguiente <app-icon name="arrow-right"></app-icon></button>
   </div>
 </div>
+
+<!-- Panel de revisión: responsable (RF-42), duplicado (RF-45) y fotos sospechosas (RF-46) -->
+@if (review; as r) {
+  <div class="drawer-backdrop" (click)="closeReview()"></div>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-label="Revisión del reporte">
+    <header class="drawer__head">
+      <div>
+        <h2>{{ r.title }}</h2>
+        <small>{{ categoryLabel(r.category) }} · {{ statusLabels[r.status] }} · {{ place(r) }}</small>
+      </div>
+      <button type="button" class="drawer__close" (click)="closeReview()" aria-label="Cerrar"><app-icon name="x"></app-icon></button>
+    </header>
+    <div class="drawer__body">
+      @if (reviewFeedback) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ reviewFeedback }}</span></div> }
+      @if (reviewError) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ reviewError }}</span></div> }
+
+      <section class="drawer__section">
+        <h3>Institución responsable</h3>
+        <p class="muted small">
+          @if (r.assigned_institution_name) {
+            Ahora: <strong>{{ r.assigned_institution_name }}</strong> ({{ r.assignment_mode === 'manual' ? 'asignada a mano' : 'asignada sola por zona y categoría' }}).
+          } @else {
+            Ninguna institución registrada cubre esta zona y categoría. Asígnala a mano o configura la zona de una institución en Usuarios.
+          }
+        </p>
+        <select class="select" [value]="newAssignee" (change)="newAssignee = $any($event.target).value" aria-label="Nueva institución responsable">
+          <option value="">Automática (según zona y categoría)</option>
+          @for (item of institutions; track item.id) {
+            <option [value]="item.id" [selected]="newAssignee === item.id" [disabled]="item.is_blocked">{{ institutionLabel(item) }}</option>
+          }
+        </select>
+        <button type="button" class="btn btn--primary btn--sm" (click)="saveAssignment()" [disabled]="reviewBusy">
+          @if (reviewBusy) { <span class="spinner spinner--sm"></span> } Guardar asignación
+        </button>
+      </section>
+
+      @if (r.possible_duplicate_of && !r.duplicate_review) {
+        <section class="drawer__section">
+          <h3>Posible duplicado</h3>
+          <p class="muted small">Está a menos de 150 m de un reporte abierto de la misma categoría y se parece a
+            <a [routerLink]="['/reporte', r.possible_duplicate_of]" target="_blank" rel="noopener">«{{ r.duplicate_title || 'otro reporte' }}»</a>.
+            Si es el mismo problema, al unirlo se cierra este y sus apoyos, voluntarios y su autor pasan a apoyar el original.</p>
+          <div class="review-actions">
+            <button type="button" class="btn btn--primary btn--sm" (click)="resolveDuplicate(true)" [disabled]="reviewBusy || r.status === 'resuelto' || r.status === 'rechazado'"><app-icon name="link"></app-icon> Unir con el original</button>
+            <button type="button" class="btn btn--ghost btn--sm" (click)="resolveDuplicate(false)" [disabled]="reviewBusy"><app-icon name="check"></app-icon> No es duplicado</button>
+          </div>
+        </section>
+      } @else if (r.duplicate_review === 'unido' && r.possible_duplicate_of) {
+        <section class="drawer__section">
+          <h3>Unido a otro reporte</h3>
+          <p class="muted small">Se unió a <a [routerLink]="['/reporte', r.possible_duplicate_of]" target="_blank" rel="noopener">«{{ r.duplicate_title || 'el reporte original' }}»</a>.</p>
+        </section>
+      }
+
+      @if (r.suspicious_media) {
+        <section class="drawer__section">
+          <h3>Fotos sospechosas</h3>
+          @if (reviewLoading) {
+            <p class="muted small"><span class="spinner spinner--sm"></span> Cargando…</p>
+          }
+          @for (flag of reviewFlags; track flag.id) {
+            <div class="photo-flag">
+              <div class="photo-flag__images">
+                @if (mediaUrl(flag.media_path); as url) { <a [href]="url" target="_blank" rel="noopener"><img [src]="url" alt="Foto de este reporte" loading="lazy" /></a> }
+                @if (flag.reason === 'repetida') {
+                  <app-icon name="link"></app-icon>
+                  @if (mediaUrl(flag.matched_path); as other) { <a [href]="other" target="_blank" rel="noopener"><img [src]="other" alt="Foto parecida de otro reporte" loading="lazy" /></a> }
+                  @else { <span class="photo-flag__gone">La otra foto ya no existe</span> }
+                }
+              </div>
+              <p class="small">
+                <strong>{{ flag.reason === 'repetida' ? 'Foto repetida' : 'Sin datos de cámara' }}.</strong> {{ flagReason(flag) }}
+                @if (flag.matched_report_id) {
+                  <a [routerLink]="['/reporte', flag.matched_report_id]" target="_blank" rel="noopener">Ver «{{ flag.matched_report_title || 'el otro reporte' }}»</a>
+                }
+              </p>
+            </div>
+          }
+        </section>
+      }
+    </div>
+  </aside>
+}

@@ -103,7 +103,39 @@
       <section class="card">
         <h2 class="card__title"><span class="step-num">2</span> Fotos o video <span class="optional">(recomendado)</span></h2>
         <p class="muted small">Una foto ayuda a que el problema se entienda y se atienda más rápido. Evita que se vean rostros o placas.</p>
-        <app-media-picker [disabled]="sending" (readyChange)="media = $event" (processingChange)="mediaProcessing = $event"></app-media-picker>
+        <app-media-picker [disabled]="sending" (readyChange)="onMediaReady($event)" (processingChange)="mediaProcessing = $event"></app-media-picker>
+
+        <!-- RF-44: sugerencia de categoría a partir de la foto (la persona decide) -->
+        @if (suggesting) {
+          <p class="ai-hint ai-hint--loading" role="status"><span class="spinner spinner--sm"></span> Mirando la foto para sugerirte la categoría…</p>
+        } @else if (suggestion) {
+          <div class="ai-hint" role="status">
+            <span class="ai-hint__icon"><app-icon name="sparkles"></app-icon></span>
+            <div class="ai-hint__body">
+              @if (!suggestion.isPublicProblem) {
+                <strong>La foto no parece mostrar un problema de la comunidad.</strong>
+                <span>Revisa que sea la foto correcta. {{ suggestion.reason }}</span>
+              } @else if (suggestionApplied) {
+                <strong>Listo: categoría “{{ suggestion.categoryLabel }}”.</strong>
+                <span>Puedes cambiarla arriba si no es la correcta.</span>
+              } @else {
+                <strong>Parece de “{{ suggestion.categoryLabel }}”@if (suggestion.confidence !== 'alta') { <small>(confianza {{ suggestion.confidence }})</small> }</strong>
+                <span>{{ suggestion.reason }}</span>
+                <div class="ai-hint__actions">
+                  @if (form.controls.category.value !== suggestion.category) {
+                    <button type="button" class="btn btn--ghost btn--sm" (click)="applySuggestion(false)">Usar esta categoría</button>
+                  }
+                  @if (suggestion.title && !form.controls.title.value.trim()) {
+                    <button type="button" class="btn btn--ghost btn--sm" (click)="applySuggestion(true)">Usar también el título “{{ suggestion.title }}”</button>
+                  }
+                </div>
+              }
+            </div>
+            <button type="button" class="ai-hint__close" (click)="dismissSuggestion()" aria-label="Cerrar la sugerencia"><app-icon name="x"></app-icon></button>
+          </div>
+        } @else if (suggestionNote) {
+          <p class="ai-hint ai-hint--muted">{{ suggestionNote }}</p>
+        }
       </section>
 
       <!-- 3. Dónde -->
@@ -148,6 +180,38 @@
           <div class="field__control"><app-icon class="field__icon" name="map-pin"></app-icon><input id="r-address" formControlName="address" maxlength="200" placeholder="Ej. Frente al colmado, al lado de la escuela" /></div>
         </div>
       </section>
+
+      <!-- RF-45: ¿ya lo reportaron? Mejor apoyar el existente que repetirlo -->
+      @if (similar.length) {
+        <section class="card similar" aria-live="polite">
+          <h2 class="card__title"><app-icon name="users"></app-icon> ¿Ya lo reportaron?</h2>
+          <p class="muted small">Encontramos {{ similar.length === 1 ? 'un reporte parecido' : similar.length + ' reportes parecidos' }} de la misma categoría a menos de 150 m. Si es el mismo problema, apóyalo con “Me afecta”: así suma fuerza y llega antes a quien lo resuelve.</p>
+          <ul class="similar__list">
+            @for (item of similar; track item.id) {
+              <li class="similar__item">
+                @if (coverUrl(item.cover_path); as cover) { <img class="similar__cover" [src]="cover" alt="" loading="lazy" /> }
+                @else { <span class="similar__cover similar__cover--empty"><app-icon name="image"></app-icon></span> }
+                <div class="similar__body">
+                  <strong>{{ item.title }}</strong>
+                  <small>{{ statusLabels[item.status] }} · {{ distanceLabel(item.distance_m) }}{{ item.sector ? ' · ' + item.sector : '' }} · {{ item.support_count }} {{ item.support_count === 1 ? 'apoyo' : 'apoyos' }}</small>
+                </div>
+                <div class="similar__actions">
+                  @if (item.is_mine) {
+                    <span class="badge">Es tuyo</span>
+                  } @else {
+                    <button type="button" class="btn btn--sm" [class.btn--primary]="!item.supported_by_me" [class.btn--ghost]="item.supported_by_me" (click)="supportSimilar(item)" [attr.aria-pressed]="item.supported_by_me">
+                      <app-icon [name]="item.supported_by_me ? 'check' : 'thumbs-up'"></app-icon> {{ item.supported_by_me ? 'Lo apoyas' : 'Me afecta' }}
+                    </button>
+                  }
+                  <a class="btn btn--ghost btn--sm" [routerLink]="['/reporte', item.id]" target="_blank" rel="noopener">Ver</a>
+                </div>
+              </li>
+            }
+          </ul>
+          @if (similarError) { <p class="field__error"><app-icon name="alert-circle"></app-icon>{{ similarError }}</p> }
+          <p class="muted small">¿Es otro problema distinto? Sigue con tu reporte normalmente.</p>
+        </section>
+      }
 
       <!-- 4. Privacidad (RF-07) -->
       <section class="card">

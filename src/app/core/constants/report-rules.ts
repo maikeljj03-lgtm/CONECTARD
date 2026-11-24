@@ -47,7 +47,7 @@ export function editTimeLeft(report: EditableReport, now: Date = new Date()): st
 
 /**
  * Estados a los que puede pasar un reporte según quién lo cambia (RF-16).
- * - Institución (en su jurisdicción): cualquier estado menos volver a "Reportado".
+ * - Institución (la asignada al reporte, RF-42): cualquier estado menos volver a "Reportado".
  * - Organización (solo en los reportes en los que participa): "En proceso" o "Resuelto".
  * - Administrador: solo modera (rechazar, o restaurar uno rechazado).
  */

@@ -25,6 +25,8 @@ export interface Profile {
   show_in_ranking?: boolean;
   /** Recibir el resumen semanal por correo (RF-35). */
   weekly_digest?: boolean;
+  /** Institución: categorías que atiende (null = todas). Solo la cambia la administración (RF-42). */
+  service_categories?: string[] | null;
   created_at: string;
   updated_at: string;
 }

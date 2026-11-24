@@ -477,6 +477,8 @@
 
   .alert--error { border-color: var(--crd-danger-line); background: var(--crd-danger-soft); color: #8f2f28; }
   .alert--success { border-color: var(--crd-teal-line); background: var(--crd-teal-soft); color: #0b5a55; }
+  .alert--info { border-color: var(--crd-border-strong); background: var(--crd-sun-soft); color: var(--crd-sun-text); }
+  .alert a { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
 
   // ---------- Elecciones ----------
   .choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 6px; }
@@ -755,6 +757,90 @@
 
   .review__docs { display: grid; gap: 0; margin-bottom: 12px; }
 
+  // ---------- Sugerencia por foto (RF-44) ----------
+  .ai-hint {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 14px 0 0;
+    padding: 14px 44px 14px 14px;
+    border: 1px solid var(--crd-teal-line);
+    border-radius: var(--crd-radius);
+    background: var(--crd-teal-soft);
+    color: var(--crd-text-2);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .ai-hint--loading, .ai-hint--muted { align-items: center; padding-right: 14px; border-color: var(--crd-border); background: var(--crd-surface); color: var(--crd-text-3); }
+  .ai-hint__icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    background: var(--crd-teal);
+    color: var(--crd-on-teal);
+    font-size: 17px;
+  }
+  .ai-hint__body {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    strong { color: var(--crd-ink); font-weight: 650; }
+    small { color: var(--crd-text-3); font-weight: 500; }
+  }
+  .ai-hint__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; .btn { max-width: 100%; white-space: normal; text-align: left; } }
+  .ai-hint__close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--crd-text-3);
+    cursor: pointer;
+    &:hover { background: rgba(0, 0, 0, .05); color: var(--crd-ink); }
+  }
+
+  // ---------- Reportes parecidos cerca (RF-45) ----------
+  .similar {
+    border-color: var(--crd-sun);
+    background: linear-gradient(180deg, var(--crd-sun-soft), #fff 140px);
+    .card__title app-icon { color: var(--crd-sun-text); }
+  }
+  .similar__list { display: grid; gap: 10px; margin: 14px 0; padding: 0; list-style: none; }
+  .similar__item {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border: 1px solid var(--crd-border);
+    border-radius: var(--crd-radius);
+    background: #fff;
+  }
+  .similar__cover {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    object-fit: cover;
+  }
+  .similar__cover--empty { display: grid; place-items: center; background: var(--crd-bg); color: var(--crd-text-3); font-size: 20px; }
+  .similar__body {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    strong { overflow: hidden; color: var(--crd-ink); font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+    small { color: var(--crd-text-3); font-size: 13px; }
+  }
+  .similar__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+
   // ---------- Responsive ----------
   @media (max-width: 900px) {
     .layout-2 { grid-template-columns: 1fr; }
@@ -766,6 +852,9 @@
     .field-grid, .field-grid--3, .choice-grid { grid-template-columns: 1fr; }
     .review__head { flex-wrap: wrap; > small { margin-left: 0; } }
     .actions .btn { flex: 1 1 auto; }
+    .similar__item { grid-template-columns: 48px minmax(0, 1fr); }
+    .similar__cover { width: 48px; height: 48px; }
+    .similar__actions { grid-column: 1 / -1; justify-content: stretch; .btn { flex: 1 1 auto; } }
     .picker { height: 300px; }
   }
 }
