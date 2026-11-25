@@ -72,15 +72,18 @@ npm.cmd run build
 
 ### Inteligencia artificial (RF-44 y RF-47)
 
-La sugerencia de categoría a partir de la foto (`supabase/functions/classify-report-photo`) y el asistente (`supabase/functions/assistant-chat`) usan Claude (modelo `claude-opus-5-5`) desde funciones de Supabase. La clave nunca llega a la app: se guarda como secreto del servidor. Para activarlas, con la [CLI de Supabase](https://supabase.com/docs/guides/cli) enlazada al proyecto:
+La sugerencia de categoría a partir de la foto (`supabase/functions/classify-report-photo`) usa Claude (`claude-opus-5`). El asistente (`supabase/functions/assistant-chat`) usa Gemini (`gemini-3.5-flash-lite`). Las claves nunca llegan a la app: se guardan como secretos de las funciones de Supabase. Para activarlas, con la [CLI de Supabase](https://supabase.com/docs/guides/cli) enlazada al proyecto:
 
 ```bash
 supabase secrets set ANTHROPIC_API_KEY=<tu clave de console.anthropic.com>
+supabase secrets set GEMINI_API_KEY=<tu clave de aistudio.google.com>
 supabase functions deploy classify-report-photo
 supabase functions deploy assistant-chat
 ```
 
-Mientras no estén desplegadas, la app no muestra la sugerencia y el asistente avisa que todavía no está activado; el resto de la app funciona igual. Cada persona tiene un límite diario de 30 fotos analizadas y 40 mensajes. El modelo se cambia en `AI_MODEL` de `supabase/functions/_shared/conectard-ai.ts`.
+El proyecto debe estar enlazado con `supabase link --project-ref <project-ref>` y la CLI debe tener una sesión iniciada (`supabase login`). El `project-ref` aparece al comienzo del dominio del proyecto en Supabase. La clave se pega directamente en la terminal y no se comparte en el chat ni se agrega al archivo `.env` de la aplicación.
+
+Mientras no estén desplegadas o les falte su secreto, la app no muestra la sugerencia de foto y el asistente avisa que todavía no está activado; el resto de la app funciona igual. Cada persona tiene un límite diario de 30 fotos analizadas y 40 mensajes. Para cambiar el modelo de clasificación de fotos, edita `AI_MODEL` en `supabase/functions/_shared/conectard-ai.ts`; el modelo del asistente se configura en `GEMINI_MODEL` dentro de `supabase/functions/assistant-chat/index.ts`.
 
 ### Plataforma (módulo 8)
 

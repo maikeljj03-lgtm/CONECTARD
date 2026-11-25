@@ -1,18 +1,16 @@
-// RF-47: asistente conversacional de ConectaRD, con Claude.
+// RF-47: asistente conversacional de ConectaRD, con Gemini.
 //
 // Responde dudas sobre cómo usar la plataforma y sobre los reportes de la propia persona.
 // Comprueba la sesión, descuenta del límite diario (40 mensajes por persona) y solo lee
 // los datos de quien pregunta (con su propia sesión, así que la base de datos aplica sus permisos).
 //
 // Para activarlo (una sola vez):
-//   1. supabase secrets set ANTHROPIC_API_KEY=<tu clave de la consola de Anthropic>
+//   1. supabase secrets set GEMINI_API_KEY=<tu clave de Google AI Studio>
 //   2. supabase functions deploy assistant-chat
 // SUPABASE_URL y SUPABASE_ANON_KEY ya existen en las funciones de Supabase.
 
-import Anthropic from 'npm:@anthropic-ai/sdk@1';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
-  AI_MODEL,
   ASSISTANT_KNOWLEDGE,
   CORS_HEADERS,
   buildUserContext,
@@ -23,12 +21,14 @@ import {
   type ContextReport,
 } from '../_shared/conectard-ai.ts';
 
-const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '', maxRetries: 2, timeout: 60_000 });
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 
 Deno.serve(async (request: Request): Promise<Response> => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
   if (request.method !== 'POST') return jsonResponse({ error: 'Método no permitido.' }, 405);
-  if (!Deno.env.get('ANTHROPIC_API_KEY')) return jsonResponse({ error: 'El asistente no está activado todavía.' }, 503);
+  const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!geminiApiKey) return jsonResponse({ error: 'El asistente no está activado: falta configurar la clave de Gemini.' }, 503);
 
   const authorization = request.headers.get('Authorization') ?? '';
   const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
@@ -67,36 +67,53 @@ Deno.serve(async (request: Request): Promise<Response> => {
   const progress = progressResult.status === 'fulfilled' ? (progressResult.value.data as ContextProgress | null) : null;
 
   try {
-    const response = await anthropic.beta.messages.create({
-      model: AI_MODEL,
-      max_tokens: 4000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      output_config: { effort: 'low' },
-      system: [
-        // El conocimiento fijo va primero y se guarda en caché; los datos de la persona, después.
-        { type: 'text', text: ASSISTANT_KNOWLEDGE, cache_control: { type: 'ephemeral' } },
-        { type: 'text', text: buildUserContext(profile, reports, progress, new Date()) },
-      ],
-      messages: chat.messages.map((turn) => ({ role: turn.role, content: turn.content })),
+    const response = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': geminiApiKey,
+      },
+      body: JSON.stringify({
+        model: GEMINI_MODEL,
+        system_instruction: `${ASSISTANT_KNOWLEDGE}\n\n${buildUserContext(profile, reports, progress, new Date())}`,
+        input: chat.messages.map((turn) => `${turn.role === 'assistant' ? 'Asistente' : 'Usuario'}: ${turn.content}`).join('\n'),
+        store: false,
+        generation_config: { max_output_tokens: 1200 },
+      }),
+      signal: AbortSignal.timeout(60_000),
     });
 
-    if (response.stop_reason === 'refusal') {
-      return jsonResponse({ reply: 'No puedo ayudarte con eso. ¿Tienes alguna duda sobre cómo usar ConectaRD?', remaining });
+    const payload = await response.json().catch(() => null) as {
+      steps?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
+      error?: { status?: string; message?: string };
+    } | null;
+
+    if (!response.ok) {
+      const status = payload?.error?.status ?? '';
+      const message = payload?.error?.message ?? '';
+      console.error('Gemini respondió con error', response.status, status, message.slice(0, 300));
+      if (response.status === 429 || status === 'RESOURCE_EXHAUSTED') {
+        return jsonResponse({ error: 'El asistente alcanzó el límite de uso de Gemini. Inténtalo más tarde o revisa la cuota de Google AI Studio.' }, 503);
+      }
+      if (response.status === 400 && /billing|quota|payment/i.test(message)) {
+        return jsonResponse({ error: 'La cuenta de Gemini no tiene cuota disponible. Revisa el uso y la facturación en Google AI Studio.' }, 503);
+      }
+      if (response.status === 400 || response.status === 401 || response.status === 403) {
+        return jsonResponse({ error: 'La clave de Gemini no es válida o no tiene acceso a este modelo. Revísala en los secretos de Supabase.' }, 503);
+      }
+      return jsonResponse({ error: 'El asistente no pudo responder ahora. Inténtalo de nuevo.' }, 502);
     }
-    const reply = response.content
-      .filter((block) => block.type === 'text')
-      .map((block) => (block.type === 'text' ? block.text : ''))
+
+    const reply = (payload?.steps ?? [])
+      .filter((step) => step.type === 'model_output')
+      .flatMap((step) => step.content ?? [])
+      .filter((part) => part.type === 'text')
+      .map((part) => part.text ?? '')
       .join('\n')
       .trim();
     return jsonResponse({ reply: reply || 'No tengo una respuesta para eso. ¿Puedes contarme un poco más?', remaining });
   } catch (error) {
-    if (error instanceof Anthropic.RateLimitError) return jsonResponse({ error: 'El asistente está ocupado. Inténtalo en un momento.' }, 503);
-    if (error instanceof Anthropic.APIError) {
-      console.error('Claude respondió con error', error.status, error.message);
-      return jsonResponse({ error: 'El asistente no pudo responder ahora.' }, 502);
-    }
-    console.error('Error inesperado en el asistente', error);
-    return jsonResponse({ error: 'El asistente no pudo responder ahora.' }, 500);
+    console.error('Error de conexión con Gemini', error instanceof Error ? error.message : 'error desconocido');
+    return jsonResponse({ error: 'No pudimos conectar con Gemini ahora. Inténtalo de nuevo.' }, 502);
   }
 });

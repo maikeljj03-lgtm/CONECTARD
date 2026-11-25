@@ -3,7 +3,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import * as L from 'leaflet';
 import { Subscription, debounceTime } from 'rxjs';
 import { REPORT_CATEGORIES, REPORT_STATUS_LABELS, type ReportCategoryValue } from '../../../../core/constants/catalogs';
-import { DR_MAP_VIEW, DR_PROVINCES, isInsideDominicanRepublic } from '../../../../core/constants/geography';
+import { DR_COUNTRY_BOUNDARY, DR_PROVINCES, isInsideDominicanRepublic } from '../../../../core/constants/geography';
 import type { MyReport, PublicReport, SimilarReport } from '../../../../core/models/report.model';
 import { AiError, AiService, type PhotoSuggestion } from '../../../../core/services/ai.service';
 import { CommunityService } from '../../../../core/services/community.service';
@@ -362,23 +362,58 @@ export class NewReportPage implements OnInit, AfterViewInit, OnDestroy {
 
   private initMap(): void {
     if (!this.pickerMap) return;
-    const bounds = L.latLngBounds(DR_MAP_VIEW);
+    const countryOutline = DR_COUNTRY_BOUNDARY.map(([lng, lat]) => L.latLng(lat, lng));
+    const countryBounds = L.latLngBounds(countryOutline);
     const element = this.pickerMap.nativeElement;
-    this.map = L.map(element, { zoomControl: true, minZoom: 6, maxZoom: 18, maxBounds: bounds.pad(0.1) });
+    this.map = L.map(element, {
+      zoomControl: true,
+      minZoom: 6,
+      maxZoom: 18,
+      maxBounds: countryBounds.pad(0.03),
+      maxBoundsViscosity: 1,
+    });
     // Vista inicial provisional; se encuadra el país cuando el contenedor ya tiene tamaño real.
-    this.map.setView(bounds.getCenter(), 7);
+    this.map.setView(countryBounds.getCenter(), 7);
     let framed = false;
     const frame = () => {
       this.map?.invalidateSize();
       if (!framed && element.clientWidth > 0 && element.clientHeight > 0) {
         framed = true;
-        this.map?.fitBounds(bounds, { padding: [10, 10] });
+        this.map?.fitBounds(countryBounds, { padding: [10, 10] });
       }
     };
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>',
     }).addTo(this.map);
+
+    const maskRing = (bounds: L.LatLngBounds): L.LatLngTuple[] => {
+      const southWest = bounds.getSouthWest();
+      const northEast = bounds.getNorthEast();
+      return [
+        [southWest.lat, southWest.lng],
+        [southWest.lat, northEast.lng],
+        [northEast.lat, northEast.lng],
+        [northEast.lat, southWest.lng],
+        [southWest.lat, southWest.lng],
+      ];
+    };
+    const outsideMask = L.polygon([maskRing(countryBounds.pad(2)), countryOutline], {
+      stroke: false,
+      fillColor: '#f8f6f1',
+      fillOpacity: 1,
+      fillRule: 'evenodd',
+      interactive: false,
+    }).addTo(this.map);
+    const refreshMask = () => outsideMask.setLatLngs([maskRing(this.map!.getBounds().pad(2)), countryOutline]);
+    this.map.on('moveend zoomend', refreshMask);
+    L.polyline([...countryOutline, countryOutline[0]], {
+      color: '#00a99d',
+      weight: 2,
+      opacity: 0.9,
+      interactive: false,
+    }).addTo(this.map);
+
     this.map.on('click', (event: L.LeafletMouseEvent) => this.zone.run(() => {
       if (!isInsideDominicanRepublic(event.latlng.lat, event.latlng.lng)) {
         this.locationHint = 'Elige un punto dentro de República Dominicana.';

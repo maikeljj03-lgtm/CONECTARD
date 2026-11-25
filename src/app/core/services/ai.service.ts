@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { FunctionsHttpError } from '@supabase/supabase-js';
+import { FunctionsHttpError, FunctionsRelayError } from '@supabase/supabase-js';
 import type { ReportCategoryValue } from '../constants/catalogs';
 import { analysisCopy } from '../utils/media';
 import { AuthService } from './auth.service';
@@ -28,7 +28,8 @@ export class AiError extends Error {
 
 /**
  * Inteligencia artificial de ConectaRD (RF-44 y RF-47). Llama a las funciones de Supabase
- * classify-report-photo y assistant-chat, que usan Claude con la clave guardada en el servidor.
+ * classify-report-photo usa Claude y assistant-chat usa Gemini, siempre desde funciones
+ * de Supabase y con sus claves guardadas como secretos del servidor.
  * Si las funciones no están desplegadas o no tienen la clave, la app simplemente no muestra estas ayudas.
  */
 @Injectable({ providedIn: 'root' })
@@ -64,17 +65,22 @@ export class AiService {
     const client = await this.auth.supabase();
     const { data, error } = await client.functions.invoke<T>(name, { body });
     if (!error && data) return data;
-    if (error instanceof FunctionsHttpError) {
-      const response = error.context as Response | undefined;
+    if (error instanceof FunctionsHttpError || error instanceof FunctionsRelayError) {
+      const response = error.context instanceof Response ? error.context : undefined;
       const status = response?.status ?? 0;
       let message = '';
       try {
-        message = ((await response?.json()) as { error?: string } | undefined)?.error ?? '';
+        const payload = (await response?.json()) as { error?: string; message?: string } | undefined;
+        message = payload?.error ?? payload?.message ?? '';
       } catch {
         message = '';
       }
-      // 404: la función no está desplegada; 503: falta la clave en el servidor.
-      if (status === 404 || (status === 503 && /activad/i.test(message))) {
+      // Supabase puede enviar el 404 desde el runtime de funciones o desde el relay.
+      if (status === 404 || /requested function was not found/i.test(message)) {
+        throw new AiError('El asistente aún no está publicado en Supabase. El administrador debe desplegar la función assistant-chat.', true);
+      }
+      // 503: falta configurar la clave del proveedor en los secretos del proyecto.
+      if (status === 503 && /activad/i.test(message)) {
         throw new AiError('Esta ayuda todavía no está activada.', true);
       }
       throw new AiError(message || 'No se pudo completar ahora. Inténtalo de nuevo.');
