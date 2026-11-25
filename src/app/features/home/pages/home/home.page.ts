@@ -164,6 +164,16 @@ export class HomePage implements OnInit, OnDestroy {
     return this.sceneReports[0] ?? null;
   }
 
+  /** Reportes visibles en el mapa que siguen abiertos, estén reportados o en atención. */
+  get sceneOpenCount(): number {
+    return this.sceneReports.filter((report) => report.status !== 'resuelto' && report.status !== 'rechazado').length;
+  }
+
+  /** Solamente los reportes visibles en el mapa que ya fueron resueltos. */
+  get sceneResolvedCount(): number {
+    return this.sceneReports.filter((report) => report.status === 'resuelto').length;
+  }
+
   ago(iso: string): string {
     return timeAgo(iso);
   }
@@ -273,20 +283,23 @@ export class HomePage implements OnInit, OnDestroy {
 
   // ---------- Panel lateral ----------
 
-  /** Pasos que faltan para completar el perfil (boceto "Completa tu perfil"). */
+  /** Pasos que faltan para completar el perfil. La jurisdicción institucional se registra en la solicitud. */
   get profileTodo(): string[] {
     const p = this.profile;
     if (!p) return [];
     const todo: string[] = [];
     if (!p.avatar_url) todo.push('Foto de perfil');
-    if (!p.province || !p.municipality) todo.push('Tu provincia y municipio');
-    if (!p.sector) todo.push('Tu sector');
+    if (p.role !== 'institution') {
+      if (!p.province || !p.municipality) todo.push('Tu provincia y municipio');
+      if (!p.sector) todo.push('Tu sector');
+    }
     if (!p.bio) todo.push('Una breve presentación');
     return todo;
   }
 
   get profileProgress(): number {
-    return Math.round(((4 - this.profileTodo.length) / 4) * 100);
+    const total = this.profile?.role === 'institution' ? 2 : 4;
+    return Math.round(((total - this.profileTodo.length) / total) * 100);
   }
 
   get rolePermissions(): string[] {

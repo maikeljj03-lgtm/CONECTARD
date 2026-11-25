@@ -26,10 +26,11 @@ describe('Reglas del ciclo de vida de los reportes (RF-15, RF-16, RF-17)', () =>
     expect(editTimeLeft(report, at(25))).toBeNull();
   });
 
-  it('la institución puede avanzar o rechazar, pero no volver a "Reportado"', () => {
-    expect(allowedNextStatuses('institution', 'reportado')).toEqual(['en_revision', 'en_proceso', 'resuelto', 'rechazado']);
-    expect(allowedNextStatuses('institution', 'en_proceso')).not.toContain('en_proceso');
-    expect(allowedNextStatuses('institution', 'en_proceso')).not.toContain('reportado');
+  it('la institución solo puede avanzar un estado a la vez', () => {
+    expect(allowedNextStatuses('institution', 'reportado')).toEqual(['en_revision']);
+    expect(allowedNextStatuses('institution', 'en_revision')).toEqual(['en_proceso']);
+    expect(allowedNextStatuses('institution', 'en_proceso')).toEqual(['resuelto']);
+    expect(allowedNextStatuses('institution', 'resuelto')).toEqual([]);
   });
 
   it('el administrador solo modera: rechazar o restaurar', () => {
@@ -37,8 +38,9 @@ describe('Reglas del ciclo de vida de los reportes (RF-15, RF-16, RF-17)', () =>
     expect(allowedNextStatuses('administrator', 'rechazado')).toEqual(['reportado']);
   });
 
-  it('la organización participante solo marca "En proceso" o "Resuelto"', () => {
-    expect(allowedNextStatuses('organization', 'reportado')).toEqual(['en_proceso', 'resuelto']);
+  it('la organización participante también respeta el orden del ciclo', () => {
+    expect(allowedNextStatuses('organization', 'reportado')).toEqual([]);
+    expect(allowedNextStatuses('organization', 'en_revision')).toEqual(['en_proceso']);
     expect(allowedNextStatuses('organization', 'en_proceso')).toEqual(['resuelto']);
     expect(allowedNextStatuses('organization', 'resuelto')).toEqual([]);
   });

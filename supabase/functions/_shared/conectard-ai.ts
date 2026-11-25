@@ -1,7 +1,7 @@
 // Lógica compartida de las funciones de inteligencia artificial de ConectaRD (RF-44 y RF-47).
 // No importa nada: se puede probar con Node y se usa desde las funciones de Deno.
 
-export const AI_MODEL = 'claude-opus-5-5';
+export const AI_MODEL = 'claude-opus-5';
 
 export const CATEGORIES = [
   { value: 'basura', label: 'Basura y limpieza', hint: 'basura acumulada, vertederos, contenedores llenos, calles sucias, escombros' },

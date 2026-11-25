@@ -73,10 +73,10 @@
               <span><small>Último reporte · {{ ago(latest.created_at) }}</small><strong>{{ latest.title }}</strong></span>
             </button>
           }
-          @if (counts) {
-            <div class="float-chip float-chip--stats" aria-label="Estado de los reportes">
-              <span><b>{{ counts.en_proceso }}</b><small>en proceso</small></span>
-              <span><b>{{ counts.resuelto }}</b><small>resueltos</small></span>
+          @if (sceneReports.length) {
+            <div class="float-chip float-chip--stats" aria-label="Reportes abiertos y resueltos que aparecen en el mapa">
+              <span><b>{{ sceneOpenCount }}</b><small>abiertos</small></span>
+              <span><b>{{ sceneResolvedCount }}</b><small>resueltos</small></span>
             </div>
           }
 

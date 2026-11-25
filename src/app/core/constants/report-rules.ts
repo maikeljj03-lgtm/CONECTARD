@@ -1,8 +1,8 @@
 import type { UserRole } from '../models/profile.model';
 import type { ReportStatus } from '../models/report.model';
 
-// Reglas del módulo 2 (RF-15, RF-16, RF-17). La base de datos las vuelve a comprobar en
-// supabase/migrations/20261114000000_report_lifecycle.sql; aquí solo deciden qué mostrar.
+// Reglas del módulo 2 (RF-15, RF-16, RF-17). La base de datos las vuelve a comprobar;
+// aquí solo deciden qué opciones mostrar.
 
 /** Horas que tiene el autor para editar o eliminar su reporte (report_edit_window en SQL). */
 export const REPORT_EDIT_WINDOW_HOURS = 24;
@@ -47,20 +47,22 @@ export function editTimeLeft(report: EditableReport, now: Date = new Date()): st
 
 /**
  * Estados a los que puede pasar un reporte según quién lo cambia (RF-16).
- * - Institución (la asignada al reporte, RF-42): cualquier estado menos volver a "Reportado".
- * - Organización (solo en los reportes en los que participa): "En proceso" o "Resuelto".
+ * - Institución asignada (RF-42) y organización participante: solo el siguiente estado del ciclo.
  * - Administrador: solo modera (rechazar, o restaurar uno rechazado).
  */
 export function allowedNextStatuses(role: UserRole | null | undefined, current: ReportStatus): ReportStatus[] {
-  if (role === 'institution') {
-    return (['en_revision', 'en_proceso', 'resuelto', 'rechazado'] as ReportStatus[]).filter((status) => status !== current);
-  }
-  if (role === 'organization') {
-    if (current === 'resuelto' || current === 'rechazado') return [];
-    return (['en_proceso', 'resuelto'] as ReportStatus[]).filter((status) => status !== current);
-  }
   if (role === 'administrator') {
     return current === 'rechazado' ? ['reportado'] : ['rechazado'];
+  }
+  if (role === 'institution') {
+    const index = REPORT_LIFECYCLE.indexOf(current);
+    if (index < 0) return [];
+    const next = REPORT_LIFECYCLE[index + 1];
+    return next ? [next] : [];
+  }
+  if (role === 'organization') {
+    if (current === 'en_revision') return ['en_proceso'];
+    if (current === 'en_proceso') return ['resuelto'];
   }
   return [];
 }
