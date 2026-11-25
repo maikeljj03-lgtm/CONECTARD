@@ -7,6 +7,8 @@ import type { UserRole } from '../../../../core/models/profile.model';
 import type { PublicReport } from '../../../../core/models/report.model';
 import { AuthService } from '../../../../core/services/auth.service';
 import { CommunityService } from '../../../../core/services/community.service';
+import { PlatformService } from '../../../../core/services/platform.service';
+import type { MessageKey } from '../../../../core/i18n/messages';
 import { EventsService } from '../../../../core/services/events.service';
 import { ReportMediaService } from '../../../../core/services/report-media.service';
 import { ReportsService } from '../../../../core/services/reports.service';
@@ -41,6 +43,7 @@ export class ReportDetailPage implements OnInit {
   private readonly mediaService = inject(ReportMediaService);
   private readonly roles = inject(RolesService);
   private readonly auth = inject(AuthService);
+  private readonly platform = inject(PlatformService);
   private readonly changeDetector = inject(ChangeDetectorRef);
 
   readonly statusLabels = REPORT_STATUS_LABELS;
@@ -60,6 +63,15 @@ export class ReportDetailPage implements OnInit {
   actionError = '';
   supporting = false;
   joining = false;
+
+  /** RF-63: encuesta de satisfacción. */
+  survey: { rating: number; solved: boolean; comment: string | null; created_at: string } | null = null;
+  editingSurvey = false;
+  surveyRating = 0;
+  surveySolved: boolean | null = null;
+  surveyComment = '';
+  surveySending = false;
+  surveyError = '';
 
   async ngOnInit(): Promise<void> {
     this.signedIn = !!this.auth.getCachedCurrentUser();
@@ -86,12 +98,56 @@ export class ReportDetailPage implements OnInit {
           .filter((item): item is MediaView => !!item.url);
       }
       if (volunteers.status === 'fulfilled') this.volunteers = volunteers.value;
+      if (report.is_mine && report.status === 'resuelto') await this.loadSurvey(report.id);
       if (events.status === 'fulfilled') this.events = events.value;
     } catch (error) {
       this.error = friendlyDataError(error);
     } finally {
       this.loading = false;
       this.changeDetector.markForCheck();
+    }
+  }
+
+  // ---------- RF-58, RF-59, RF-63 ----------
+
+  /** Clave de texto del tipo de terreno, o null si no se conoce. */
+  landKey(status: string | undefined | null): MessageKey | null {
+    return status === 'publico' || status === 'privado' || status === 'protegido' ? (`land.${status}` as MessageKey) : null;
+  }
+
+  /** La calificación se puede cambiar durante 7 días. */
+  get surveyEditable(): boolean {
+    return !!this.survey && Date.now() - new Date(this.survey.created_at).getTime() < 7 * 86_400_000;
+  }
+
+  async sendSurvey(): Promise<void> {
+    const report = this.report;
+    if (!report || !this.surveyRating || this.surveySolved === null) return;
+    this.surveySending = true;
+    this.surveyError = '';
+    try {
+      await this.platform.submitSurvey(report.id, this.surveyRating, this.surveySolved, this.surveyComment);
+      await this.loadSurvey(report.id);
+      this.report = { ...report, survey_rating: this.surveyRating };
+      this.editingSurvey = false;
+    } catch (error) {
+      this.surveyError = friendlyDataError(error);
+    } finally {
+      this.surveySending = false;
+      this.changeDetector.markForCheck();
+    }
+  }
+
+  private async loadSurvey(reportId: string): Promise<void> {
+    try {
+      this.survey = await this.platform.mySurvey(reportId);
+      if (this.survey) {
+        this.surveyRating = this.survey.rating;
+        this.surveySolved = this.survey.solved;
+        this.surveyComment = this.survey.comment ?? '';
+      }
+    } catch {
+      this.survey = null;
     }
   }
 

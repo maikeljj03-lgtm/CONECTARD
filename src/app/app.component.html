@@ -1,3 +1,7 @@
+<a class="skip-link" href="#contenido" (click)="skipToContent($event)">{{ 'nav.skip' | t }}</a>
+@if (!online) {
+  <div class="offline-banner" role="status"><app-icon name="alert-circle"></app-icon><span>{{ 'common.offline' | t }}</span></div>
+}
 <ion-app>
   <ion-router-outlet></ion-router-outlet>
 </ion-app>

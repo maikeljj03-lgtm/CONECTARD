@@ -53,19 +53,19 @@
         </div>
       </div>
     } @else {
-      <a class="back-link" routerLink="/landing"><app-icon name="arrow-left"></app-icon> Inicio</a>
+      <a class="back-link" routerLink="/inicio"><app-icon name="arrow-left"></app-icon> {{ 'nav.home' | t }}</a>
       <header class="page-head">
-        <p class="page-kicker">Nuevo reporte</p>
-        <h1>¿Qué está pasando en tu comunidad?</h1>
-        <p>Describe el problema y marca dónde está. Mientras más claro, más rápido llega a quien puede resolverlo.</p>
+        <p class="page-kicker">{{ 'new.kicker' | t }}</p>
+        <h1>{{ 'new.title' | t }}</h1>
+        <p>{{ 'new.lead' | t }}</p>
       </header>
     }
 
     <form class="stack" [formGroup]="form" (ngSubmit)="submit()" novalidate [hidden]="!!created">
       <!-- 1. Qué pasa -->
       <section class="card">
-        <h2 class="card__title"><span class="step-num">1</span> ¿Qué tipo de problema es?</h2>
-        <div class="category-grid" role="radiogroup" aria-label="Categoría">
+        <h2 class="card__title"><span class="step-num">1</span> {{ 'new.step1' | t }}</h2>
+        <div class="category-grid" role="radiogroup" [attr.aria-label]="'new.category' | t">
           @for (category of categories; track category.value) {
             <button type="button" class="category-pick" role="radio" [attr.aria-checked]="form.controls.category.value === category.value" [class.is-selected]="form.controls.category.value === category.value" (click)="selectCategory(category.value)">
               <app-icon [name]="category.icon"></app-icon><span>{{ category.label }}</span>
@@ -73,36 +73,40 @@
           }
         </div>
         @if (form.controls.category.invalid && form.controls.category.touched) {
-          <small class="field__error"><app-icon name="alert-circle"></app-icon>Elige una categoría.</small>
+          <small class="field__error"><app-icon name="alert-circle"></app-icon>{{ 'new.categoryError' | t }}</small>
         }
 
         <div class="field">
-          <label class="field__label" for="r-title">Título</label>
+          <label class="field__label" for="r-title">{{ 'new.titleLabel' | t }}</label>
           <div class="field__control" [class.is-invalid]="form.controls.title.invalid && form.controls.title.touched">
             <app-icon class="field__icon" name="file-text"></app-icon>
-            <input id="r-title" formControlName="title" maxlength="120" placeholder="Ej. Hoyo grande en la calle principal" />
+            <input id="r-title" formControlName="title" maxlength="120" [placeholder]="'new.titlePlaceholder' | t" />
           </div>
           @if (form.controls.title.invalid && form.controls.title.touched) {
-            <small class="field__error"><app-icon name="alert-circle"></app-icon>Escribe un título de al menos 5 caracteres.</small>
+            <small class="field__error"><app-icon name="alert-circle"></app-icon>{{ 'new.titleError' | t }}</small>
           }
         </div>
 
         <div class="field">
           <div class="field__label-row">
-            <label class="field__label" for="r-description">Descripción</label>
-            <small class="counter">{{ descriptionLength }}/2000</small>
+            <label class="field__label" for="r-description">{{ 'new.description' | t }}</label>
+            <span class="field__tools">
+              <!-- RF-55: dictado por voz -->
+              <app-dictation-button [control]="form.controls.description" [maxLength]="2000" [disabled]="sending"></app-dictation-button>
+              <small class="counter">{{ descriptionLength }}/2000</small>
+            </span>
           </div>
-          <textarea id="r-description" class="textarea" formControlName="description" rows="4" maxlength="2000" [class.is-invalid]="form.controls.description.invalid && form.controls.description.touched" placeholder="¿Desde cuándo ocurre? ¿A quién afecta? ¿Hay algún riesgo?"></textarea>
+          <textarea id="r-description" class="textarea" formControlName="description" rows="4" maxlength="2000" [class.is-invalid]="form.controls.description.invalid && form.controls.description.touched" [placeholder]="'new.descriptionPlaceholder' | t"></textarea>
           @if (form.controls.description.invalid && form.controls.description.touched) {
-            <small class="field__error"><app-icon name="alert-circle"></app-icon>Describe el problema con al menos 10 caracteres.</small>
+            <small class="field__error"><app-icon name="alert-circle"></app-icon>{{ 'new.descriptionError' | t }}</small>
           }
         </div>
       </section>
 
       <!-- 2. Fotos y video (RF-10, RF-11, RF-12) -->
       <section class="card">
-        <h2 class="card__title"><span class="step-num">2</span> Fotos o video <span class="optional">(recomendado)</span></h2>
-        <p class="muted small">Una foto ayuda a que el problema se entienda y se atienda más rápido. Evita que se vean rostros o placas.</p>
+        <h2 class="card__title"><span class="step-num">2</span> {{ 'new.step2' | t }} <span class="optional">{{ 'new.recommended' | t }}</span></h2>
+        <p class="muted small">{{ 'new.photoHint' | t }}</p>
         <app-media-picker [disabled]="sending" (readyChange)="onMediaReady($event)" (processingChange)="mediaProcessing = $event"></app-media-picker>
 
         <!-- RF-44: sugerencia de categoría a partir de la foto (la persona decide) -->
@@ -141,14 +145,14 @@
       <!-- 3. Dónde -->
       <section class="card">
         <div class="card__head">
-          <h2 class="card__title"><span class="step-num">3</span> ¿Dónde está?</h2>
+          <h2 class="card__title"><span class="step-num">3</span> {{ 'new.step3' | t }}</h2>
           <button type="button" class="btn btn--ghost btn--sm" (click)="useMyLocation()" [disabled]="locating">
-            @if (locating) { <span class="spinner spinner--sm"></span> Buscando… } @else { <app-icon name="locate"></app-icon> Usar mi ubicación }
+            @if (locating) { <span class="spinner spinner--sm"></span> {{ 'new.locating' | t }} } @else { <app-icon name="locate"></app-icon> {{ 'new.useLocation' | t }} }
           </button>
         </div>
-        <p class="muted small">Toca el mapa para marcar el lugar. Consultaremos OpenStreetMap para sugerir provincia, municipio y sector; puedes editar esos campos y arrastrar el marcador para ajustar el punto.</p>
+        <p class="muted small">{{ 'new.mapHint' | t }}</p>
         <div class="picker" [class.is-invalid]="!hasLocation && form.controls.latitude.touched">
-          <div #pickerMap class="picker__map" role="application" aria-label="Mapa para elegir la ubicación del reporte"></div>
+          <div #pickerMap class="picker__map" role="application" [attr.aria-label]="'new.mapLabel' | t"></div>
           @if (hasLocation) {
             <span class="picker__coords"><app-icon name="map-pin"></app-icon> {{ form.controls.latitude.value | number: '1.5-5' }}, {{ form.controls.longitude.value | number: '1.5-5' }}</span>
           }
@@ -157,27 +161,27 @@
 
         <div class="field-grid field-grid--3">
           <div class="field">
-            <label class="field__label" for="r-province">Provincia</label>
+            <label class="field__label" for="r-province">{{ 'new.province' | t }}</label>
             <div class="field__control">
               <app-icon class="field__icon" name="map"></app-icon>
               <select id="r-province" formControlName="province">
-                <option value="">Selecciona…</option>
+                <option value="">{{ 'new.select' | t }}</option>
                 @for (province of provinces; track province) { <option [value]="province">{{ province }}</option> }
               </select>
             </div>
           </div>
           <div class="field">
-            <label class="field__label" for="r-municipality">Municipio</label>
+            <label class="field__label" for="r-municipality">{{ 'new.municipality' | t }}</label>
             <div class="field__control"><app-icon class="field__icon" name="landmark"></app-icon><input id="r-municipality" formControlName="municipality" maxlength="80" /></div>
           </div>
           <div class="field">
-            <label class="field__label" for="r-sector">Sector</label>
+            <label class="field__label" for="r-sector">{{ 'new.sector' | t }}</label>
             <div class="field__control"><app-icon class="field__icon" name="map-pin"></app-icon><input id="r-sector" formControlName="sector" maxlength="80" /></div>
           </div>
         </div>
         <div class="field">
-          <label class="field__label" for="r-address">Referencia <span class="optional">(opcional)</span></label>
-          <div class="field__control"><app-icon class="field__icon" name="map-pin"></app-icon><input id="r-address" formControlName="address" maxlength="200" placeholder="Ej. Frente al colmado, al lado de la escuela" /></div>
+          <label class="field__label" for="r-address">{{ 'new.reference' | t }} <span class="optional">{{ 'common.optional' | t }}</span></label>
+          <div class="field__control"><app-icon class="field__icon" name="map-pin"></app-icon><input id="r-address" formControlName="address" maxlength="200" [placeholder]="'new.referencePlaceholder' | t" /></div>
         </div>
       </section>
 
@@ -215,30 +219,30 @@
 
       <!-- 4. Privacidad (RF-07) -->
       <section class="card">
-        <h2 class="card__title"><span class="step-num">4</span> ¿Cómo quieres publicarlo?</h2>
+        <h2 class="card__title"><span class="step-num">4</span> {{ 'new.step4' | t }}</h2>
         <div class="choice-grid">
           <button type="button" class="choice" [class.is-selected]="!form.controls.is_anonymous.value" (click)="form.controls.is_anonymous.setValue(false)" [attr.aria-pressed]="!form.controls.is_anonymous.value">
             <span class="choice__icon"><app-icon name="user"></app-icon></span>
-            <strong>Con mi nombre</strong>
-            <small>Aparece “{{ authorName }}” como autor.</small>
+            <strong>{{ 'new.withName' | t }}</strong>
+            <small>{{ 'new.withNameHint' | t: { name: authorName } }}</small>
           </button>
           <button type="button" class="choice" [class.is-selected]="form.controls.is_anonymous.value" (click)="form.controls.is_anonymous.setValue(true)" [attr.aria-pressed]="form.controls.is_anonymous.value">
             <span class="choice__icon"><app-icon name="eye-off"></app-icon></span>
-            <strong>De forma anónima</strong>
-            <small>Se muestra “Vecino anónimo”.</small>
+            <strong>{{ 'new.anonymous' | t }}</strong>
+            <small>{{ 'new.anonymousHint' | t }}</small>
           </button>
         </div>
         @if (form.controls.is_anonymous.value) {
-          <p class="note"><app-icon name="shield-check"></app-icon><span>Tu nombre y tu foto <strong>no se muestran a nadie</strong>: la plataforma solo publica el reporte. Internamente se guarda quién lo creó para evitar abusos (Ley 172-13), y solo los administradores pueden verlo.</span></p>
+          <p class="note"><app-icon name="shield-check"></app-icon><span>{{ 'new.anonymousNote' | t }}</span></p>
         }
       </section>
 
       @if (message) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ message }}</span></div> }
 
       <div class="actions">
-        <a class="btn btn--ghost" routerLink="/landing">Cancelar</a>
+        <a class="btn btn--ghost" routerLink="/inicio">{{ 'common.cancel' | t }}</a>
         <button class="btn btn--primary btn--lg" type="submit" [disabled]="sending || mediaProcessing">
-          @if (sending) { <span class="spinner spinner--sm"></span> {{ uploadingMedia ? 'Subiendo fotos…' : 'Enviando…' }} } @else if (mediaProcessing) { <span class="spinner spinner--sm"></span> Procesando fotos… } @else { Enviar reporte <app-icon name="arrow-right"></app-icon> }
+          @if (sending) { <span class="spinner spinner--sm"></span> {{ (uploadingMedia ? 'new.uploading' : 'new.sending') | t }} } @else if (mediaProcessing) { <span class="spinner spinner--sm"></span> {{ 'new.processing' | t }} } @else { {{ 'new.submit' | t }} <app-icon name="arrow-right"></app-icon> }
         </button>
       </div>
     </form>

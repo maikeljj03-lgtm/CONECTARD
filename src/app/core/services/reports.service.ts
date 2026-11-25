@@ -11,7 +11,7 @@ export const PUBLIC_REPORT_COLUMNS = [
   'id', 'title', 'description', 'category', 'latitude', 'longitude', 'address', 'province', 'municipality', 'sector',
   'status', 'is_anonymous', 'author_name', 'author_avatar_url', 'cover_path', 'media_count', 'evidence_count',
   'status_updated_at', 'support_count', 'comment_count', 'volunteer_count', 'supported_by_me', 'joined_by_me', 'is_mine',
-  'created_at', 'assigned_institution_name', 'assigned_to_me', 'merged_into',
+  'created_at', 'assigned_institution_name', 'assigned_to_me', 'merged_into', 'source', 'land_status', 'survey_rating',
 ].join(',');
 
 @Injectable({ providedIn: 'root' })

@@ -1,0 +1,191 @@
+<ion-content class="app-content">
+  <app-topbar></app-topbar>
+
+  <main class="page page--narrow settings">
+    <header class="page-head">
+      <p class="page-kicker">ConectaRD</p>
+      <h1>{{ 'settings.title' | t }}</h1>
+      <p>{{ 'settings.lead' | t }}</p>
+    </header>
+
+    <!-- RF-49: tema -->
+    <section class="card settings__section" aria-labelledby="s-theme">
+      <h2 class="card__title" id="s-theme"><app-icon name="sun"></app-icon> {{ 'settings.appearance' | t }}</h2>
+      <div class="segmented" role="radiogroup" [attr.aria-label]="'settings.appearance' | t">
+        @for (item of themes; track item.value) {
+          <button type="button" role="radio" [attr.aria-checked]="theme === item.value" [class.is-selected]="theme === item.value" (click)="setTheme(item.value)">
+            <app-icon [name]="item.icon"></app-icon><span>{{ item.label }}</span>
+          </button>
+        }
+      </div>
+    </section>
+
+    <!-- RF-56: idioma -->
+    <section class="card settings__section" aria-labelledby="s-lang">
+      <h2 class="card__title" id="s-lang"><app-icon name="globe"></app-icon> {{ 'settings.language' | t }}</h2>
+      <div class="segmented" role="radiogroup" [attr.aria-label]="'settings.language' | t">
+        @for (item of languages; track item.value) {
+          <button type="button" role="radio" [attr.aria-checked]="language === item.value" [class.is-selected]="language === item.value" (click)="setLanguage(item.value)" [attr.lang]="item.value">
+            <span>{{ item.native }}</span>
+          </button>
+        }
+      </div>
+      <p class="muted small">{{ 'settings.languageHint' | t }}</p>
+    </section>
+
+    <!-- RF-48 y RF-60: app instalable y ahorro de datos -->
+    <section class="card settings__section" aria-labelledby="s-app">
+      <h2 class="card__title" id="s-app"><app-icon name="smartphone"></app-icon> {{ 'settings.app' | t }}</h2>
+      <div class="setting-row">
+        <div>
+          <strong>{{ 'settings.install' | t }}</strong>
+          <p class="muted small">{{ 'settings.installHint' | t }}</p>
+        </div>
+        @switch (installState) {
+          @case ('installed') { <span class="badge badge--ok"><app-icon name="check"></app-icon> {{ 'settings.installed' | t }}</span> }
+          @case ('available') { <button type="button" class="btn btn--primary btn--sm" (click)="install()"><app-icon name="download"></app-icon> {{ 'settings.install' | t }}</button> }
+          @case ('ios') { <p class="hint">{{ 'settings.installIos' | t }}</p> }
+          @default { <p class="hint">{{ 'settings.installManual' | t }}</p> }
+        }
+      </div>
+      <div class="setting-row">
+        <div>
+          <strong id="s-data">{{ 'settings.dataSaver' | t }}</strong>
+          <p class="muted small">{{ 'settings.dataSaverHint' | t }}</p>
+        </div>
+        <button type="button" class="switch" role="switch" [attr.aria-checked]="dataSaver" aria-labelledby="s-data" (click)="toggleDataSaver()">
+          <span class="switch__thumb"></span><span class="sr-only">{{ (dataSaver ? 'settings.on' : 'settings.off') | t }}</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- RF-61: alertas por radio -->
+    <section class="card settings__section" aria-labelledby="s-alerts">
+      <div class="card__head">
+        <h2 class="card__title" id="s-alerts"><app-icon name="bell"></app-icon> {{ 'alerts.title' | t }}</h2>
+        @if (!draft && alerts.length < maxAlerts) {
+          <button type="button" class="btn btn--ghost btn--sm" (click)="newAlert()"><app-icon name="plus"></app-icon> {{ 'alerts.new' | t }}</button>
+        }
+      </div>
+      <p class="muted small">{{ 'alerts.hint' | t }}</p>
+      @if (alertsFeedback) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ alertsFeedback }}</span></div> }
+      @if (alertsError) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ alertsError }}</span></div> }
+
+      @if (alertsLoading) {
+        <p class="muted small"><span class="spinner spinner--sm"></span> {{ 'common.loading' | t }}</p>
+      } @else if (!alerts.length && !draft) {
+        <p class="empty-note">{{ 'alerts.empty' | t }}</p>
+      }
+      <ul class="alert-list">
+        @for (alert of alerts; track alert.id) {
+          <li class="alert-item" [class.is-paused]="!alert.active">
+            <span class="alert-item__icon"><app-icon name="map-pin"></app-icon></span>
+            <div class="alert-item__body">
+              <strong>{{ alert.label }} @if (!alert.active) { <span class="badge">{{ 'alerts.paused' | t }}</span> }</strong>
+              <small>{{ radiusLabel(alert.radius_m) }} · {{ alertCategories(alert) }}</small>
+            </div>
+            <div class="alert-item__actions">
+              <button type="button" class="btn btn--ghost btn--sm" (click)="editAlert(alert)">{{ 'alerts.edit' | t }}</button>
+              <button type="button" class="btn btn--ghost btn--sm" (click)="toggleAlert(alert)">{{ (alert.active ? 'alerts.pause' : 'alerts.resume') | t }}</button>
+              <button type="button" class="btn btn--ghost btn--sm btn--danger-text" (click)="deleteAlert(alert)" [attr.aria-label]="('common.delete' | t) + ' ' + alert.label"><app-icon name="trash"></app-icon></button>
+            </div>
+          </li>
+        }
+      </ul>
+
+      @if (draft) {
+        <form class="alert-editor" (submit)="$event.preventDefault(); saveAlert()">
+          <div class="field">
+            <label class="field__label" for="a-name">{{ 'alerts.name' | t }}</label>
+            <div class="field__control"><app-icon class="field__icon" name="map-pin"></app-icon><input id="a-name" maxlength="60" required [placeholder]="'alerts.namePlaceholder' | t" [value]="draft.label" (input)="draft.label = $any($event.target).value" /></div>
+          </div>
+          <div class="field">
+            <span class="field__label" id="a-radius">{{ 'alerts.radius' | t }}</span>
+            <div class="segmented segmented--small" role="radiogroup" aria-labelledby="a-radius">
+              @for (radius of radii; track radius) {
+                <button type="button" role="radio" [attr.aria-checked]="draft.radius_m === radius" [class.is-selected]="draft.radius_m === radius" (click)="setDraftRadius(radius)">{{ radiusLabel(radius) }}</button>
+              }
+            </div>
+          </div>
+          <div class="field">
+            <div class="field__label-row">
+              <span class="field__label">{{ 'alerts.pick' | t }}</span>
+              <button type="button" class="btn btn--ghost btn--sm" (click)="useMyLocation()" [disabled]="locating">
+                @if (locating) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="locate"></app-icon> } {{ 'new.useLocation' | t }}
+              </button>
+            </div>
+            <div #alertMap class="alert-editor__map" role="application" [attr.aria-label]="'alerts.mapLabel' | t"></div>
+          </div>
+          <div class="field">
+            <span class="field__label" id="a-cats">{{ 'alerts.categories' | t }}</span>
+            <div class="chips" role="group" aria-labelledby="a-cats">
+              @for (category of categories; track category.value) {
+                <button type="button" class="chip-toggle" [class.is-selected]="draft.categories.has(category.value)" [attr.aria-pressed]="draft.categories.has(category.value)" (click)="toggleDraftCategory(category.value)">
+                  <app-icon [name]="category.icon"></app-icon> {{ category.label }}
+                </button>
+              }
+            </div>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn--ghost" (click)="cancelAlert()">{{ 'common.cancel' | t }}</button>
+            <button type="submit" class="btn btn--primary" [disabled]="savingAlert || !draft.label.trim()">
+              @if (savingAlert) { <span class="spinner spinner--sm"></span> } {{ 'alerts.save' | t }}
+            </button>
+          </div>
+        </form>
+      }
+    </section>
+
+    <!-- RF-53: verificación en dos pasos -->
+    <section class="card settings__section" aria-labelledby="s-mfa">
+      <h2 class="card__title" id="s-mfa"><app-icon name="shield-check"></app-icon> {{ 'mfa.title' | t }}</h2>
+      <p class="muted small">{{ 'mfa.hint' | t }}</p>
+      @if (mfaFeedback) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ mfaFeedback }}</span></div> }
+      @if (mfaError) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ mfaError }}</span></div> }
+
+      @if (enrollment) {
+        <div class="mfa-enroll">
+          <p>{{ 'mfa.scan' | t }}</p>
+          <img class="mfa-enroll__qr" [src]="enrollment.qrCode" alt="Código QR para la app autenticadora" width="180" height="180" />
+          <code class="mfa-enroll__secret">{{ enrollment.secret }}</code>
+          <div class="field">
+            <label class="field__label" for="mfa-code">{{ 'mfa.code' | t }}</label>
+            <div class="field__control"><app-icon class="field__icon" name="lock"></app-icon><input id="mfa-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" [value]="mfaCode" (input)="mfaCode = $any($event.target).value" (keydown.enter)="confirmMfa()" /></div>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn--ghost" (click)="cancelMfa()">{{ 'common.cancel' | t }}</button>
+            <button type="button" class="btn btn--primary" (click)="confirmMfa()" [disabled]="mfaBusy">{{ 'mfa.confirm' | t }}</button>
+          </div>
+        </div>
+      } @else if (mfa?.enabled) {
+        <p class="status-note"><app-icon name="check-circle"></app-icon> {{ 'mfa.active' | t }}</p>
+        @if (mfa.needsCode) {
+          <div class="field">
+            <label class="field__label" for="mfa-off">{{ 'mfa.code' | t }}</label>
+            <div class="field__control"><app-icon class="field__icon" name="lock"></app-icon><input id="mfa-off" inputmode="numeric" autocomplete="one-time-code" maxlength="6" [value]="mfaCode" (input)="mfaCode = $any($event.target).value" /></div>
+          </div>
+        }
+        <button type="button" class="btn btn--ghost btn--sm" (click)="disableMfa()" [disabled]="mfaBusy">{{ 'mfa.disable' | t }}</button>
+      } @else if (mfa) {
+        <button type="button" class="btn btn--primary btn--sm" (click)="startMfa()" [disabled]="mfaBusy">
+          @if (mfaBusy) { <span class="spinner spinner--sm"></span> } <app-icon name="shield-check"></app-icon> {{ 'mfa.enable' | t }}
+        </button>
+      }
+    </section>
+
+    <!-- RF-62: constancia de voluntariado -->
+    <section class="card settings__section" aria-labelledby="s-cert">
+      <h2 class="card__title" id="s-cert"><app-icon name="file-text"></app-icon> {{ 'cert.title' | t }}</h2>
+      <p class="muted small">{{ 'cert.hint' | t }}</p>
+      @if (certFeedback) { <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon><span>{{ certFeedback }}</span></div> }
+      @if (certError) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ certError }}</span></div> }
+      <div class="actions actions--start">
+        <button type="button" class="btn btn--primary btn--sm" (click)="downloadCertificate()" [disabled]="certBusy">
+          @if (certBusy) { <span class="spinner spinner--sm"></span> } @else { <app-icon name="download"></app-icon> } {{ 'cert.button' | t }}
+        </button>
+        <a class="btn btn--ghost btn--sm" routerLink="/verificar">{{ 'cert.verifyTitle' | t }}</a>
+      </div>
+    </section>
+  </main>
+  <app-bottom-nav></app-bottom-nav>
+</ion-content>

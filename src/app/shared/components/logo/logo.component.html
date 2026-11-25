@@ -24,7 +24,9 @@
   </g>
 </svg>
 @if (wordmark) {
-  <span class="logo-word">
+  <!-- El logotipo es decorativo (WCAG lo exime de contraste); el nombre se lee con el texto oculto. -->
+  <span class="sr-only">ConectaRD</span>
+  <span class="logo-word" aria-hidden="true">
     <span class="logo-name">Conecta<span>RD</span></span>
     @if (tagline) { <small class="logo-tagline">Connect • Solve • Improve</small> }
   </span>

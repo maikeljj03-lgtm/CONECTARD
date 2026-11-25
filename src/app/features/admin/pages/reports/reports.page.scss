@@ -9,7 +9,7 @@
   padding: 10px 14px;
   border: 1px solid var(--crd-ink);
   border-radius: 14px;
-  background: var(--crd-ink);
+  background: var(--crd-deep);
   color: #fff;
   animation: pop .2s ease both;
 
@@ -28,7 +28,7 @@
   font: inherit;
   font-size: 13.5px;
   &::placeholder { color: rgb(255 255 255 / 55%); }
-  &:focus { border-color: #fff; outline: 0; }
+  &:focus { border-color: var(--crd-surface); outline: 0; }
 }
 
 .link {

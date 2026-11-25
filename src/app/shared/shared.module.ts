@@ -5,6 +5,7 @@ import { RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular/lazy';
 import { AssistantChatComponent } from './components/assistant-chat/assistant-chat.component';
 import { BottomNavComponent } from './components/bottom-nav/bottom-nav.component';
+import { DictationButtonComponent } from './components/dictation-button/dictation-button.component';
 import { CommunitySceneComponent } from './components/community-scene/community-scene.component';
 import { IconComponent } from './components/icon/icon.component';
 import { MediaPickerComponent } from './components/media-picker/media-picker.component';
@@ -21,12 +22,13 @@ import { SkylineComponent } from './components/skyline/skyline.component';
 import { TopbarComponent } from './components/topbar/topbar.component';
 import { CanDirective } from './directives/can.directive';
 import { CountUpDirective } from './directives/count-up.directive';
+import { TranslatePipe } from './pipes/translate.pipe';
 
 const COMPONENTS = [
   IconComponent, LogoComponent, SkylineComponent, TopbarComponent, BottomNavComponent,
   CommunitySceneComponent, ReportCardComponent, ReportPreviewComponent, MediaPickerComponent, CanDirective,
   ReportProgressComponent, ShareButtonComponent, ReportCommentsComponent, ReportResourcesComponent,
-  FlagButtonComponent, NotificationBellComponent, CountUpDirective, AssistantChatComponent,
+  FlagButtonComponent, NotificationBellComponent, CountUpDirective, AssistantChatComponent, TranslatePipe, DictationButtonComponent,
 ];
 
 /**

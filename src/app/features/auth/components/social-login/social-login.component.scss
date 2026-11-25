@@ -31,7 +31,7 @@
 // Google: variante clara oficial.
 .social-btn--google {
   border-color: #747775;
-  background: #fff;
+  background: var(--crd-surface);
   color: #1f1f1f;
   &:hover:not(:disabled) { background: #f8faff; box-shadow: var(--crd-shadow-sm); }
 }
@@ -68,7 +68,7 @@
   padding: 0 14px;
   border-color: var(--crd-border-strong);
   border-radius: 14px;
-  background: #fff;
+  background: var(--crd-surface);
   color: var(--crd-ink);
   font-size: 14px;
 

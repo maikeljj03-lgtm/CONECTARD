@@ -9,7 +9,7 @@
     height: 68px;
     padding: 0 20px;
     border-bottom: 1px solid var(--crd-border);
-    background: rgb(251 250 247 / 94%);
+    background: color-mix(in srgb, var(--crd-bg) 94%, transparent);
     a { text-decoration: none; }
   }
 
@@ -59,7 +59,7 @@
     place-items: center;
     border: 0;
     border-radius: 50%;
-    background: rgb(255 255 255 / 92%);
+    background: color-mix(in srgb, var(--crd-bg) 92%, transparent);
     color: var(--crd-ink);
     cursor: pointer;
     transform: translateY(-50%);
@@ -138,7 +138,7 @@
     padding: 22px;
     border: 1px solid var(--crd-border);
     border-radius: 24px;
-    background: #fff;
+    background: var(--crd-surface);
   }
 
   // ---------- Lateral ----------
@@ -155,10 +155,10 @@
     padding: 20px;
     border: 1px solid var(--crd-border);
     border-radius: 24px;
-    background: #fff;
+    background: var(--crd-surface);
   }
 
-  .side-card--actions { background: linear-gradient(170deg, #fff 40%, var(--crd-teal-soft)); }
+  .side-card--actions { background: linear-gradient(170deg, var(--crd-surface) 40%, var(--crd-teal-soft)); }
 
   .support { display: grid; gap: 8px; }
 
@@ -171,7 +171,7 @@
     min-height: 54px;
     border: 2px solid var(--crd-ink);
     border-radius: 18px;
-    background: #fff;
+    background: var(--crd-surface);
     color: var(--crd-ink);
     font: inherit;
     font-size: 16.5px;
@@ -230,7 +230,7 @@
     li > span:last-child { display: grid; strong { color: var(--crd-ink); font-size: 14px; } small { color: var(--crd-text-3); font-size: 12px; } }
   }
 
-  .people__avatar--anon { background: var(--crd-ink) !important; color: #fff !important; }
+  .people__avatar--anon { background: var(--crd-ink) !important; color: var(--crd-on-ink) !important; }
 
   .people__avatar {
     display: grid;
@@ -266,7 +266,7 @@
     height: 52px;
     place-content: center;
     border-radius: 12px;
-    background: var(--crd-ink);
+    background: var(--crd-deep);
     color: rgb(255 255 255 / 75%);
     font-size: 11px;
     font-weight: 650;
@@ -297,4 +297,70 @@
     .report-gallery { border-radius: 20px; }
     .report-section, .side-card { border-radius: 20px; }
   }
+}
+
+// RF-58, RF-59 y RF-63
+.report-page {
+  .report-head__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    background: var(--crd-surface-2);
+    color: var(--crd-text-2);
+    font-size: 13px;
+    font-weight: 650;
+    &.is-protected { background: var(--crd-teal-soft); color: var(--crd-teal-text); }
+  }
+
+  .survey {
+    display: grid;
+    gap: 12px;
+    padding: 18px;
+    border: 1px solid var(--crd-sun);
+    border-radius: var(--crd-radius-lg);
+    background: var(--crd-sun-soft);
+    h2 { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--crd-ink); font-size: 18px; app-icon { color: var(--crd-sun-text); } }
+    p { margin: 0; }
+    .btn { justify-self: start; }
+  }
+
+  .survey__done { color: var(--crd-ink); font-weight: 650; }
+
+  .survey__stars {
+    display: flex;
+    gap: 4px;
+    button {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--crd-border-strong);
+      font-size: 26px;
+      cursor: pointer;
+      &.is-on { color: var(--crd-sun); }
+      &:hover { background: var(--crd-surface); }
+    }
+  }
+
+  .survey__solved { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--crd-text-2); font-size: 14px; }
+
+  .chip-choice {
+    padding: 6px 14px;
+    border: 1.5px solid var(--crd-border-strong);
+    border-radius: 999px;
+    background: var(--crd-surface);
+    color: var(--crd-text-2);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
+    &.is-selected { border-color: var(--crd-teal); background: var(--crd-teal); color: var(--crd-on-teal); }
+  }
+
+  .survey__public { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--crd-text-2); app-icon { color: var(--crd-sun); } }
 }

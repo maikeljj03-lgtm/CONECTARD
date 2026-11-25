@@ -54,6 +54,12 @@ export interface PublicReport extends Omit<NewReport, 'is_anonymous'> {
   assigned_to_me?: boolean | null;
   /** Si la moderación lo unió a otro reporte igual, el id de ese reporte (RF-45). */
   merged_into?: string | null;
+  /** RF-58: creado por una persona o por un sensor. */
+  source?: 'ciudadano' | 'sensor';
+  /** RF-59: tipo de terreno según el catastro cargado. */
+  land_status?: 'publico' | 'privado' | 'protegido' | 'desconocido';
+  /** RF-63: calificación que el autor dio a la solución (1-5). */
+  survey_rating?: number | null;
 }
 
 /** Reporte parecido y cercano, sugerido antes de crear uno nuevo (RF-45). */

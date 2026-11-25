@@ -28,6 +28,7 @@
                 "input": "src/assets",
                 "output": "assets"
               },
+              "src/manifest.webmanifest",
               {
                 "glob": "**/*.svg",
                 "input": "node_modules/ionicons/dist/ionicons/svg",
@@ -41,7 +42,12 @@
             "scripts": [],
             "allowedCommonJsDependencies": [
               "leaflet",
-              "qrcode"
+              "qrcode",
+              "canvg",
+              "core-js",
+              "raf",
+              "rgbcolor",
+              "html2canvas"
             ]
           },
           "configurations": {
@@ -64,7 +70,8 @@
                   "with": "src/environments/environment.prod.ts"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "serviceWorker": "ngsw-config.json"
             },
             "development": {
               "optimization": false,

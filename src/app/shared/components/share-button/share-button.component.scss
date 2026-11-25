@@ -8,7 +8,7 @@
   padding: 0 16px;
   border: 1.5px solid var(--crd-border-strong);
   border-radius: 999px;
-  background: #fff;
+  background: var(--crd-surface);
   color: var(--crd-ink);
   font: inherit;
   font-size: 14px;
@@ -32,7 +32,7 @@
   padding: 8px;
   border: 1px solid var(--crd-border);
   border-radius: 18px;
-  background: #fff;
+  background: var(--crd-surface);
   box-shadow: var(--crd-shadow-lg);
   animation: share-in .18s ease both;
 }
@@ -97,7 +97,7 @@
     border: 0;
     border-radius: 10px;
     background: var(--crd-ink);
-    color: #fff;
+    color: var(--crd-on-ink);
     font: inherit;
     font-size: 13px;
     font-weight: 650;

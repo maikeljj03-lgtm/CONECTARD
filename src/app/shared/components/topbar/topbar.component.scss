@@ -5,7 +5,7 @@
   z-index: 1000;
   display: block;
   border-bottom: 1px solid var(--crd-border);
-  background: rgb(251 250 247 / 92%);
+  background: color-mix(in srgb, var(--crd-bg) 92%, transparent);
   backdrop-filter: blur(14px) saturate(160%);
 }
 
@@ -50,11 +50,13 @@
   place-items: center;
   border: 1.5px solid var(--crd-border);
   border-radius: 50%;
-  background: #fff;
+  background: var(--crd-surface);
   color: var(--crd-text-2);
   font-size: 17px;
   cursor: pointer;
+  text-decoration: none;
   &:hover { border-color: var(--crd-ink); color: var(--crd-ink); }
+  &.is-active { border-color: var(--crd-teal); background: var(--crd-teal-soft); color: var(--crd-teal-text); }
 }
 
 // Con muchas opciones (administrador, institución) la barra se compacta antes de llenarse.

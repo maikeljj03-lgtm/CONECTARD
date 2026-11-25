@@ -32,7 +32,7 @@
   max-height: calc(100dvh - 48px);
   overflow: hidden;
   border-radius: 28px;
-  background: #fff;
+  background: var(--crd-surface);
   box-shadow: var(--crd-shadow-lg);
   transform: translate(-50%, -50%);
   animation: sheet-in .35s cubic-bezier(.2, .7, .2, 1) both;
@@ -49,12 +49,12 @@
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: rgb(255 255 255 / 92%);
+  background: color-mix(in srgb, var(--crd-bg) 92%, transparent);
   color: var(--crd-ink);
   font-size: 18px;
   cursor: pointer;
   box-shadow: var(--crd-shadow-sm);
-  &:hover { background: #fff; }
+  &:hover { background: var(--crd-surface); }
 }
 
 // ---------- Galería ----------
@@ -88,7 +88,7 @@
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: rgb(255 255 255 / 90%);
+  background: color-mix(in srgb, var(--crd-bg) 90%, transparent);
   color: var(--crd-ink);
   cursor: pointer;
   transform: translateY(-50%);
@@ -199,7 +199,7 @@
   padding: 0 18px;
   border-radius: 999px;
   background: var(--crd-ink);
-  color: #fff;
+  color: var(--crd-on-ink);
   font-size: 14px;
   font-weight: 650;
   text-decoration: none;
@@ -220,7 +220,7 @@
   img { width: 100%; height: 100%; object-fit: cover; }
 }
 
-.sheet__avatar--anon { background: var(--crd-ink); color: #fff; }
+.sheet__avatar--anon { background: var(--crd-ink); color: var(--crd-on-ink); }
 
 .sheet__action {
   display: inline-flex;
@@ -230,7 +230,7 @@
   padding: 0 16px;
   border: 1.5px solid var(--crd-border-strong);
   border-radius: 999px;
-  background: #fff;
+  background: var(--crd-surface);
   color: var(--crd-ink);
   font: inherit;
   font-size: 14px;

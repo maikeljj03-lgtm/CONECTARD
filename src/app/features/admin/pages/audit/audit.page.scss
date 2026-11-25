@@ -7,7 +7,7 @@
   padding: 14px 16px;
   border: 1px solid var(--crd-border);
   border-radius: 16px;
-  background: #fff;
+  background: var(--crd-surface);
   color: var(--crd-text-2);
   font-size: 13.5px;
   line-height: 1.5;
@@ -27,7 +27,7 @@
   list-style: none;
   border: 1px solid var(--crd-border);
   border-radius: 18px;
-  background: #fff;
+  background: var(--crd-surface);
 }
 
 .timeline__item {

@@ -51,6 +51,9 @@
             <div class="report-head__tags">
               <span class="report-head__category"><app-icon [name]="category.icon"></app-icon>{{ category.label }}</span>
               <span class="report-head__status" [style.--status]="statusColors[report.status]">{{ statusLabels[report.status] }}</span>
+              <!-- RF-58 y RF-59: creado por un sensor y tipo de terreno -->
+              @if (report.source === 'sensor') { <span class="report-head__tag"><app-icon name="cpu"></app-icon>{{ 'source.sensor' | t }}</span> }
+              @if (landKey(report.land_status); as land) { <span class="report-head__tag" [class.is-protected]="report.land_status === 'protegido'"><app-icon name="layers"></app-icon>{{ land | t }}</span> }
             </div>
             <h1>{{ report.title }}</h1>
             <p class="report-head__meta">
@@ -80,6 +83,37 @@
           <section class="report-section">
             <app-report-progress [report]="report" [beforeImage]="beforeImage" [expandHistory]="true"></app-report-progress>
           </section>
+
+          <!-- RF-63: encuesta de satisfacción (solo quien reportó, cuando está resuelto) -->
+          @if (report.status === 'resuelto' && report.is_mine) {
+            <section class="report-section survey" id="encuesta" aria-labelledby="survey-title">
+              <h2 id="survey-title"><app-icon name="star"></app-icon> {{ 'survey.title' | t }}</h2>
+              @if (survey && !editingSurvey) {
+                <p class="survey__done">{{ 'survey.thanks' | t: { n: survey.rating } }}</p>
+                @if (surveyEditable) { <button type="button" class="btn btn--ghost btn--sm" (click)="editingSurvey = true">{{ 'survey.change' | t }}</button> }
+              } @else {
+                <p class="muted">{{ 'survey.hint' | t }}</p>
+                <div class="survey__stars" role="radiogroup" [attr.aria-label]="'survey.stars' | t">
+                  @for (star of [1, 2, 3, 4, 5]; track star) {
+                    <button type="button" role="radio" [attr.aria-checked]="surveyRating === star" [attr.aria-label]="star + ' de 5'" [class.is-on]="star <= surveyRating" (click)="surveyRating = star"><app-icon name="star"></app-icon></button>
+                  }
+                </div>
+                <div class="survey__solved" role="radiogroup" [attr.aria-label]="'survey.solved' | t">
+                  <span>{{ 'survey.solved' | t }}</span>
+                  <button type="button" role="radio" class="chip-choice" [attr.aria-checked]="surveySolved === true" [class.is-selected]="surveySolved === true" (click)="surveySolved = true">{{ 'common.yes' | t }}</button>
+                  <button type="button" role="radio" class="chip-choice" [attr.aria-checked]="surveySolved === false" [class.is-selected]="surveySolved === false" (click)="surveySolved = false">{{ 'survey.notQuite' | t }}</button>
+                </div>
+                <label class="sr-only" for="survey-comment">{{ 'survey.comment' | t }}</label>
+                <textarea id="survey-comment" class="textarea" rows="2" maxlength="500" [placeholder]="('survey.comment' | t) + ' ' + ('common.optional' | t)" [value]="surveyComment" (input)="surveyComment = $any($event.target).value"></textarea>
+                @if (surveyError) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ surveyError }}</span></div> }
+                <button type="button" class="btn btn--primary btn--sm" (click)="sendSurvey()" [disabled]="surveySending || !surveyRating || surveySolved === null">
+                  @if (surveySending) { <span class="spinner spinner--sm"></span> } {{ 'survey.send' | t }}
+                </button>
+              }
+            </section>
+          } @else if (report.survey_rating) {
+            <p class="survey__public"><app-icon name="star"></app-icon> {{ 'survey.public' | t: { n: report.survey_rating } }}</p>
+          }
 
           <section class="report-section">
             <app-report-resources [reportId]="report.id" [role]="role" [open]="!isClosed"></app-report-resources>

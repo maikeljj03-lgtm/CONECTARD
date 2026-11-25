@@ -1,0 +1,51 @@
+@use '../../admin-shared';
+
+:host { display: grid; gap: 14px; }
+
+.cad-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  article { display: grid; gap: 2px; padding: 16px; border: 1px solid var(--crd-border); border-radius: 18px; background: var(--crd-surface); }
+  strong { color: var(--crd-ink); font-family: var(--crd-font-display); font-size: 26px; }
+  span { color: var(--crd-text-3); font-size: 13px; }
+}
+
+.cad-import {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--crd-border);
+  border-radius: 18px;
+  background: var(--crd-surface);
+  h2 { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--crd-ink); font-size: 16px; }
+  p { margin: 0; color: var(--crd-text-2); font-size: 14px; line-height: 1.55; }
+  code { padding: 1px 6px; border-radius: 6px; background: var(--crd-surface-2); }
+  .btn { justify-self: start; }
+}
+
+.cad-file {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  border: 1.5px dashed var(--crd-border-strong);
+  border-radius: 14px;
+  color: var(--crd-text-2);
+  font-weight: 650;
+  cursor: pointer;
+  input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  &:focus-within { border-color: var(--crd-teal); }
+}
+
+.cad-field {
+  display: grid;
+  gap: 4px;
+  color: var(--crd-text-2);
+  font-size: 13px;
+  font-weight: 650;
+  input { padding: 9px 11px; border: 1.5px solid var(--crd-border); border-radius: 10px; background: var(--crd-surface); color: var(--crd-ink); font: inherit; font-weight: 500; }
+}
+
+@media (max-width: 700px) { .cad-stats { grid-template-columns: 1fr 1fr; } }

@@ -166,7 +166,7 @@
 .camera-action--photo { background: #00a99f; color: #062b2b; }
 .camera-action--video { border-color: rgb(255 255 255 / 28%); background: #202d2f; }
 .camera-action--recording { background: #bd393b; }
-.camera-action--recording span { width: 10px; height: 10px; border-radius: 2px; background: #fff; }
+.camera-action--recording span { width: 10px; height: 10px; border-radius: 2px; background: var(--crd-surface); }
 
 .spinner {
   display: inline-block;

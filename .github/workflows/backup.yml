@@ -1,0 +1,80 @@
+# RF-65: copia de seguridad automática de la base de datos de ConectaRD.
+#
+# Todos los días a las 3:00 a. m. (hora de República Dominicana) hace un volcado de la base de datos de
+# Supabase, comprueba que se puede leer, lo cifra con AES-256 y lo guarda 30 días como artefacto del
+# repositorio. También se puede lanzar a mano: Actions → "Copia de seguridad" → Run workflow.
+#
+# Configuración (una sola vez), en GitHub → Settings → Secrets and variables → Actions:
+#   SUPABASE_DB_URL     Cadena de conexión de Supabase (Project Settings → Database → Connection string,
+#                       modo "Session pooler"), con la contraseña de la base de datos.
+#   BACKUP_PASSPHRASE   Frase larga para cifrar la copia. Guárdala en un lugar seguro: sin ella no se restaura.
+#
+# Restaurar: descarga el artefacto y ejecuta
+#   gpg --decrypt conectard-AAAA-MM-DD.dump.gpg > conectard.dump
+#   pg_restore --no-owner --no-privileges --dbname "<cadena de conexión>" conectard.dump
+name: Copia de seguridad
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Comprobar la configuración
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Faltan los secretos SUPABASE_DB_URL o BACKUP_PASSPHRASE (ver el comentario al inicio de este archivo)."
+            exit 1
+          fi
+          if [ ${#BACKUP_PASSPHRASE} -lt 16 ]; then
+            echo "::error::BACKUP_PASSPHRASE debe tener al menos 16 caracteres."
+            exit 1
+          fi
+
+      - name: Instalar el cliente de PostgreSQL 17
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          pg_dump --version
+
+      - name: Volcar la base de datos
+        run: |
+          FILE="conectard-$(TZ=America/Santo_Domingo date +%F).dump"
+          echo "FILE=$FILE" >> "$GITHUB_ENV"
+          pg_dump "$SUPABASE_DB_URL" --format=custom --compress=9 --no-owner --no-privileges \
+            --schema=public --schema=auth --schema=storage --file="$FILE"
+          # Si el archivo no se puede leer, la copia no sirve: se marca como error.
+          pg_restore --list "$FILE" > /dev/null
+          echo "Tablas en la copia: $(pg_restore --list "$FILE" | grep -c ' TABLE DATA ')"
+          ls -lh "$FILE"
+
+      - name: Cifrar la copia
+        run: |
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
+            --symmetric --cipher-algo AES256 --output "$FILE.gpg" "$FILE"
+          shred -u "$FILE"
+
+      - name: Guardar la copia (30 días)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FILE }}
+          path: ${{ env.FILE }}.gpg
+          retention-days: 30
+          if-no-files-found: error

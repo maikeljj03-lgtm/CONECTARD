@@ -1,0 +1,45 @@
+<ion-content class="app-content">
+  @if (signedIn) { <app-topbar></app-topbar> } @else {
+    <header class="guest-bar">
+      <a routerLink="/landing" aria-label="ConectaRD, inicio"><app-logo [size]="30"></app-logo></a>
+      <div class="guest-bar__actions">
+        <a class="btn btn--ghost btn--sm" routerLink="/auth/login">Iniciar sesión</a>
+      </div>
+    </header>
+  }
+
+  <main class="page page--narrow verify">
+    <header class="page-head">
+      <p class="page-kicker">{{ 'cert.title' | t }}</p>
+      <h1>{{ 'cert.verifyTitle' | t }}</h1>
+      <p>{{ 'cert.verifyHint' | t }}</p>
+    </header>
+
+    <form class="card verify__form" (submit)="$event.preventDefault(); verify()">
+      <label class="field__label" for="v-code">Código</label>
+      <div class="verify__row">
+        <div class="field__control"><app-icon class="field__icon" name="file-text"></app-icon><input id="v-code" autocomplete="off" spellcheck="false" maxlength="20" placeholder="CRD-1A2B3-C4D5E" [value]="code" (input)="code = $any($event.target).value" /></div>
+        <button type="submit" class="btn btn--primary" [disabled]="loading || !code.trim()">
+          @if (loading) { <span class="spinner spinner--sm"></span> } {{ 'cert.verifyButton' | t }}
+        </button>
+      </div>
+      @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+    </form>
+
+    @if (result) {
+      <section class="card verify__result" aria-live="polite">
+        <p class="verify__badge"><app-icon name="check-circle"></app-icon> {{ 'cert.valid' | t }}</p>
+        <h2>{{ result.full_name }}</h2>
+        @if (period(result.first_activity, result.last_activity); as range) { <p class="muted">Actividad {{ range }}</p> }
+        <div class="verify__stats">
+          <div><strong>{{ hoursLabel(result.hours) }}</strong><span>{{ 'cert.hours' | t }}</span></div>
+          <div><strong>{{ result.events }}</strong><span>{{ 'cert.events' | t }}</span></div>
+          <div><strong>{{ result.reports_helped }}</strong><span>{{ 'cert.reports' | t }}</span></div>
+        </div>
+        <p class="muted small">{{ 'cert.issued' | t }} {{ result.issued_at | date: 'd MMMM y' }} · <code>{{ result.code }}</code></p>
+      </section>
+    } @else if (searched && !loading) {
+      <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ 'cert.invalid' | t }}</span></div>
+    }
+  </main>
+</ion-content>

@@ -8,14 +8,29 @@
 
   <base href="/" />
 
-  <meta name="color-scheme" content="light" />
+  <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#FBFAF7" />
+  <!-- Tema e idioma guardados, aplicados antes de cargar la app para que no parpadee (RF-49, RF-56). -->
+  <script>
+    (function () {
+      try {
+        var theme = localStorage.getItem('conectard-tema');
+        var dark = theme === 'dark' || (theme !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        var lang = localStorage.getItem('conectard-idioma');
+        if (lang === 'en' || lang === 'ht') document.documentElement.lang = lang;
+      } catch (e) {}
+    })();
+  </script>
   <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0" />
   <meta name="format-detection" content="telephone=no" />
   <meta name="msapplication-tap-highlight" content="no" />
 
   <link rel="icon" type="image/svg+xml" href="assets/icon/logo.svg" />
   <link rel="alternate icon" type="image/png" href="assets/icon/favicon.png" />
+  <!-- App instalable (RF-48) -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icon/icon-192.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,11 +38,13 @@
 
   <!-- add to homescreen for ios -->
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="ConectaRD" />
 </head>
 
 <body>
   <app-root></app-root>
+  <noscript>ConectaRD necesita JavaScript para funcionar.</noscript>
 </body>
 
 </html>

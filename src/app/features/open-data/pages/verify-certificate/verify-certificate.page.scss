@@ -1,0 +1,24 @@
+.verify { display: grid; gap: 16px; padding-bottom: 80px; }
+.verify__form { display: grid; gap: 10px; }
+.verify__row { display: flex; flex-wrap: wrap; gap: 10px; .field__control { flex: 1 1 240px; } }
+
+.verify__result {
+  display: grid;
+  gap: 10px;
+  border-color: var(--crd-teal-line);
+  h2 { margin: 0; color: var(--crd-ink); font-size: 26px; }
+  p { margin: 0; }
+}
+
+.verify__badge { display: inline-flex; align-items: center; gap: 8px; color: var(--crd-teal-text); font-weight: 750; }
+
+.verify__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  div { display: grid; gap: 2px; padding: 14px; border-radius: var(--crd-radius); background: var(--crd-teal-soft); }
+  strong { color: var(--crd-teal-text); font-family: var(--crd-font-display); font-size: 22px; }
+  span { color: var(--crd-text-2); font-size: 12.5px; }
+}
+
+@media (max-width: 520px) { .verify__stats { grid-template-columns: 1fr; } }

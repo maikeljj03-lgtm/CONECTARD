@@ -14,3 +14,10 @@ if (!window.matchMedia) {
       dispatchEvent: () => false,
     }) as MediaQueryList;
 }
+
+// Las pruebas usan español (jsdom simula un navegador en inglés y la app elegiría inglés).
+try {
+  localStorage.setItem('conectard-idioma', 'es');
+} catch {
+  // Sin almacenamiento en este entorno: se usa el idioma por defecto.
+}

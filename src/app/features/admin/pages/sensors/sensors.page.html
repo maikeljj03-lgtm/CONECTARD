@@ -1,0 +1,84 @@
+<div class="toolbar">
+  <p class="muted small toolbar__note">Cada sensor manda sus mediciones con su propia clave. Si una pasa el límite, se crea un reporte y se asigna a la institución de la zona (uno solo mientras siga abierto).</p>
+  <button type="button" class="btn btn--primary btn--sm" (click)="openForm()" [disabled]="formOpen"><app-icon name="plus"></app-icon> Registrar sensor</button>
+</div>
+
+@if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+@if (created) {
+  <section class="token-box" role="status">
+    <h2><app-icon name="lock"></app-icon> Clave del sensor «{{ created.name }}»</h2>
+    <p>Cópiala ahora y configúrala en el sensor: <strong>no se vuelve a mostrar</strong> (ConectaRD solo guarda su huella).</p>
+    <div class="token-box__row"><code>{{ created.token }}</code><button type="button" class="btn btn--ghost btn--sm" (click)="copyToken()">{{ copied ? 'Copiada' : 'Copiar' }}</button></div>
+    <p class="small">El sensor envía cada medición así (mínimo cada 10 segundos):</p>
+    <pre>{{ created.example }}</pre>
+    <button type="button" class="link-button" (click)="created = null">Ya la guardé</button>
+  </section>
+}
+
+@if (formOpen) {
+  <form class="sensor-form" [formGroup]="form" (ngSubmit)="register()" novalidate>
+    <h2>Nuevo sensor</h2>
+    <div class="sensor-form__grid">
+      <label>Nombre<input formControlName="name" maxlength="80" placeholder="Ej. Cañada de Gazcue" /></label>
+      <label>Institución dueña
+        <select formControlName="ownerId">
+          <option value="">Elige…</option>
+          @for (item of institutions; track item.id) { <option [value]="item.id">{{ item.full_name || 'Institución' }}{{ item.province ? ' · ' + item.province : '' }}</option> }
+        </select>
+      </label>
+      <label>Categoría del reporte
+        <select formControlName="category">
+          @for (item of categories; track item.value) { <option [value]="item.value">{{ item.label }}</option> }
+        </select>
+      </label>
+      <label>Qué mide<input formControlName="metric" maxlength="60" placeholder="Ej. nivel del agua" /></label>
+      <label>Unidad<input formControlName="unit" maxlength="20" placeholder="Ej. cm" /></label>
+      <label>Límite<input type="number" formControlName="threshold" step="any" /></label>
+      <label>Alerta cuando la medición sea
+        <select formControlName="direction">
+          <option value="mayor">mayor que el límite</option>
+          <option value="menor">menor que el límite</option>
+        </select>
+      </label>
+      <label>Latitud<input type="number" formControlName="latitude" step="any" placeholder="18.4655" /></label>
+      <label>Longitud<input type="number" formControlName="longitude" step="any" placeholder="-69.9312" /></label>
+      <label>Provincia
+        <select formControlName="province">
+          <option value="">Selecciona…</option>
+          @for (item of provinces; track item) { <option [value]="item">{{ item }}</option> }
+        </select>
+      </label>
+      <label>Municipio<input formControlName="municipality" maxlength="80" /></label>
+      <label>Sector<input formControlName="sector" maxlength="80" /></label>
+    </div>
+    @if (formError) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ formError }}</span></div> }
+    <div class="sensor-form__actions">
+      <button type="button" class="btn btn--ghost btn--sm" (click)="formOpen = false">Cancelar</button>
+      <button type="submit" class="btn btn--primary btn--sm" [disabled]="saving">@if (saving) { <span class="spinner spinner--sm"></span> } Registrar</button>
+    </div>
+  </form>
+}
+
+<div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Sensor</th><th>Mide</th><th>Última medición</th><th>Reporte</th><th>Estado</th></tr></thead>
+    <tbody>
+      @if (loading && !devices.length) { <tr><td colspan="5"><span class="spinner spinner--sm"></span> Cargando…</td></tr> }
+      @for (device of devices; track device.id) {
+        <tr>
+          <td><strong>{{ device.name }}</strong><small>{{ device.owner_name || 'Institución' }} · {{ place(device) }}</small></td>
+          <td>{{ device.metric }}<small>{{ categoryLabel(device.category) }} · alerta si es {{ limitText(device) }}</small></td>
+          <td>
+            @if (device.last_value !== null) { <strong [class.over]="isOver(device)">{{ device.last_value }} {{ device.unit }}</strong> } @else { <span class="muted">Sin datos</span> }
+            <small>{{ ago(device.last_seen_at) }} · {{ device.readings_24h }} en 24 h</small>
+          </td>
+          <td>@if (device.open_report_id) { <a [routerLink]="['/reporte', device.open_report_id]" target="_blank" class="chip chip--danger"><app-icon name="alert-circle"></app-icon> Abierto</a> } @else { <span class="muted">—</span> }</td>
+          <td><button type="button" class="btn btn--ghost btn--sm" (click)="toggle(device)">{{ device.active ? 'Pausar' : 'Activar' }}</button>@if (!device.active) { <small>Pausado</small> }</td>
+        </tr>
+      } @empty {
+        @if (!loading) { <tr><td colspan="5" class="muted">Todavía no hay sensores registrados.</td></tr> }
+      }
+    </tbody>
+  </table>
+</div>

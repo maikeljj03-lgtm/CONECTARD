@@ -1,17 +1,18 @@
 <div class="app-topbar__inner">
   <a class="app-topbar__brand" routerLink="/inicio" aria-label="ConectaRD, mi inicio"><app-logo [size]="30"></app-logo></a>
-  <nav class="app-topbar__nav" aria-label="Navegación de la cuenta">
-    <a routerLink="/inicio" routerLinkActive="is-active" title="Inicio"><app-icon name="home"></app-icon><span>Inicio</span></a>
-    <a routerLink="/explorar" routerLinkActive="is-active" title="Explorar"><app-icon name="map"></app-icon><span>Explorar</span></a>
-    <a routerLink="/jornadas" routerLinkActive="is-active" title="Jornadas"><app-icon name="calendar"></app-icon><span>Jornadas</span></a>
-    <a routerLink="/reportes/nuevo" routerLinkActive="is-active" title="Reportar"><app-icon name="camera"></app-icon><span>Reportar</span></a>
-    <a routerLink="/ranking" routerLinkActive="is-active" title="Ranking"><app-icon name="trophy"></app-icon><span>Ranking</span></a>
-    <a routerLink="/perfil" routerLinkActive="is-active" title="Perfil"><app-icon name="user"></app-icon><span>Perfil</span></a>
-    <a *appCan="'report.manage_status'" routerLink="/gestion" routerLinkActive="is-active" title="Gestión"><app-icon name="inbox"></app-icon><span>Gestión</span></a>
-    <a *appCan="'users.manage'" routerLink="/admin" routerLinkActive="is-active" title="Admin"><app-icon name="shield-check"></app-icon><span>Admin</span></a>
+  <nav class="app-topbar__nav" [attr.aria-label]="'nav.account' | t">
+    <a routerLink="/inicio" routerLinkActive="is-active" [title]="'nav.home' | t"><app-icon name="home"></app-icon><span>{{ 'nav.home' | t }}</span></a>
+    <a routerLink="/explorar" routerLinkActive="is-active" [title]="'nav.explore' | t"><app-icon name="map"></app-icon><span>{{ 'nav.explore' | t }}</span></a>
+    <a routerLink="/jornadas" routerLinkActive="is-active" [title]="'nav.events' | t"><app-icon name="calendar"></app-icon><span>{{ 'nav.events' | t }}</span></a>
+    <a routerLink="/reportes/nuevo" routerLinkActive="is-active" [title]="'nav.report' | t"><app-icon name="camera"></app-icon><span>{{ 'nav.report' | t }}</span></a>
+    <a routerLink="/ranking" routerLinkActive="is-active" [title]="'nav.ranking' | t"><app-icon name="trophy"></app-icon><span>{{ 'nav.ranking' | t }}</span></a>
+    <a routerLink="/perfil" routerLinkActive="is-active" [title]="'nav.profile' | t"><app-icon name="user"></app-icon><span>{{ 'nav.profile' | t }}</span></a>
+    <a *appCan="'report.manage_status'" routerLink="/gestion" routerLinkActive="is-active" [title]="'nav.manage' | t"><app-icon name="inbox"></app-icon><span>{{ 'nav.manage' | t }}</span></a>
+    <a *appCan="'users.manage'" routerLink="/admin" routerLinkActive="is-active" [title]="'nav.admin' | t"><app-icon name="shield-check"></app-icon><span>{{ 'nav.admin' | t }}</span></a>
   </nav>
   <app-notification-bell></app-notification-bell>
-  <button type="button" class="app-topbar__out" (click)="signOut()" aria-label="Cerrar sesión" title="Cerrar sesión"><app-icon name="log-out"></app-icon></button>
+  <a class="app-topbar__out" routerLink="/ajustes" routerLinkActive="is-active" [attr.aria-label]="'nav.settings' | t" [title]="'nav.settings' | t"><app-icon name="sliders"></app-icon></a>
+  <button type="button" class="app-topbar__out" (click)="signOut()" [attr.aria-label]="'nav.signOut' | t" [title]="'nav.signOut' | t"><app-icon name="log-out"></app-icon></button>
 </div>
 @if (blocked) {
   <div class="app-topbar__blocked" role="alert">

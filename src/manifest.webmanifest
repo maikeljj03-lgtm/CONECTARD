@@ -1,0 +1,24 @@
+{
+  "name": "ConectaRD · Conecta con tu comunidad",
+  "short_name": "ConectaRD",
+  "description": "Reporta problemas de tu comunidad, apoya soluciones y sigue cada caso hasta resolverlo, en República Dominicana.",
+  "lang": "es-DO",
+  "dir": "ltr",
+  "start_url": "/inicio",
+  "scope": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBFAF7",
+  "theme_color": "#00B2A9",
+  "categories": ["social", "utilities", "government"],
+  "icons": [
+    { "src": "assets/icon/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Reportar un problema", "short_name": "Reportar", "url": "/reportes/nuevo", "icons": [{ "src": "assets/icon/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Explorar el mapa", "short_name": "Explorar", "url": "/explorar", "icons": [{ "src": "assets/icon/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

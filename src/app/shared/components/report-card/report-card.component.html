@@ -1,9 +1,9 @@
 <button type="button" class="card" [class.is-selected]="selected" (click)="open.emit(report)" [attr.aria-label]="'Ver reporte: ' + report.title">
   <span class="card__media">
-    @if (coverUrl) {
+    @if (showCover) {
       <img [src]="coverUrl" alt="" loading="lazy" />
     } @else {
-      <span class="card__placeholder"><app-icon [name]="category.icon"></app-icon></span>
+      <span class="card__placeholder"><app-icon [name]="coverUrl ? 'image' : category.icon"></app-icon>@if (coverUrl) { <small>Foto</small> }</span>
     }
   </span>
   <span class="card__body">

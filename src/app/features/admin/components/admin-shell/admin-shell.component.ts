@@ -49,6 +49,13 @@ export class AdminShellComponent implements OnInit, OnDestroy {
         { path: 'voluntarios', icon: 'heart', label: 'Voluntarios', badge: 'volunteers' },
       ],
     },
+    {
+      title: 'Ciudad',
+      items: [
+        { path: 'sensores', icon: 'cpu', label: 'Sensores' },
+        { path: 'catastro', icon: 'layers', label: 'Catastro' },
+      ],
+    },
     { title: 'Control', items: [{ path: 'auditoria', icon: 'history', label: 'Auditoría' }] },
   ];
 

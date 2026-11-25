@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { REPORT_CATEGORIES, REPORT_STATUS_LABELS } from '../../../core/constants/catalogs';
 import type { PublicReport } from '../../../core/models/report.model';
+import { PreferencesService } from '../../../core/services/preferences.service';
 import { formatDistance, timeAgo } from '../../../core/utils/geo';
 import { STATUS_COLORS } from '../community-scene/community-scene.component';
 
@@ -13,12 +14,18 @@ import { STATUS_COLORS } from '../community-scene/community-scene.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ReportCardComponent {
+  private readonly preferences = inject(PreferencesService);
   @Input({ required: true }) report!: PublicReport;
   @Input() coverUrl: string | null = null;
   /** Distancia a la persona, en km (si se conoce su ubicación). */
   @Input() distanceKm: number | null = null;
   @Input() selected = false;
   @Output() readonly open = new EventEmitter<PublicReport>();
+
+  /** Con "Ahorro de datos" (RF-60) la portada no se descarga en las listas: se ve al abrir el reporte. */
+  get showCover(): boolean {
+    return !!this.coverUrl && !this.preferences.dataSaver;
+  }
 
   get category() {
     return REPORT_CATEGORIES.find((item) => item.value === this.report.category) ?? REPORT_CATEGORIES[REPORT_CATEGORIES.length - 1];

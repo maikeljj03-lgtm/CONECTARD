@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import type {
   AdminDashboard, AdminInstitution, AdminReportRow, AdminUserDetail, AdminUserRow, AssignmentFilter, AuditAction, AuditEntry,
-  MediaFlag, UserSort, UserStateFilter,
+  CadastralImportResult, CadastralSummary, IotDevice, MediaFlag, NewIotDevice, SatisfactionRow, UserSort, UserStateFilter,
 } from '../models/admin.model';
 import type { UserRole } from '../models/profile.model';
 import type { ReportStatus } from '../models/report.model';
@@ -133,6 +133,78 @@ export class AdminService {
       matched_path: flag.matched_media_id ? paths.get(flag.matched_media_id) ?? null : null,
       matched_report_title: flag.matched_report_id ? titles.get(flag.matched_report_id) ?? null : null,
     }));
+  }
+
+  // ---------- Módulo 8 ----------
+
+  /** RF-51: teléfono completo de una solicitud de verificación (queda en la auditoría). */
+  async contactPhone(requestId: string): Promise<string> {
+    const client = await this.auth.supabase();
+    const { data, error } = await client.rpc('admin_contact_phone', { request_id: requestId });
+    if (error) throw error;
+    return String(data ?? '');
+  }
+
+  /** RF-58: sensores. */
+  async iotDevices(): Promise<IotDevice[]> {
+    const client = await this.auth.supabase();
+    const { data, error } = await client.rpc('admin_iot_devices');
+    if (error) throw error;
+    return ((data ?? []) as IotDevice[]).map((row) => ({
+      ...row,
+      threshold: Number(row.threshold),
+      last_value: row.last_value === null ? null : Number(row.last_value),
+    }));
+  }
+
+  /** Registra un sensor y devuelve su clave (solo se muestra esta vez). */
+  async registerIotDevice(device: NewIotDevice): Promise<{ id: string; token: string }> {
+    const client = await this.auth.supabase();
+    const { data, error } = await client.rpc('admin_register_iot_device', {
+      device_name: device.name.trim(),
+      owner: device.ownerId,
+      report_category: device.category,
+      metric_name: device.metric.trim(),
+      unit_name: device.unit.trim(),
+      limit_value: device.threshold,
+      limit_direction: device.direction,
+      lat: device.latitude,
+      lon: device.longitude,
+      device_province: device.province || null,
+      device_municipality: device.municipality || null,
+      device_sector: device.sector || null,
+    });
+    if (error) throw error;
+    return data as { id: string; token: string };
+  }
+
+  async setIotDeviceActive(id: string, active: boolean): Promise<void> {
+    const client = await this.auth.supabase();
+    const { error } = await client.rpc('admin_set_iot_device_active', { device: id, is_active: active });
+    if (error) throw error;
+  }
+
+  /** RF-59: catastro. */
+  async cadastralSummary(): Promise<CadastralSummary> {
+    const client = await this.auth.supabase();
+    const { data, error } = await client.rpc('admin_cadastral_summary');
+    if (error) throw error;
+    return data as CadastralSummary;
+  }
+
+  async importCadastralZones(collection: unknown, source: string, replace: boolean): Promise<CadastralImportResult> {
+    const client = await this.auth.supabase();
+    const { data, error } = await client.rpc('admin_import_cadastral_zones', { collection, source_name: source.trim(), replace_existing: replace });
+    if (error) throw error;
+    return data as CadastralImportResult;
+  }
+
+  /** RF-63: satisfacción por institución. */
+  async satisfaction(): Promise<SatisfactionRow[]> {
+    const client = await this.auth.supabase();
+    const { data, error } = await client.rpc('admin_satisfaction');
+    if (error) throw error;
+    return ((data ?? []) as SatisfactionRow[]).map((row) => ({ ...row, avg_rating: Number(row.avg_rating) }));
   }
 
   async audit(options: { action: AuditAction | ''; target: string | null; limit: number; offset: number }): Promise<AuditEntry[]> {

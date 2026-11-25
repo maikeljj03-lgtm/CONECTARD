@@ -14,7 +14,7 @@
   overflow: hidden;
   border: 1px solid var(--crd-border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--crd-surface);
 
   &.is-error { border-color: var(--crd-danger-line); background: var(--crd-danger-soft); }
 }

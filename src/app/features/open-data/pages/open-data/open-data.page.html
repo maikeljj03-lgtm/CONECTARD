@@ -1,0 +1,72 @@
+<ion-content class="app-content">
+  @if (signedIn) { <app-topbar></app-topbar> } @else {
+    <header class="guest-bar">
+      <a routerLink="/landing" aria-label="ConectaRD, inicio"><app-logo [size]="30"></app-logo></a>
+      <div class="guest-bar__actions">
+        <a class="btn btn--ghost btn--sm" routerLink="/auth/login">Iniciar sesión</a>
+        <a class="btn btn--primary btn--sm" routerLink="/auth/register">Únete</a>
+      </div>
+    </header>
+  }
+
+  <main class="page open-data">
+    <header class="page-head">
+      <p class="page-kicker">Datos abiertos</p>
+      <h1>Los datos de ConectaRD, para todos</h1>
+      <p>Universidades, periodistas y otras plataformas pueden usar los reportes públicos para estudiar y mejorar el país. Es de solo lectura y nunca incluye datos de las personas que reportan.</p>
+    </header>
+
+    @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+
+    @if (loading) {
+      <p class="muted"><span class="spinner spinner--sm"></span> Cargando cifras…</p>
+    } @else if (stats) {
+      <section class="od-stats" aria-label="Cifras en vivo">
+        <article class="od-stat"><strong>{{ stats.reports_total | number }}</strong><span>reportes en total</span></article>
+        <article class="od-stat"><strong>{{ stats.resolved_last_30_days | number }}</strong><span>resueltos en los últimos 30 días</span></article>
+        <article class="od-stat"><strong>{{ stats.median_resolution_hours !== null ? (stats.median_resolution_hours | number: '1.0-1') + ' h' : '—' }}</strong><span>mediana hasta resolverse</span></article>
+        <article class="od-stat"><strong>{{ stats.average_satisfaction !== null ? (stats.average_satisfaction | number: '1.1-1') + ' / 5' : '—' }}</strong><span>satisfacción de quien reportó</span></article>
+      </section>
+
+      <div class="od-grid">
+        <section class="card">
+          <h2 class="card__title">Por estado</h2>
+          <ul class="od-list">
+            @for (item of statuses; track item.key) { <li><span>{{ item.label }}</span><strong>{{ item.n | number }}</strong></li> }
+          </ul>
+        </section>
+        <section class="card">
+          <h2 class="card__title">Por categoría</h2>
+          <ul class="od-bars">
+            @for (item of categories; track item.label) {
+              <li><span>{{ item.label }}</span><i [style.width.%]="item.share" aria-hidden="true"></i><strong>{{ item.n | number }}</strong></li>
+            }
+          </ul>
+        </section>
+      </div>
+      <p class="muted small">Actualizado {{ stats.generated_at | date: 'd MMM y, h:mm a' }} · {{ stats.sensor_reports | number }} reportes creados por sensores urbanos.</p>
+    }
+
+    <section class="card od-api" aria-labelledby="od-api">
+      <h2 class="card__title" id="od-api"><app-icon name="layers"></app-icon> API pública (v1)</h2>
+      <p class="muted small">Sin clave ni registro. Responde en JSON con CORS abierto. Máximo 100 reportes por página. Licencia de los datos: <a href="https://creativecommons.org/licenses/by/4.0/deed.es" target="_blank" rel="noopener">CC BY 4.0</a> (cita “ConectaRD”).</p>
+      <p class="od-base"><span>URL base</span><code>{{ baseUrl || '…' }}</code></p>
+      <ul class="od-endpoints">
+        @for (endpoint of endpoints; track endpoint.path) {
+          <li>
+            <div class="od-endpoint__head"><span class="od-method">{{ endpoint.method }}</span><code>{{ endpoint.path }}</code></div>
+            <p>{{ endpoint.description }}</p>
+            <div class="od-example">
+              <code>{{ endpoint.example }}</code>
+              <button type="button" class="btn btn--ghost btn--sm" (click)="copy(endpoint.example)" [attr.aria-label]="'Copiar el ejemplo de ' + endpoint.path">{{ copied === endpoint.example ? 'Copiado' : 'Copiar' }}</button>
+            </div>
+          </li>
+        }
+      </ul>
+      <p class="muted small">Cada reporte incluye: id, título, descripción, categoría, estado, provincia, municipio, sector, coordenadas, fechas, apoyos, comentarios, institución responsable, si lo creó un sensor, tipo de terreno y la calificación de la solución.</p>
+    </section>
+
+    <p class="od-verify"><app-icon name="file-text"></app-icon> ¿Recibiste una constancia de voluntariado? <a routerLink="/verificar">Verifícala aquí</a>.</p>
+  </main>
+  @if (signedIn) { <app-bottom-nav></app-bottom-nav> }
+</ion-content>

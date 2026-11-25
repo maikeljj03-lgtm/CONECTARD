@@ -1,0 +1,36 @@
+@if (summary) {
+  <section class="cad-stats" aria-label="Catastro cargado">
+    <article><strong>{{ summary.zones | number }}</strong><span>zonas cargadas</span></article>
+    <article><strong>{{ summary.by_kind.publico ?? 0 }}</strong><span>públicas</span></article>
+    <article><strong>{{ summary.by_kind.privado ?? 0 }}</strong><span>privadas</span></article>
+    <article><strong>{{ summary.by_kind.protegido ?? 0 }}</strong><span>áreas protegidas</span></article>
+  </section>
+  <p class="muted small">
+    Reportes por terreno: {{ summary.reports_by_land.publico ?? 0 }} públicos · {{ summary.reports_by_land.privado ?? 0 }} privados ·
+    {{ summary.reports_by_land.protegido ?? 0 }} en áreas protegidas · {{ summary.reports_by_land.desconocido ?? 0 }} sin zona.
+    @if (summary.sources.length) { Fuentes: {{ summary.sources.join(', ') }}. }
+  </p>
+} @else if (loading) {
+  <p class="muted"><span class="spinner spinner--sm"></span> Cargando…</p>
+}
+
+<section class="cad-import">
+  <h2><app-icon name="layers"></app-icon> Importar zonas oficiales</h2>
+  <p>Sube un archivo <strong>GeoJSON</strong> (FeatureCollection) con polígonos o multipolígonos. Cada zona necesita en sus propiedades el <code>tipo</code> (público, privado o protegido) y, si lo tiene, el <code>nombre</code>. Las zonas sin tipo, fuera del país o que no sean polígonos se omiten. Los datos deben venir de una fuente oficial (por ejemplo, la Dirección General del Catastro Nacional o el Ministerio de Medio Ambiente).</p>
+  <label class="cad-file">
+    <input type="file" accept=".geojson,.json,application/geo+json,application/json" (change)="onFile($event)" />
+    <app-icon name="download"></app-icon>
+    <span>{{ fileName ? fileName + ' · ' + featureCount + ' zonas' : 'Elegir archivo GeoJSON' }}</span>
+  </label>
+  <label class="cad-field">Fuente de los datos<input [value]="source" (input)="source = $any($event.target).value" maxlength="160" placeholder="Ej. Catastro Nacional, 2027" /></label>
+  <label class="check"><input type="checkbox" [checked]="replace" (change)="replace = $any($event.target).checked" /> Reemplazar todas las zonas cargadas antes (si no, se agregan)</label>
+  @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+  @if (result) {
+    <div class="alert alert--success" role="status"><app-icon name="check-circle"></app-icon>
+      <span>Se importaron {{ result.imported }} zonas ({{ result.skipped }} omitidas). Ahora hay {{ result.total }} en total y se actualizó el terreno de {{ result.reports_updated }} reportes.</span>
+    </div>
+  }
+  <button type="button" class="btn btn--primary btn--sm" (click)="import()" [disabled]="importing || !featureCount">
+    @if (importing) { <span class="spinner spinner--sm"></span> } Importar
+  </button>
+</section>

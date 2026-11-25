@@ -12,7 +12,7 @@
     padding: 10px 12px;
     border: 1px solid var(--crd-border);
     border-radius: 14px;
-    background: #fff;
+    background: var(--crd-surface);
   }
 }
 
@@ -35,7 +35,7 @@
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: #fff;
+  background: var(--crd-surface);
   color: var(--crd-text-2);
   cursor: pointer;
   &:hover { color: var(--crd-danger); }

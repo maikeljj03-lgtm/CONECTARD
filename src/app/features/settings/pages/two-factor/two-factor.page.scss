@@ -1,0 +1,25 @@
+.two-factor { display: grid; min-height: 100%; place-items: center; }
+
+.two-factor__card {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: min(420px, 100%);
+  text-align: center;
+  h1 { margin: 0; color: var(--crd-ink); font-size: 26px; }
+  p { margin: 0; }
+  form { display: grid; gap: 14px; width: 100%; }
+}
+
+.two-factor__code {
+  width: 100%;
+  padding: 14px;
+  border: 1.5px solid var(--crd-border-strong);
+  border-radius: var(--crd-radius);
+  background: var(--crd-surface);
+  color: var(--crd-ink);
+  font: 700 28px/1 var(--crd-font-display);
+  letter-spacing: .4em;
+  text-align: center;
+  &:focus { border-color: var(--crd-teal); outline: none; }
+}

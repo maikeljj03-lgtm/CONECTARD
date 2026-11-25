@@ -27,6 +27,10 @@ const routes: Routes = [
   // Gestión de reportes: la institución asignada (RF-42), la ONG participante y, para moderar, el administrador.
   { path: 'gestion', canActivate: [authGuard, roleGuard('institution', 'organization', 'administrator')], loadChildren: () => import('./features/management/management.module').then((m) => m.ManagementModule) },
   { path: 'admin', canActivate: [authGuard, roleGuard('administrator')], loadChildren: () => import('./features/admin/admin.module').then((m) => m.AdminModule) },
+  // Módulo 8: ajustes (tema, idioma, alertas, 2FA, constancia) y el segundo paso al entrar.
+  { path: 'ajustes', canActivate: [authGuard], loadChildren: () => import('./features/settings/settings.module').then((m) => m.SettingsModule) },
+  // Datos abiertos (/datos-abiertos) y verificación de constancias (/verificar): públicas.
+  { path: '', loadChildren: () => import('./features/open-data/open-data.module').then((m) => m.OpenDataModule) },
   { path: 'home', redirectTo: 'inicio', pathMatch: 'full' },
   { path: '**', redirectTo: 'landing' },
 ];

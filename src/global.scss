@@ -27,7 +27,53 @@
 @import "@ionic/angular/css/flex-utils.css";
 
 /*
- * Modo oscuro: desactivado por ahora. La app usa un tema claro propio (theme/_tokens.scss);
- * la paleta oscura automática de Ionic mezclaba fondos oscuros con el diseño claro.
- * Cuando se haga el conmutador claro/oscuro (RF-49), se definirá aquí.
+ * Modo oscuro (RF-49): la paleta está en theme/_tokens.scss (:root[data-theme='dark']).
+ * No se usa la paleta oscura automática de Ionic; los colores salen de los tokens de ConectaRD.
  */
+html, body { background: var(--crd-bg); color: var(--crd-text); }
+
+/* El mapa se oscurece en modo oscuro sin cambiar los marcadores. */
+:root[data-theme='dark'] .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.9) saturate(.8); }
+:root[data-theme='dark'] .leaflet-container { background: #1b2a2c; }
+:root[data-theme='dark'] .leaflet-bar a, :root[data-theme='dark'] .leaflet-control-attribution { background: var(--crd-surface); color: var(--crd-text-2); border-color: var(--crd-border); }
+
+/* Accesibilidad (RF-54) */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 5000;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--crd-ink);
+  color: var(--crd-bg);
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-160%);
+  transition: transform .15s;
+  &:focus { transform: none; }
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Foco visible para quien navega con teclado (sin anillos al tocar con el dedo o el mouse). */
+:where(a, button, input, select, textarea, [tabindex], summary):focus-visible {
+  outline: 3px solid var(--crd-teal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}

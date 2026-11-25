@@ -16,15 +16,17 @@
   --crd-ink: #13282b;
   --crd-text: #182b2e;
   --crd-text-2: #4e5f61;
-  --crd-text-3: #7d8a89;
+  --crd-text-3: #5f6b69;   // contraste AA (≥ 4.5:1) sobre blanco y arena
 
   // Marca
   --crd-teal: #00b2a9;
   --crd-teal-hover: #00a39b;
-  --crd-teal-text: #00827b;   // turquesa con contraste suficiente sobre blanco
+  --crd-teal-text: #00766f;   // turquesa de texto: contraste AA sobre blanco y turquesa suave
   --crd-teal-soft: #e3f5f3;
   --crd-teal-line: #a9e0dc;
   --crd-on-teal: #04302d;
+  --crd-on-ink: #ffffff;      // texto sobre fondos color tinta
+  --crd-deep: #13282b;        // paneles oscuros por diseño (siguen oscuros en los dos temas)
 
   // Acento cálido (mango suave), usado con moderación
   --crd-sun: #e9a13b;
@@ -35,6 +37,8 @@
   --crd-danger: #b9473f;
   --crd-danger-soft: #fcefed;
   --crd-danger-line: #f0c9c4;
+  --crd-danger-text: #8f2f28;
+  --crd-success-text: #0b5a55;
   --crd-warning: #c98a1c;
   --crd-info: #4d7fb8;
 
@@ -47,6 +51,57 @@
   --crd-shadow-sm: 0 1px 2px rgb(19 40 43 / 6%), 0 2px 8px rgb(19 40 43 / 4%);
   --crd-shadow: 0 18px 40px -18px rgb(19 40 43 / 22%), 0 2px 6px rgb(19 40 43 / 5%);
   --crd-shadow-lg: 0 40px 80px -30px rgb(19 40 43 / 30%);
+}
+
+// ---------- Modo oscuro (RF-49) ----------
+// Se activa con data-theme="dark" en <html> (lo pone ThemeService según la preferencia de la persona
+// o la del sistema). Misma identidad: tinta verde azulada profunda, turquesa y mango, sin negro puro.
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --crd-bg: #0e191b;
+  --crd-bg-deep: #0a1416;
+  --crd-surface: #152427;
+  --crd-surface-2: #1a2c2f;
+  --crd-surface-3: #213538;
+  --crd-border: #273b3e;
+  --crd-border-strong: #355052;
+
+  --crd-ink: #eef5f4;
+  --crd-text: #dce7e5;
+  --crd-text-2: #adbfbc;
+  --crd-text-3: #869a97;
+
+  --crd-teal: #2cc4bb;
+  --crd-teal-hover: #45d0c8;
+  --crd-teal-text: #62d8d0;
+  --crd-teal-soft: #11302e;
+  --crd-teal-line: #1f5552;
+  --crd-on-teal: #03211f;
+  --crd-on-ink: #0e191b;
+  --crd-deep: #1b3437;
+
+  --crd-sun: #f0b45a;
+  --crd-sun-soft: #33281a;
+  --crd-sun-text: #f3c57f;
+
+  --crd-danger: #f08277;
+  --crd-danger-soft: #361d1b;
+  --crd-danger-line: #6a322d;
+  --crd-danger-text: #f6aaa2;
+  --crd-success-text: #7fe0d8;
+  --crd-warning: #e8b04a;
+  --crd-info: #7fa8d8;
+
+  --crd-shadow-sm: 0 1px 2px rgb(0 0 0 / 30%), 0 2px 8px rgb(0 0 0 / 22%);
+  --crd-shadow: 0 18px 40px -18px rgb(0 0 0 / 60%), 0 2px 6px rgb(0 0 0 / 25%);
+  --crd-shadow-lg: 0 40px 80px -30px rgb(0 0 0 / 70%);
+}
+
+:root {
+  --ion-background-color: var(--crd-bg);
+  --ion-text-color: var(--crd-text);
+  --ion-color-primary: var(--crd-teal-text);
+  --ion-color-primary-contrast: #ffffff;
 }
 
 ::selection { background: rgb(0 178 169 / 25%); color: var(--crd-ink); }

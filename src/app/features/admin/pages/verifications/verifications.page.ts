@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { ORGANIZATION_TYPES, ROLE_LABELS } from '../../../../core/constants/catalogs';
 import type { VerificationRequestWithProfile } from '../../../../core/models/verification.model';
+import { AdminService } from '../../../../core/services/admin.service';
 import { ProfileService } from '../../../../core/services/profile.service';
 import { VerificationService } from '../../../../core/services/verification.service';
 import { friendlyDataError } from '../../../../core/utils/data-errors';
@@ -16,6 +17,9 @@ export class AdminVerificationsPage implements OnInit {
   private readonly profiles = inject(ProfileService);
   private readonly verification = inject(VerificationService);
   private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly admin = inject(AdminService);
+  /** RF-51: teléfonos descifrados a pedido (cada consulta queda en la auditoría). */
+  phones: Record<string, string> = {};
 
   readonly roleLabels = ROLE_LABELS;
   readonly tabs: { id: Tab; label: string }[] = [
@@ -73,6 +77,18 @@ export class AdminVerificationsPage implements OnInit {
     } catch (error) {
       preview?.close();
       this.error = friendlyDataError(error);
+      this.changeDetector.markForCheck();
+    }
+  }
+
+  async revealPhone(requestId: string): Promise<void> {
+    this.busyId = requestId;
+    try {
+      this.phones = { ...this.phones, [requestId]: await this.admin.contactPhone(requestId) };
+    } catch (error) {
+      this.error = friendlyDataError(error);
+    } finally {
+      this.busyId = '';
       this.changeDetector.markForCheck();
     }
   }

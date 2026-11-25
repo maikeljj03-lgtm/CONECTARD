@@ -18,7 +18,7 @@
   justify-content: space-around;
   padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--crd-border);
-  background: rgb(255 255 255 / 94%);
+  background: color-mix(in srgb, var(--crd-bg) 94%, transparent);
   backdrop-filter: blur(14px) saturate(160%);
 
   a {

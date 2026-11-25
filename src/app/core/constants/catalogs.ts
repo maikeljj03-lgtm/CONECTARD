@@ -1,35 +1,37 @@
 // Catálogos de la app. Los valores coinciden con los CHECK de la base de datos.
+// Las etiquetas se traducen al idioma elegido (RF-56).
+import { t } from '../i18n/i18n';
 
 /** Categorías de reportes (RF-09). */
 export const REPORT_CATEGORIES = [
-  { value: 'basura', label: 'Basura y limpieza', icon: 'trash' },
-  { value: 'baches', label: 'Baches y vías', icon: 'alert' },
-  { value: 'alumbrado', label: 'Alumbrado', icon: 'lightbulb' },
-  { value: 'agua', label: 'Agua y alcantarillado', icon: 'droplet' },
-  { value: 'areas_verdes', label: 'Áreas verdes', icon: 'leaf' },
-  { value: 'seguridad', label: 'Seguridad', icon: 'shield' },
-  { value: 'educacion', label: 'Educación', icon: 'book' },
-  { value: 'otros', label: 'Otros', icon: 'more' },
+  { value: 'basura', label: t('cat.basura'), icon: 'trash' },
+  { value: 'baches', label: t('cat.baches'), icon: 'alert' },
+  { value: 'alumbrado', label: t('cat.alumbrado'), icon: 'lightbulb' },
+  { value: 'agua', label: t('cat.agua'), icon: 'droplet' },
+  { value: 'areas_verdes', label: t('cat.areas_verdes'), icon: 'leaf' },
+  { value: 'seguridad', label: t('cat.seguridad'), icon: 'shield' },
+  { value: 'educacion', label: t('cat.educacion'), icon: 'book' },
+  { value: 'otros', label: t('cat.otros'), icon: 'more' },
 ] as const;
 
 export type ReportCategoryValue = typeof REPORT_CATEGORIES[number]['value'];
 
 /** Estados del ciclo de vida (RF-16). */
 export const REPORT_STATUS_LABELS: Record<string, string> = {
-  reportado: 'Reportado',
-  en_revision: 'En revisión',
-  en_proceso: 'En proceso',
-  resuelto: 'Resuelto',
-  rechazado: 'Rechazado',
+  reportado: t('status.reportado'),
+  en_revision: t('status.en_revision'),
+  en_proceso: t('status.en_proceso'),
+  resuelto: t('status.resuelto'),
+  rechazado: t('status.rechazado'),
 };
 
 /** Roles (RF-03). */
 export const ROLE_LABELS: Record<string, string> = {
-  citizen: 'Ciudadano',
-  volunteer: 'Voluntario',
-  organization: 'Organización / ONG',
-  institution: 'Institución pública',
-  administrator: 'Administrador',
+  citizen: t('role.citizen'),
+  volunteer: t('role.volunteer'),
+  organization: t('role.organization'),
+  institution: t('role.institution'),
+  administrator: t('role.administrator'),
 };
 
 /** Tipos de organización para la verificación (RF-06). */

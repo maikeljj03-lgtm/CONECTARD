@@ -5,3 +5,7 @@ content_path = "./supabase/templates/confirmation.html"
 [auth.email.template.magic_link]
 subject = "Tu código de acceso | ConectaRD"
 content_path = "./supabase/templates/magic-link-otp.html"
+
+# RF-57: la API de datos abiertos es pública (no pide sesión).
+[functions.public-api]
+verify_jwt = false

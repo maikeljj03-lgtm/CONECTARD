@@ -44,7 +44,7 @@
     height: 14px;
     border: 2px solid var(--crd-border-strong);
     border-radius: 50%;
-    background: #fff;
+    background: var(--crd-surface);
   }
 
   li.is-done, li.is-current { color: var(--crd-ink); }
@@ -97,7 +97,7 @@
   bottom: 0;
   left: var(--split);
   width: 2px;
-  background: #fff;
+  background: var(--crd-surface);
   box-shadow: 0 0 10px rgb(0 0 0 / 35%);
   transform: translateX(-1px);
   pointer-events: none;
@@ -113,7 +113,7 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: #fff;
+    background: var(--crd-surface);
     color: var(--crd-ink);
     font-size: 12px;
     box-shadow: var(--crd-shadow);
@@ -224,7 +224,7 @@
     width: 14px;
     height: 14px;
     margin-top: 2px;
-    border: 3px solid #fff;
+    border: 3px solid var(--crd-surface);
     border-radius: 50%;
     background: var(--status);
     box-shadow: 0 0 0 1.5px var(--status);

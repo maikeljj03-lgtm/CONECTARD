@@ -1,0 +1,18 @@
+<ion-content class="app-content">
+  <main class="page page--narrow two-factor">
+    <section class="card two-factor__card">
+      <span class="result__icon"><app-icon name="shield-check"></app-icon></span>
+      <h1>{{ 'mfa.challengeTitle' | t }}</h1>
+      <p class="muted">{{ 'mfa.challengeHint' | t }}</p>
+      <form (submit)="$event.preventDefault(); verify()">
+        <label class="sr-only" for="tf-code">{{ 'mfa.code' | t }}</label>
+        <input id="tf-code" class="two-factor__code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" [value]="code" (input)="code = $any($event.target).value" autofocus />
+        @if (error) { <div class="alert alert--error" role="alert"><app-icon name="alert-circle"></app-icon><span>{{ error }}</span></div> }
+        <button type="submit" class="btn btn--primary btn--lg" [disabled]="busy || code.replace(' ', '').length < 6">
+          @if (busy) { <span class="spinner spinner--sm"></span> } {{ 'mfa.verify' | t }}
+        </button>
+      </form>
+      <button type="button" class="btn btn--ghost btn--sm" (click)="signOut()">{{ 'nav.signOut' | t }}</button>
+    </section>
+  </main>
+</ion-content>

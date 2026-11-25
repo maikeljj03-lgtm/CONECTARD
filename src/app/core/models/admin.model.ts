@@ -122,7 +122,8 @@ export interface MediaFlag {
 export type AuditAction =
   | 'cambiar_rol' | 'bloquear' | 'desbloquear' | 'revisar_verificacion' | 'revisar_voluntario'
   | 'estado_reporte' | 'eliminar_comentario' | 'resolver_denuncias' | 'cancelar_jornada'
-  | 'asignar_reporte' | 'zona_institucion' | 'unir_duplicado' | 'descartar_duplicado';
+  | 'asignar_reporte' | 'zona_institucion' | 'unir_duplicado' | 'descartar_duplicado'
+  | 'ver_telefono' | 'registrar_sensor' | 'cambiar_sensor' | 'importar_catastro';
 
 export const AUDIT_LABELS: Record<AuditAction, string> = {
   cambiar_rol: 'Cambió el rol',
@@ -138,6 +139,10 @@ export const AUDIT_LABELS: Record<AuditAction, string> = {
   zona_institucion: 'Cambió la zona de una institución',
   unir_duplicado: 'Unió un reporte duplicado',
   descartar_duplicado: 'Descartó un posible duplicado',
+  ver_telefono: 'Vio un teléfono cifrado',
+  registrar_sensor: 'Registró un sensor',
+  cambiar_sensor: 'Activó o pausó un sensor',
+  importar_catastro: 'Importó zonas catastrales',
 };
 
 export const AUDIT_ICONS: Record<AuditAction, string> = {
@@ -154,6 +159,10 @@ export const AUDIT_ICONS: Record<AuditAction, string> = {
   zona_institucion: 'map',
   unir_duplicado: 'link',
   descartar_duplicado: 'check',
+  ver_telefono: 'lock',
+  registrar_sensor: 'cpu',
+  cambiar_sensor: 'cpu',
+  importar_catastro: 'layers',
 };
 
 /** Fila de admin_audit_entries(). */
@@ -161,7 +170,7 @@ export interface AuditEntry {
   id: number;
   actor_name: string;
   action: AuditAction;
-  target_type: 'usuario' | 'reporte' | 'comentario' | 'verificacion' | 'jornada' | 'denuncia';
+  target_type: 'usuario' | 'reporte' | 'comentario' | 'verificacion' | 'jornada' | 'denuncia' | 'sensor' | 'catastro';
   target_id: string | null;
   target_label: string | null;
   details: Record<string, unknown>;
@@ -212,4 +221,65 @@ export function formatHours(hours: number | null | undefined): string {
   if (h < 1) return `${Math.max(1, Math.round(h * 60))} min`;
   if (h < 48) return `${Math.round(h * 10) / 10} h`;
   return `${Math.round((h / 24) * 10) / 10} días`;
+}
+
+/** Sensor IoT (RF-58). */
+export interface IotDevice {
+  id: string;
+  name: string;
+  owner_name: string | null;
+  category: string;
+  metric: string;
+  unit: string;
+  threshold: number;
+  direction: 'mayor' | 'menor';
+  latitude: number;
+  longitude: number;
+  sector: string | null;
+  municipality: string | null;
+  province: string | null;
+  active: boolean;
+  last_value: number | null;
+  last_seen_at: string | null;
+  readings_24h: number;
+  open_report_id: string | null;
+  created_at: string;
+}
+
+export interface NewIotDevice {
+  name: string;
+  ownerId: string;
+  category: string;
+  metric: string;
+  unit: string;
+  threshold: number;
+  direction: 'mayor' | 'menor';
+  latitude: number;
+  longitude: number;
+  province: string;
+  municipality: string;
+  sector: string;
+}
+
+/** Resumen del catastro cargado (RF-59). */
+export interface CadastralSummary {
+  zones: number;
+  by_kind: Partial<Record<'publico' | 'privado' | 'protegido', number>>;
+  sources: string[];
+  reports_by_land: Partial<Record<'publico' | 'privado' | 'protegido' | 'desconocido', number>>;
+}
+
+export interface CadastralImportResult {
+  imported: number;
+  skipped: number;
+  reports_updated: number;
+  total: number;
+}
+
+/** Satisfacción por institución (RF-63). */
+export interface SatisfactionRow {
+  institution: string;
+  surveys: number;
+  avg_rating: number;
+  solved_share: number;
 }

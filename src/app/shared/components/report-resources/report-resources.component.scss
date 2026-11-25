@@ -35,7 +35,7 @@
   padding: 0 14px;
   border: 1.5px solid var(--crd-border-strong);
   border-radius: 999px;
-  background: #fff;
+  background: var(--crd-surface);
   color: var(--crd-ink);
   font: inherit;
   font-size: 13.5px;
@@ -51,7 +51,7 @@
   border: 0;
   border-radius: 999px;
   background: var(--crd-ink);
-  color: #fff;
+  color: var(--crd-on-ink);
   font: inherit;
   font-size: 13.5px;
   font-weight: 650;
@@ -80,7 +80,7 @@
   overflow: hidden;
   border: 1px solid var(--crd-border);
   border-radius: 18px;
-  background: #fff;
+  background: var(--crd-surface);
 }
 
 .request.is-closed { background: var(--crd-surface-2); }
@@ -118,7 +118,7 @@
   font-weight: 700;
 }
 
-.request__status--cerrada { background: var(--crd-ink); color: #fff; }
+.request__status--cerrada { background: var(--crd-ink); color: var(--crd-on-ink); }
 .request__status--cancelada { background: var(--crd-surface-3); color: var(--crd-text-3); }
 
 .request__chevron { flex: none; color: var(--crd-text-3); transition: transform .2s; }
@@ -205,7 +205,7 @@
     padding: 9px 11px;
     border: 1.5px solid var(--crd-border);
     border-radius: 11px;
-    background: #fff;
+    background: var(--crd-surface);
     color: var(--crd-ink);
     font: inherit;
     font-size: 14px;

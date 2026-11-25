@@ -38,7 +38,10 @@
           <dl class="details">
             <div><dt>RNC</dt><dd>{{ request.rnc || 'No indicado' }}</dd></div>
             <div><dt>Responsable</dt><dd>{{ request.contact_name }}</dd></div>
-            <div><dt>Teléfono</dt><dd>{{ request.contact_phone }}</dd></div>
+            <div><dt>Teléfono</dt><dd>
+              @if (phones[request.id]; as phone) { <a [href]="'tel:' + phone">{{ phone }}</a> }
+              @else { {{ request.contact_phone }} <button type="button" class="link-inline" (click)="revealPhone(request.id)" [disabled]="busyId === request.id" title="Se guarda cifrado; verlo queda en la auditoría">Ver completo</button> }
+            </dd></div>
             <div><dt>Cobertura</dt><dd>{{ request.coverage_area }}</dd></div>
           </dl>
 

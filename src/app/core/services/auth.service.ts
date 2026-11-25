@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import type { SocialProvider } from '../constants/social-providers';
 import type { RequestedRole } from '../models/profile.model';
+import { PwaService } from './pwa.service';
 
 /** Correo que está esperando el código de acceso (lo leen el guard y la pantalla del código). */
 export const PENDING_LOGIN_EMAIL = 'conectard.pending-login-email';
@@ -30,6 +31,7 @@ export interface SignUpProfile {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private readonly pwa = inject(PwaService);
   private clientPromise?: Promise<SupabaseClient>;
   private passwordClient?: SupabaseClient;
   private currentUserCache: User | null = null;
@@ -128,6 +130,18 @@ export class AuthService {
     if (!this.supabaseUrl) return null;
     const encoded = path.split('/').map(encodeURIComponent).join('/');
     return `${this.supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${bucket}/${encoded}`;
+  }
+
+  /** URL del proyecto de Supabase (sin "/" al final). */
+  async projectUrl(): Promise<string> {
+    await this.getClient();
+    return this.supabaseUrl.replace(/\/$/, '');
+  }
+
+  /** URL pública de una función de Supabase (por ejemplo, la API abierta, RF-57). */
+  async functionUrl(name: string): Promise<string> {
+    await this.getClient();
+    return `${this.supabaseUrl.replace(/\/$/, '')}/functions/v1/${name}`;
   }
 
   /** Cliente de Supabase compartido (para servicios de datos: perfiles, reportes, etc.). */
@@ -359,6 +373,8 @@ export class AuthService {
     if (!result.error) {
       this.currentUserCache = null;
       this.hasCurrentUserCache = true;
+      // La caché sin conexión de datos se borra para que la siguiente persona no vea la sesión anterior.
+      await this.pwa.clearDataCaches();
     }
     return result;
   }
